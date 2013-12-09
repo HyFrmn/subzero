@@ -1,0 +1,3 @@
+[submodule "vendor/sge"]
+	path = vendor/sge
+	url = https://github.com/HyFrmn/sgejs.git

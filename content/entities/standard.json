@@ -1,0 +1,75 @@
+{
+    "chara" : {
+        "xform" : {
+            "container": "entityContainer",
+            "offsetX" : -16,
+            "offsetY" : -12
+        },
+        "sprite" : {
+            "src" :  "albert"
+        },
+        "physics" : {},
+        "movement" : {},
+        "anim" : {
+            "frames": {
+                "walk_down" : [0,1,2],
+                "walk_up" : [9,10,11],
+                "walk_right" : [6,7,8],
+                "walk_left" : [3,4,5]
+            }
+        },
+         "highlight" : {
+
+         }
+    },
+    "pc" : {
+        "meta" : {
+            "inherit" : "chara"
+        },
+        "controls" : {},
+        "equipable" : {}
+    },
+    "citizen" : {
+        "meta" : {
+            "inherit" : "chara"
+        },
+        "interact" : {
+             "targets" : [[0,0.5]]
+            }
+
+    },
+    "tilecache" : {
+        "xform" : {
+            "container": "entityContainer"
+        },
+        "tilecache" : {}
+    },
+    "trigger" : {
+        "xform" : {
+            "container": "entityContainer"
+        }
+    },
+    "door" : {
+        "meta" : { "inherit" : "trigger" },
+        "door" : {},
+        "interact" : {
+             "targets" : [[0,-2],[0,0]]
+            },
+        "highlight" : {
+            "radius" : 32
+        }
+    },
+    "container" : {
+        "meta" : { "inherit" : "trigger" },
+        "container" : {},
+        "sprite" : {
+            "src" : "shelves",
+            "frame" : 1,
+            "offsetY" : -64,
+            "offsetX" : -16
+        }
+    },
+    "shelf" : {
+        "meta" : { "inherit" : "container" }
+    }
+}
