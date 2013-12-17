@@ -2,20 +2,28 @@
     "chara" : {
         "xform" : {
             "container": "entityContainer",
-            "offsetX" : -16,
-            "offsetY" : -12
+            "offsetX" : -32,
+            "offsetY" : -58,
+            "dir" : "down"
         },
         "sprite" : {
-            "src" :  "albert"
+            "src" :  "man_a"
         },
-        "physics" : {},
+        "physics" : {
+            "offsetX" : -6,
+            "offsetY" : -6
+            },
         "movement" : {},
         "anim" : {
             "frames": {
-                "walk_down" : [0,1,2],
-                "walk_up" : [9,10,11],
-                "walk_right" : [6,7,8],
-                "walk_left" : [3,4,5]
+                "walk_down" : [19,20,21,22,23,24,25,26],
+                "walk_up" : [1,2,3,4,5,6,7,8],
+                "walk_left" : [10,11,12,13,14,15,16,17],
+                "walk_right" : [28,29,30,31,32,33,34,35],
+                "stand_down" : [18],
+                "stand_up" : [0],
+                "stand_right" : [27],
+                "stand_left" : [9]
             }
         },
          "highlight" : {
@@ -34,7 +42,7 @@
             "inherit" : "chara"
         },
         "interact" : {
-             "targets" : [[0,0.5]]
+             "targets" : [[0,0]]
             }
 
     },

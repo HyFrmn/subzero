@@ -59,11 +59,11 @@ define(['sge'], function(sge, config){
         },
         interact: function(){
             var evt = 'interact';
-            this.entity.fireEvent(evt, this.state.pc);
+            this.entity.fireEvent(evt, {source: this.state.pc});
         },
         interactSecondary: function(){
             var evt = 'interact.secondary';
-            this.entity.fireEvent(evt, this.state.pc);
+            this.entity.fireEvent(evt, {source: this.state.pc});
         },
         register: function(state){
             this._super(state);

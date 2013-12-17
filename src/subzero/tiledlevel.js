@@ -8,7 +8,7 @@ function(sge, TileMap){
 
 	}
 
-	var TiledLevel = sge.Class.extend({
+	var TiledLevel = sge.Observable.extend({
 		updateEntity: function(name, entity){
 			var obj = this._entityMap[name];
 			if (!obj){
@@ -25,6 +25,7 @@ function(sge, TileMap){
 			}
 		},
 		init: function(state, levelData){
+			this._super();
 			this.map = new TileMap(levelData.width, levelData.height);
 			state.map = this.map;
 			this.container = new CAAT.ActorContainer();
@@ -73,7 +74,7 @@ function(sge, TileMap){
 				for (var i = layer.objects.length - 1; i >= 0; i--) {
 					var entityData = layer.objects[i];
 					if (entityData.name=='pc'){
-						this._entityMap[entityData.name] = {xform:{tx: entityData.x, ty: entityData.y}};
+						this._entityMap[entityData.name] = {xform:{tx: entityData.x+16, ty: entityData.y+16-32}}; //-32 For tiled hack.
 						continue;
 					}
 					if (state.factory.has(entityData.type)){
@@ -150,8 +151,9 @@ function(sge, TileMap){
 							}
 
 						}.bind(this));
-						eData = sge.util.deepExtend(eData, {xform: {tx: entityData.x+16, ty: entityData.y+16}});
+						eData = sge.util.deepExtend(eData, {xform: {tx: entityData.x+16, ty: entityData.y-32+16}}); //-32 for tiled hack.
 						var entity = state.factory.create(entityData.type, eData);
+						entity.name = entityData.name;
 						state.addEntity(entity);
 					} else {
 						console.log('Missing:', entityData.type);

@@ -145,12 +145,14 @@ define(['sge'], function(sge){
             var txA = entityA.get('xform.tx');
             var tyA = entityA.get('xform.ty');
             var widthA = entityA.get('physics.width');
-            var heightA = entityA.get('physics.height');;
+            var heightA = entityA.get('physics.height');
+            var offsetXA = entityA.get('physics.offsetX');
+            var offsetYA = entityA.get('physics.offsetY');
             var rectA = {
-                top: tyA - (heightA / 2),
-                bottom: tyA + (heightA / 2),
-                left: txA - (widthA / 2),
-                right: txA + (widthA / 2)
+                top: tyA - (heightA / 2) + offsetYA,
+                bottom: tyA + (heightA / 2) + offsetYA,
+                left: txA - (widthA / 2) + offsetXA,
+                right: txA + (widthA / 2) + offsetXA
             }
             
             var isStaticB= Boolean(entityB.get('physics.type') & TYPES.STATIC);
@@ -159,13 +161,15 @@ define(['sge'], function(sge){
             }
             var txB = entityB.get('xform.tx');
             var tyB = entityB.get('xform.ty');
-            var widthB = entityB.get('physics.width');;
-            var heightB = entityB.get('physics.height');;
+            var widthB = entityB.get('physics.width');
+            var heightB = entityB.get('physics.height');
+            var offsetXB = entityB.get('physics.offsetX');
+            var offsetYB = entityB.get('physics.offsetY');
             var rectB = {
-                top: tyB - (heightB / 2),
-                bottom: tyB + (heightB / 2),
-                left: txB - (widthB / 2),
-                right: txB + (widthB / 2)
+                top: tyB - (heightB / 2) + offsetYB,
+                bottom: tyB + (heightB / 2) + offsetYB,
+                left: txB - (widthB / 2) + offsetXB,
+                right: txB + (widthB / 2) + offsetXB
             }
             if (this.intersectRect(rectA, rectB)){
                 var contactKey = entityA.id + '.' + entityB.id;

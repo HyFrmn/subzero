@@ -1,6 +1,6 @@
 {
     "sprites" : [
-        "albert",
+        ["man_a",[64,64]],
         ["shelves", [32, 64]],
         "laser_hit",
         "man_1",

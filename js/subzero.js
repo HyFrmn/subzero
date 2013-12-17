@@ -2060,6 +2060,136 @@ define('sge/config',[],function(){
     };
 });
 
+/* Simple JavaScript Inheritance
+ * By John Resig http://ejohn.org/
+ * MIT Licensed.
+ */
+// Inspired by base2 and Prototype
+define('sge/lib/class',[],function(){
+  var initializing = false, fnTest = /xyz/.test(function(){xyz;}) ? /\b_super\b/ : /.*/;
+ 
+  // The base Class implementation (does nothing)
+  this.Class = function(){};
+ 
+  // Create a new Class that inherits from this class
+  Class.extend = function(prop) {
+    var _super = this.prototype;
+   
+    // Instantiate a base class (but only create the instance,
+    // don't run the init constructor)
+    initializing = true;
+    var prototype = new this();
+    initializing = false;
+   
+    // Copy the properties over onto the new prototype
+    for (var name in prop) {
+      // Check if we're overwriting an existing function
+      prototype[name] = typeof prop[name] == "function" &&
+        typeof _super[name] == "function" && fnTest.test(prop[name]) ?
+        (function(name, fn){
+          return function() {
+            var tmp = this._super;
+           
+            // Add a new ._super() method that is the same method
+            // but on the super-class
+            this._super = _super[name];
+           
+            // The method only need to be bound temporarily, so we
+            // remove it when we're done executing
+            var ret = fn.apply(this, arguments);        
+            this._super = tmp;
+           
+            return ret;
+          };
+        })(name, prop[name]) :
+        prop[name];
+    }
+   
+    // The dummy class constructor
+    function Class() {
+      // All construction is actually done in the init method
+      if ( !initializing && this.init )
+        this.init.apply(this, arguments);
+    }
+   
+    // Populate our constructed prototype object
+    Class.prototype = prototype;
+   
+    // Enforce the constructor to be what we expect
+    Class.prototype.constructor = Class;
+ 
+    // And make this class extendable
+    Class.extend = arguments.callee;
+   
+    return Class;
+  };
+
+  return Class
+});
+
+define('sge/observable',[
+    'sge/lib/class',
+    ], function(Class){
+    var Observable = Class.extend({
+    	init: function () {
+            this._listeners = {};
+        },
+
+        addListener: function (type, listener) {
+            if (!this._listeners[type]) {
+                this._listeners[type] = [];
+            }
+            this._listeners[type].push(listener);
+            return listener;
+        },
+
+        fireEvent: function () {
+        	var args = Array.prototype.slice.call(arguments);
+        	event = args.shift();
+            if (typeof(event) == "string") {
+                event = {
+                    type: event
+                }
+            }
+
+            if (!event.target) {
+                event.target = this;
+            }
+
+            if (!event.type) { //falsy
+                throw new Error("Event object missing 'type' property.");
+            }
+            
+            if (this._listeners[event.type]) {
+                var listeners = this._listeners[event.type].slice(0);
+                for (var i = 0, len = listeners.length; i < len; i++) {
+                    try {
+                        listeners[i].apply(this, args);
+                    } catch(err) {
+                        console.log("SandboxObservableError: " + err);
+                        console.log(err.stack);
+                        console.trace();
+                    }
+                }
+            }
+        },
+
+        removeListener: function (type, listener) {
+            if (this._listeners[type] instanceof Array) {
+                var listeners = this._listeners[type];
+                for (var i = 0, len = listeners.length; i < len; i++) {
+                    if (listeners[i] === listener) {
+                        var func = listeners.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+        }
+	})
+
+    return Observable;
+});
+
 //     Underscore.js 1.4.4
 //     http://underscorejs.org
 //     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud Inc.
@@ -30739,73 +30869,6 @@ define("sge/vendor/caat", (function (global) {
     };
 }(this)));
 
-/* Simple JavaScript Inheritance
- * By John Resig http://ejohn.org/
- * MIT Licensed.
- */
-// Inspired by base2 and Prototype
-define('sge/lib/class',[],function(){
-  var initializing = false, fnTest = /xyz/.test(function(){xyz;}) ? /\b_super\b/ : /.*/;
- 
-  // The base Class implementation (does nothing)
-  this.Class = function(){};
- 
-  // Create a new Class that inherits from this class
-  Class.extend = function(prop) {
-    var _super = this.prototype;
-   
-    // Instantiate a base class (but only create the instance,
-    // don't run the init constructor)
-    initializing = true;
-    var prototype = new this();
-    initializing = false;
-   
-    // Copy the properties over onto the new prototype
-    for (var name in prop) {
-      // Check if we're overwriting an existing function
-      prototype[name] = typeof prop[name] == "function" &&
-        typeof _super[name] == "function" && fnTest.test(prop[name]) ?
-        (function(name, fn){
-          return function() {
-            var tmp = this._super;
-           
-            // Add a new ._super() method that is the same method
-            // but on the super-class
-            this._super = _super[name];
-           
-            // The method only need to be bound temporarily, so we
-            // remove it when we're done executing
-            var ret = fn.apply(this, arguments);        
-            this._super = tmp;
-           
-            return ret;
-          };
-        })(name, prop[name]) :
-        prop[name];
-    }
-   
-    // The dummy class constructor
-    function Class() {
-      // All construction is actually done in the init method
-      if ( !initializing && this.init )
-        this.init.apply(this, arguments);
-    }
-   
-    // Populate our constructed prototype object
-    Class.prototype = prototype;
-   
-    // Enforce the constructor to be what we expect
-    Class.prototype.constructor = Class;
- 
-    // And make this class extendable
-    Class.extend = arguments.callee;
-   
-    return Class;
-  };
-
-  return Class
-});
-
 define('sge/renderer',['sge/vendor/underscore', 'sge/vendor/caat', 'sge/lib/class'], function(_, CAAT, Class){
     var Renderer = {
     	SPRITESHEETS : {}
@@ -30859,69 +30922,6 @@ define('sge/engine',['sge/lib/class',], function(Class){
 		}
 	});
 	return Engine
-});
-
-define('sge/observable',[
-    'sge/lib/class',
-    ], function(Class){
-    var Observable = Class.extend({
-    	init: function () {
-            this._listeners = {};
-        },
-
-        addListener: function (type, listener) {
-            if (!this._listeners[type]) {
-                this._listeners[type] = [];
-            }
-            this._listeners[type].push(listener);
-            return listener;
-        },
-
-        fireEvent: function () {
-        	var args = Array.prototype.slice.call(arguments);
-        	event = args.shift();
-            if (typeof(event) == "string") {
-                event = {
-                    type: event
-                }
-            }
-
-            if (!event.target) {
-                event.target = this;
-            }
-
-            if (!event.type) { //falsy
-                throw new Error("Event object missing 'type' property.");
-            }
-            
-            if (this._listeners[event.type]) {
-                var listeners = this._listeners[event.type].slice(0);
-                for (var i = 0, len = listeners.length; i < len; i++) {
-                    try {
-                        listeners[i].apply(this, args);
-                    } catch(err) {
-                        console.log("SandboxObservableError: " + err);
-                        console.log(err.stack);
-                        console.trace();
-                    }
-                }
-            }
-        },
-
-        removeListener: function (type, listener) {
-            if (this._listeners[type] instanceof Array) {
-                var listeners = this._listeners[type];
-                for (var i = 0, len = listeners.length; i < len; i++) {
-                    if (listeners[i] === listener) {
-                        var func = listeners.splice(i, 1);
-                        break;
-                    }
-                }
-            }
-        }
-	})
-
-    return Observable;
 });
 
 define('sge/component',['sge/lib/class'], function(Class){
@@ -31176,7 +31176,7 @@ define('sge/components/anim',['sge/component'], function(Component){
 			this.frameLength = null;
 			this.setAnim(this.data.anim || key);
 		},
-		tick : function(delta){
+		render : function(delta){
 			if (this.data.play){
 				this._lastUpdate = this._lastUpdate - delta;
 				if (this._lastUpdate <= 0){
@@ -31198,6 +31198,8 @@ define('sge/components/anim',['sge/component'], function(Component){
 		_set_anim : function(value) {
 			if (value != this.current){
 				this.setAnim(value);
+				this.frame=0;
+				this.entity.set('sprite.frame', this.currentAnim[this.frame]);
 			}
 		},
 		hasAnim: function(name){
@@ -31291,7 +31293,7 @@ define('sge/components/xform',['sge/component'], function(Component){
 		render: function(renderer, layer){
 			var tx = this.entity.get('xform.tx');
             var ty = this.entity.get('xform.ty');
-			this.container.setLocation(tx + this.get('offsetX'), ty + this.get('offsetY'));
+			this.container.setLocation(Math.round(tx + this.get('offsetX')), Math.round(ty + this.get('offsetY')));
 		}
 	});
 	Component.register('xform', XFormComponent);
@@ -31324,12 +31326,16 @@ define('sge/components/movement',['sge/component'], function(Component){
             var dy = vy * this.get('speed');
             this.entity.set('xform.vx', dx);
             this.entity.set('xform.vy', dy);
+        },
+        render: function(){
+            var vx = this.get('vx');
+            var vy = this.get('vy');
             var movement = (Math.abs(vx) > 0) || (Math.abs(vy) > 0);
             var animComp = this.entity.get('anim');
             if (movement){
+                this.entity.set('anim.play', true);
                 this.entity.fireEvent('movement.update');
                 if (animComp){
-                    this.entity.set('anim.play', true)
                     if (!this.get('strafe')){
                         if (Math.abs(vx) > Math.abs(vy)){
                             if (vx > 0){
@@ -31351,7 +31357,14 @@ define('sge/components/movement',['sge/component'], function(Component){
                     }
                 } 
             } else {
-                this.entity.set('anim.play', false);
+                if (animComp){
+                    //this.entity.set('anim.play', false);
+                    if (!this.get('strafe')){
+                        var dir = this.entity.get('xform.dir');
+                        this.entity.set('anim.anim', 'stand_' + dir);
+                        this.entity.set('anim.play', false);
+                    }
+                }
             }
         }
     });
@@ -32161,6 +32174,9 @@ function(Class, Observable){
         isPressed: function(keyCode){
             return this._input.isPressed(keyCode);
         },
+        isDown: function(keyCode){
+            return this._input.isDown(keyCode);
+        },
         dpad: function(){
             var xaxis = 0;
             var yaxis = 0;
@@ -32178,16 +32194,16 @@ function(Class, Observable){
                     xaxis--;
                 }
             } else {
-                if (this.isPressed('down')){
+                if (this.isDown('down')){
                     yaxis++;
                 }
-                if (this.isPressed('up')){
+                if (this.isDown('up')){
                     yaxis--;
                 }
-                if (this.isPressed('right')){
+                if (this.isDown('right')){
                     xaxis++;
                 }
-                if (this.isPressed('left')){
+                if (this.isDown('left')){
                     xaxis--;
                 }
             }
@@ -32204,6 +32220,8 @@ function(Class, Observable){
             this._proxies = [];
             this._events = [];
             this.joystick = null;
+            this._isKeyPress = {};
+
             var cvs = document.getElementById('game');
             if ('ontouchstart' in window){
                 var canvas = document.getElementById('game');
@@ -32341,17 +32359,23 @@ function(Class, Observable){
             this._isKeyDown[e.keyCode] = undefined;
         },
         isPressed : function(keyCode){
+            return (this._isKeyPress[KEYCODES[keyCode]] === true);
+        },
+        isDown : function(keyCode){
             return (this._isKeyDown[KEYCODES[keyCode]] === true);
         },
         tick : function(){
-           var keys = Object.keys(this._isNewKeyDown);
+           this._isKeyPress = {};
+           keys = Object.keys(this._isNewKeyDown);
+           
            for (var i = keys.length - 1; i >= 0; i--) {
                 var keyCode = keys[i];
                 this._isKeyDown[keyCode] = true;
+                this._isKeyPress[keyCode] = true;
                 delete this._isNewKeyDown[keyCode];
-
                 this.fireEvent('keydown:' + REVERSE_KEYCODES[keyCode])
-           };
+           }
+
            for (var j = this._events.length - 1; j >= 0; j--) {
                this.fireEvent(this._events[j]);
            }
@@ -32422,7 +32446,7 @@ function(_, util, Class, StateMachine, Engine, GameState, Input, Renderer){
             this.scene.addChild(instruct);
             this.startGame = function(){
                 this.game._states['game'] = new this.game._gameState(this.game, 'Game');
-                this.game.fsm.startLoad();    
+                this.game.fsm.startLoad();
             }.bind(this);
             this.startState();
             this.input.addListener('keydown:enter', this.startGame);
@@ -32514,10 +32538,12 @@ function(_, util, Class, StateMachine, Engine, GameState, Input, Renderer){
         initState: function(){
             var width = this.game.renderer.width;
             var height = this.game.renderer.height;
-            var title = new CAAT.TextActor().setText('Paused').setLocation(width/2,height/2);
-            var instruct = new CAAT.TextActor().setText('Press Enter to Start').setLocation(width/2,height/2) + 32;
-            this.scene.addChild(title);
-            //this.scene.addChild(instruct);
+            this.title = new CAAT.TextActor().setText('Paused');
+            this.instruct = new CAAT.TextActor().setText('Press Enter to Start');
+            this.background = new CAAT.ShapeActor().setShape(CAAT.ShapeActor.SHAPE_RECT).setFillStyle('black').setLocation(0,0);
+            this.scene.addChild(this.background)
+            this.scene.addChild(this.title);
+            this.scene.addChild(this.instruct);
             this.unpause = function(){
                 this.game.fsm.unpause();
             }.bind(this);
@@ -32526,6 +32552,11 @@ function(_, util, Class, StateMachine, Engine, GameState, Input, Renderer){
         },
         startState : function(){
             this._super();
+            var width = this.game.renderer.width;
+            var height = this.game.renderer.height;
+            this.title.setLocation(width/2,height/2);
+            this.instruct.setLocation(0,0);
+            this.background.setSize(width,height);
             if (this.elem){
                 this.elem.fadeIn();
             }
@@ -32570,6 +32601,7 @@ function(_, util, Class, StateMachine, Engine, GameState, Input, Renderer){
             this.data = {};
             this._tick = 0;
             this._last = 0;
+            this._time = 0;
             this._lastRender = 0;
             this._gameState = DefaultGame;
 
@@ -32595,12 +32627,12 @@ function(_, util, Class, StateMachine, Engine, GameState, Input, Renderer){
                     onleavestate: function(evt, from, to){
                         if (from=="none"){return};
                         //console.log('Leaving:', from)
-                        this._states[from].endState(evt, from, to);
+                        this._states[from].endState.apply(this._states[from], arguments);
                     }.bind(this),
                     onenterstate: function(evt, from, to){
                         if (from=="none"){return};
                         //console.log('Entering:', to)
-                        this._states[to].startState(evt, from, to);
+                        this._states[to].startState.apply(this._states[to], arguments);
                         this.state = this._states[to];
                     }.bind(this)
                 }
@@ -32632,6 +32664,7 @@ function(_, util, Class, StateMachine, Engine, GameState, Input, Renderer){
         postRender: function(){},
         tick: function(delta){
             this.input.tick();
+            this._time += delta;
             if (this.state!=null){
                 this.state._time += delta;
                 this.state.tick(delta);
@@ -33930,6 +33963,7 @@ define('sge/loader',['sge/renderer','sge/vendor/when', 'sge/lib/class', 'sge/lib
 	return Loader;
 });
 define('sge/main',['sge/config',
+        'sge/observable',
         'sge/renderer',
         'sge/engine',
         'sge/entity',
@@ -33950,6 +33984,7 @@ define('sge/main',['sge/config',
         ],
 function(
       config,
+      Observable,
       Renderer,
       Engine,
       Entity,
@@ -33970,6 +34005,7 @@ function(
         ){
    return {
         config: config,
+        Observable: Observable,
         Renderer: Renderer,
         Engine : Engine,
         Entity : Entity,
@@ -33997,7 +34033,346 @@ define('sge', ['sge/main'], function (main) { return main; });
 define('subzero/tilemap',[
 	'sge',
 	], 
+
+	// javascript-astar
+    // http://github.com/bgrins/javascript-astar
+    // Freely distributable under the MIT License.
+    // Implements the astar search algorithm in javascript using a binary heap.
+
+    // javascript-astar
+    // http://github.com/bgrins/javascript-astar
+    // Freely distributable under the MIT License.
+    // Includes Binary Heap (with modifications) from Marijn Haverbeke. 
+    // http://eloquentjavascript.net/appendix2.html
+    
+
 	function(sge){
+
+		var GraphNodeType = { 
+        OPEN: 1, 
+        WALL: 0 
+    };
+
+    // Creates a Graph class used in the astar search algorithm.
+    function Graph(grid) {
+        var nodes = [];
+
+        for (var x = 0; x < grid.length; x++) {
+            nodes[x] = [];
+            
+            for (var y = 0, row = grid[x]; y < row.length; y++) {
+                nodes[x][y] = new GraphNode(x, y, row[y]);
+            }
+        }
+
+        this.input = grid;
+        this.nodes = nodes;
+    }
+
+    Graph.prototype.toString = function() {
+        var graphString = "\n";
+        var nodes = this.nodes;
+        var rowDebug, row, y, l;
+        for (var x = 0, len = nodes.length; x < len; x++) {
+            rowDebug = "";
+            row = nodes[x];
+            for (y = 0, l = row.length; y < l; y++) {
+                rowDebug += row[y].type + " ";
+            }
+            graphString = graphString + rowDebug + "\n";
+        }
+        return graphString;
+    };
+
+    function GraphNode(x,y,type) {
+        this.data = { };
+        this.x = x;
+        this.y = y;
+        this.pos = {
+            x: x, 
+            y: y
+        };
+        this.type = type;
+    }
+
+    GraphNode.prototype.toString = function() {
+        return "[" + this.x + " " + this.y + "]";
+    };
+
+    GraphNode.prototype.isWall = function() {
+        return this.type == GraphNodeType.WALL;
+    };
+
+
+    function BinaryHeap(scoreFunction){
+        this.content = [];
+        this.scoreFunction = scoreFunction;
+    }
+
+    BinaryHeap.prototype = {
+        push: function(element) {
+            // Add the new element to the end of the array.
+            this.content.push(element);
+
+            // Allow it to sink down.
+            this.sinkDown(this.content.length - 1);
+        },
+        pop: function() {
+            // Store the first element so we can return it later.
+            var result = this.content[0];
+            // Get the element at the end of the array.
+            var end = this.content.pop();
+            // If there are any elements left, put the end element at the
+            // start, and let it bubble up.
+            if (this.content.length > 0) {
+                 this.content[0] = end;
+                 this.bubbleUp(0);
+            }
+            return result;
+        },
+        remove: function(node) {
+            var i = this.content.indexOf(node);
+        
+            // When it is found, the process seen in 'pop' is repeated
+            // to fill up the hole.
+            var end = this.content.pop();
+
+            if (i !== this.content.length - 1) {
+                this.content[i] = end;
+                
+                if (this.scoreFunction(end) < this.scoreFunction(node)) {
+                    this.sinkDown(i);
+                }
+                else {
+                    this.bubbleUp(i);
+                }
+            }
+        },
+        size: function() {
+            return this.content.length;
+        },
+        rescoreElement: function(node) {
+            this.sinkDown(this.content.indexOf(node));
+        },
+        sinkDown: function(n) {
+            // Fetch the element that has to be sunk.
+            var element = this.content[n];
+
+            // When at 0, an element can not sink any further.
+            while (n > 0) {
+
+                // Compute the parent element's index, and fetch it.
+                var parentN = ((n + 1) >> 1) - 1,
+                    parent = this.content[parentN];
+                // Swap the elements if the parent is greater.
+                if (this.scoreFunction(element) < this.scoreFunction(parent)) {
+                    this.content[parentN] = element;
+                    this.content[n] = parent;
+                    // Update 'n' to continue at the new position.
+                    n = parentN;
+                }
+
+                // Found a parent that is less, no need to sink any further.
+                else {
+                    break;
+                }
+            }
+        },
+        bubbleUp: function(n) {
+            // Look up the target element and its score.
+            var length = this.content.length,
+                element = this.content[n],
+                elemScore = this.scoreFunction(element);
+            
+            while(true) {
+                // Compute the indices of the child elements.
+                var child2N = (n + 1) << 1, child1N = child2N - 1;
+                // This is used to store the new position of the element,
+                // if any.
+                var swap = null;
+                // If the first child exists (is inside the array)...
+                if (child1N < length) {
+                // Look it up and compute its score.
+                var child1 = this.content[child1N],
+                    child1Score = this.scoreFunction(child1);
+
+                // If the score is less than our element's, we need to swap.
+                if (child1Score < elemScore)
+                    swap = child1N;
+                }
+
+                // Do the same checks for the other child.
+                if (child2N < length) {
+                    var child2 = this.content[child2N],
+                        child2Score = this.scoreFunction(child2);
+                    if (child2Score < (swap === null ? elemScore : child1Score)) {
+                        swap = child2N;
+                    }
+                }
+
+                // If the element needs to be moved, swap it, and continue.
+                if (swap !== null) {
+                    this.content[n] = this.content[swap];
+                    this.content[swap] = element;
+                    n = swap;
+                }
+
+                // Otherwise, we are done.
+                else {
+                    break;
+                }
+            }
+        }
+    };
+    var astar = {
+        init: function(grid) {
+            for(var x = 0, xl = grid.length; x < xl; x++) {
+                for(var y = 0, yl = grid[x].length; y < yl; y++) {
+                    var node = grid[x][y];
+                    node.f = 0;
+                    node.g = 0;
+                    node.h = 0;
+                    node.cost = node.type;
+                    node.visited = false;
+                    node.closed = false;
+                    node.parent = null;
+                }
+            }
+        },
+        heap: function() {
+            return new BinaryHeap(function(node) { 
+                return node.f; 
+            });
+        },
+        search: function(grid, start, end, diagonal, heuristic) {
+            astar.init(grid);
+            heuristic = heuristic || astar.manhattan;
+            diagonal = !!diagonal;
+
+            var openHeap = astar.heap();
+
+            openHeap.push(start);
+
+            while(openHeap.size() > 0) {
+
+                // Grab the lowest f(x) to process next.  Heap keeps this sorted for us.
+                var currentNode = openHeap.pop();
+
+                // End case -- result has been found, return the traced path.
+                if(currentNode === end) {
+                    var curr = currentNode;
+                    var ret = [];
+                    while(curr.parent) {
+                        ret.push(curr);
+                        curr = curr.parent;
+                    }
+                    return ret.reverse();
+                }
+
+                // Normal case -- move currentNode from open to closed, process each of its neighbors.
+                currentNode.closed = true;
+
+                // Find all neighbors for the current node. Optionally find diagonal neighbors as well (false by default).
+                var neighbors = astar.neighbors(grid, currentNode, diagonal);
+
+                for(var i=0, il = neighbors.length; i < il; i++) {
+                    var neighbor = neighbors[i];
+
+                    if(neighbor.closed || neighbor.isWall()) {
+                        // Not a valid node to process, skip to next neighbor.
+                        continue;
+                    }
+
+                    // The g score is the shortest distance from start to current node.
+                    // We need to check if the path we have arrived at this neighbor is the shortest one we have seen yet.
+                    var gScore = currentNode.g + neighbor.cost;
+                    var beenVisited = neighbor.visited;
+
+                    if(!beenVisited || gScore < neighbor.g) {
+
+                        // Found an optimal (so far) path to this node.  Take score for node to see how good it is.
+                        neighbor.visited = true;
+                        neighbor.parent = currentNode;
+                        neighbor.h = neighbor.h || heuristic(neighbor.pos, end.pos);
+                        neighbor.g = gScore;
+                        neighbor.f = neighbor.g + neighbor.h;
+
+                        if (!beenVisited) {
+                            // Pushing to heap will put it in proper place based on the 'f' value.
+                            openHeap.push(neighbor);
+                        }
+                        else {
+                            // Already seen the node, but since it has been rescored we need to reorder it in the heap
+                            openHeap.rescoreElement(neighbor);
+                        }
+                    }
+                }
+            }
+
+            // No result was found - empty array signifies failure to find path.
+            return [];
+        },
+        manhattan: function(pos0, pos1) {
+            // See list of heuristics: http://theory.stanford.edu/~amitp/GameProgramming/Heuristics.html
+
+            var d1 = Math.abs (pos1.x - pos0.x);
+            var d2 = Math.abs (pos1.y - pos0.y);
+            return d1 + d2;
+        },
+        neighbors: function(grid, node, diagonals) {
+            var ret = [];
+            var x = node.x;
+            var y = node.y;
+
+            // West
+            if(grid[x-1] && grid[x-1][y]) {
+                ret.push(grid[x-1][y]);
+            }
+
+            // East
+            if(grid[x+1] && grid[x+1][y]) {
+                ret.push(grid[x+1][y]);
+            }
+
+            // South
+            if(grid[x] && grid[x][y-1]) {
+                ret.push(grid[x][y-1]);
+            }
+
+            // North
+            if(grid[x] && grid[x][y+1]) {
+                ret.push(grid[x][y+1]);
+            }
+
+            if (diagonals) {
+
+                // Southwest
+                if(grid[x-1] && grid[x-1][y-1]) {
+                    ret.push(grid[x-1][y-1]);
+                }
+
+                // Southeast
+                if(grid[x+1] && grid[x+1][y-1]) {
+                    ret.push(grid[x+1][y-1]);
+                }
+
+                // Northwest
+                if(grid[x-1] && grid[x-1][y+1]) {
+                    ret.push(grid[x-1][y+1]);
+                }
+
+                // Northeast
+                if(grid[x+1] && grid[x+1][y+1]) {
+                    ret.push(grid[x+1][y+1]);
+                }
+
+            }
+
+            return ret;
+        }
+    };
+
+
 		var Tile = Class.extend({
 	        init: function(x, y){
 	            this.x = x;
@@ -34144,7 +34519,7 @@ define('subzero/tilemap',[
 	            for (x=0;x<this.width;x++){
 	                var row = []
 	                for (y=0;y<this.height;y++){
-	                    row.push(this.getTile(x, y).passable==true ? 1 : 0);
+	                    row.push(this.getTile(x, y).data.passable==true ? 1 : 0);
 	                }
 	                graph.push(row);
 	            }
@@ -34299,7 +34674,7 @@ function(sge, TileMap){
 
 	}
 
-	var TiledLevel = sge.Class.extend({
+	var TiledLevel = sge.Observable.extend({
 		updateEntity: function(name, entity){
 			var obj = this._entityMap[name];
 			if (!obj){
@@ -34316,6 +34691,7 @@ function(sge, TileMap){
 			}
 		},
 		init: function(state, levelData){
+			this._super();
 			this.map = new TileMap(levelData.width, levelData.height);
 			state.map = this.map;
 			this.container = new CAAT.ActorContainer();
@@ -34364,7 +34740,7 @@ function(sge, TileMap){
 				for (var i = layer.objects.length - 1; i >= 0; i--) {
 					var entityData = layer.objects[i];
 					if (entityData.name=='pc'){
-						this._entityMap[entityData.name] = {xform:{tx: entityData.x, ty: entityData.y}};
+						this._entityMap[entityData.name] = {xform:{tx: entityData.x+16, ty: entityData.y+16-32}}; //-32 For tiled hack.
 						continue;
 					}
 					if (state.factory.has(entityData.type)){
@@ -34441,8 +34817,9 @@ function(sge, TileMap){
 							}
 
 						}.bind(this));
-						eData = sge.util.deepExtend(eData, {xform: {tx: entityData.x+16, ty: entityData.y+16}});
+						eData = sge.util.deepExtend(eData, {xform: {tx: entityData.x+16, ty: entityData.y-32+16}}); //-32 for tiled hack.
 						var entity = state.factory.create(entityData.type, eData);
+						entity.name = entityData.name;
 						state.addEntity(entity);
 					} else {
 						console.log('Missing:', entityData.type);
@@ -34755,12 +35132,14 @@ define('subzero/physics',['sge'], function(sge){
             var txA = entityA.get('xform.tx');
             var tyA = entityA.get('xform.ty');
             var widthA = entityA.get('physics.width');
-            var heightA = entityA.get('physics.height');;
+            var heightA = entityA.get('physics.height');
+            var offsetXA = entityA.get('physics.offsetX');
+            var offsetYA = entityA.get('physics.offsetY');
             var rectA = {
-                top: tyA - (heightA / 2),
-                bottom: tyA + (heightA / 2),
-                left: txA - (widthA / 2),
-                right: txA + (widthA / 2)
+                top: tyA - (heightA / 2) + offsetYA,
+                bottom: tyA + (heightA / 2) + offsetYA,
+                left: txA - (widthA / 2) + offsetXA,
+                right: txA + (widthA / 2) + offsetXA
             }
             
             var isStaticB= Boolean(entityB.get('physics.type') & TYPES.STATIC);
@@ -34769,13 +35148,15 @@ define('subzero/physics',['sge'], function(sge){
             }
             var txB = entityB.get('xform.tx');
             var tyB = entityB.get('xform.ty');
-            var widthB = entityB.get('physics.width');;
-            var heightB = entityB.get('physics.height');;
+            var widthB = entityB.get('physics.width');
+            var heightB = entityB.get('physics.height');
+            var offsetXB = entityB.get('physics.offsetX');
+            var offsetYB = entityB.get('physics.offsetY');
             var rectB = {
-                top: tyB - (heightB / 2),
-                bottom: tyB + (heightB / 2),
-                left: txB - (widthB / 2),
-                right: txB + (widthB / 2)
+                top: tyB - (heightB / 2) + offsetYB,
+                bottom: tyB + (heightB / 2) + offsetYB,
+                left: txB - (widthB / 2) + offsetXB,
+                right: txB + (widthB / 2) + offsetXB
             }
             if (this.intersectRect(rectA, rectB)){
                 var contactKey = entityA.id + '.' + entityB.id;
@@ -34933,6 +35314,8 @@ define('subzero/components/physics',['sge'], function(sge){
 			this._super(entity, data);
 			this.data.width = data.width || 24;
 			this.data.height = data.height || 24;
+			this.data.offsetX = data.offsetX || 0;
+			this.data.offsetY = data.offsetY || 0;
 			this.data.type = data.type || 0;
 			this.data.fast = data.fast || false;
 			this._wait = true; //Don't move on first frame after being spawned.
@@ -35487,6 +35870,389 @@ define('subzero/interaction',['sge'],function(sge){
 
 	return Interact;
 });
+define('subzero/events',['sge'],
+	function(sge){
+		var EventAction = sge.Class.extend({
+            init:  function(data){
+                this.data = data; 
+                this.complete = false;
+                this.async = false;        //Is this action asyncronys.
+                this.cutscene = false;     //Is the action part of a cutscene. (Should gameplay be stopped?).
+            },
+            tick: function(){
+                this.end();
+            },
+            end: function(){
+                this.complete = true;
+            },
+            start: function(state){
+            	this.state=state;
+            }
+        });
+
+        EventAction._classMap = {};
+        EventAction.set = function(name, cls){
+            EventAction._classMap[name] = cls;
+        };
+        EventAction.get = function(name){
+            return EventAction._classMap[name];
+        }
+
+        var DialogAction = EventAction.extend({
+            init: function(data){
+                this._super(data);
+                this.cutscene = true;
+            },
+            start: function(state){
+            	this._super(state);
+            	this.async = true;
+                this._dialog = data.dialog;
+                this.width = state.game.renderer.width - 64;
+                this.height = state.game.renderer.height - 64;
+                this.padding = 64;
+                this._container = new CAAT.ActorContainer().setBounds(32,32,this.width,this.height);
+                this._background = new CAAT.ShapeActor().setShape(CAAT.ShapeActor.SHAPE_RECT).setBounds(0,0,this.width, this.height).setFillStyle('black').setAlpha(0.65);
+                this._container.addChild(this._background);
+                this.setDialogText(this.data.dialog);
+                this.state.scene.addChild(this._container);
+                
+            },
+            end: function(){
+                this._super();
+                this.state.scene.removeChild(this._container);
+            },
+            tick: function(){
+                if (this.state.input.isPressed('space')){
+                    this.end();
+                }
+            },
+            setDialogText: function(dialog){
+                //this._clearScreen();
+                var chunks = dialog.split(' ');
+                var count = chunks.length;
+                var start = 0;
+                var end = 0;
+                var actor = new CAAT.TextActor().setFont('24px sans-serif');
+                var y = 0;
+                var testWidth = this.state.game.renderer.width - 64;
+                var dialogContainer = new CAAT.ActorContainer().setSize(360,60);
+                while (end<=count){
+                    var test = chunks.slice(start, end).join(' ');
+                    actor.setText(test);
+                    actor.calcTextSize(this.state.game.renderer);
+                    if (actor.textWidth > (testWidth)){
+                        end--;
+                        actor.setLocation(16,y).setText(chunks.slice(start, end).join(' '));
+                        dialogContainer.addChild(actor);
+                        y+=24;
+                        start = end;
+                        end = start + 1;
+                        actor = new CAAT.TextActor().setFont('24px sans-serif');
+                    } else {
+                        end++;
+                    }
+                }
+                actor.setLocation(16,y);
+                dialogContainer.addChild(actor);
+                dialogContainer.setLocation(0,0);
+                //dialogContainer.setLocation(16, this.state.game.renderer.height - (y+96));
+                dialogContainer.cacheAsBitmap();
+                this._container.addChild(dialogContainer);
+                //this.instructions.setText(DIALOG_INSTRUCTIONS);
+                //this.backDrop.setVisible(true);
+                //this.backDrop.setLocation(12, this.state.game.renderer.height - (y+100));
+                //this.awaitInteraction();
+            }
+        });
+        EventAction.set('dialog', DialogAction);
+
+        var QuestionAction = EventAction.extend({
+            init: function(data){
+                this._super(data);
+                this.cutscene = true;
+                this.responses = data.responses || ['Yes','No'];
+                this._index = 0;
+            },
+            start: function(state){
+                this._super(state);
+                this.async = true;
+                this._dialog = data.dialog;
+                this.width = state.game.renderer.width - 64;
+                this.height = state.game.renderer.height - 64;
+                this.padding = 64;
+                this._container = new CAAT.ActorContainer().setBounds(32,32,this.width,this.height);
+                this._background = new CAAT.ShapeActor().setShape(CAAT.ShapeActor.SHAPE_RECT).setBounds(0,0,this.width, this.height).setFillStyle('black').setAlpha(0.65);
+                this._container.addChild(this._background);
+                this.setDialogText(this.data.dialog);
+                this.state.scene.addChild(this._container);
+                
+            },
+            end: function(){
+                result = this.responses[this._index];
+                console.log('Result:', result);
+                this._super();
+                this.state.scene.removeChild(this._container);
+            },
+            tick: function(){
+                if (this.state.input.isPressed('space')){
+                    this.end();
+                }
+
+                if (this.state.input.isPressed('up')){
+                    this.up();
+                }
+
+                if (this.state.input.isPressed('down')){
+                    this.down();
+                }
+            },
+            up : function(){
+                this._index += 1;
+                if (this._index>=this.responses.length){
+                    this._index=0;
+                }
+                this.setDialogText(this.data.dialog);
+            },
+            down: function(){
+                this._index -= 1;
+                if (this._index<0){
+                    this._index=this.responses.length-1;
+                }
+                this.setDialogText(this.data.dialog);
+            },
+            setDialogText: function(dialog){
+                //this._clearScreen();
+                var chunks = dialog.split(' ');
+                var count = chunks.length;
+                var start = 0;
+                var end = 0;
+                var actor = new CAAT.TextActor().setFont('24px sans-serif');
+                var y = 0;
+                var testWidth = this.state.game.renderer.width - 64;
+                var dialogContainer = new CAAT.ActorContainer().setSize(360,60);
+                while (end<=count){
+                    var test = chunks.slice(start, end).join(' ');
+                    actor.setText(test);
+                    actor.calcTextSize(this.state.game.renderer);
+                    if (actor.textWidth > (testWidth)){
+                        end--;
+                        actor.setLocation(16,y).setText(chunks.slice(start, end).join(' '));
+                        dialogContainer.addChild(actor);
+                        y+=24;
+                        start = end;
+                        end = start + 1;
+                        actor = new CAAT.TextActor().setFont('24px sans-serif');
+                    } else {
+                        end++;
+                    }
+                }
+                actor.setLocation(16,y);
+                dialogContainer.addChild(actor);
+                
+
+                for (var k=0;k<this.responses.length;k++){
+                    y+=24
+                    actor = new CAAT.TextActor().setFont('24px sans-serif');
+                    actor.setText(this.responses[k]);
+                    if (k==this._index){
+                        actor.setTextFillStyle('orange');
+                    }
+                    dialogContainer.addChild(actor);
+                    actor.setLocation(16,y);
+                }
+
+                dialogContainer.setLocation(0,0);
+                dialogContainer.cacheAsBitmap();
+                this._container.addChild(dialogContainer);
+            }
+        });
+        EventAction.set('question', QuestionAction);
+
+        var NavAction = EventAction.extend({
+            init: function(data){
+                this._super(data);
+                this.cutscene = true;
+            },
+            start: function(state){
+                this._super(state);
+                console.log('Start Nav');
+                this.calcPath();
+            },
+            calcPath: function(){
+                this.entity = this.state.gameState.getEntityByName(this.data.entity);
+                this.target = this.state.gameState.getEntityByName(this.data.target);
+                console.log(this.entity, this.target);
+                var tx = this.entity.get('xform.tx');
+                var ty = this.entity.get('xform.ty');
+                var tileX = Math.floor(tx/32);
+                var tileY = Math.floor(ty/32);
+                var tx2 = this.target.get('xform.tx');
+                var ty2 = this.target.get('xform.ty');
+                var endTileX = Math.floor(tx2/32);
+                var endTileY = Math.floor(ty2/32);
+                this.pathPoints = this.state.gameState.map.getPath(tileX, tileY,endTileX,endTileY);
+            },
+            tick : function(delta){
+                if (this.pathPoints==undefined){
+                    this.end();
+                    return
+                }
+                if (this.pathPoints.length<1){
+                    this.calcPath();
+                    if (this.pathPoints.length<1){
+                        this.entity = this.state.gameState.getEntityByName(this.data.entity);
+                        this.target = this.state.gameState.getEntityByName(this.data.target);
+                        console.log(this.entity, this.target);
+                        var tx = this.entity.get('xform.tx');
+                        var ty = this.entity.get('xform.ty');
+                        var tileX = Math.floor(tx/32);
+                        var tileY = Math.floor(ty/32);
+                        var tx2 = this.target.get('xform.tx');
+                        var ty2 = this.target.get('xform.ty');
+                        var endTileX = Math.floor(tx2/32);
+                        var endTileY = Math.floor(ty2/32);
+                        console.log(tileX, tileY,endTileX,endTileY);
+                        this.end();
+                        return;
+                    }
+                }
+                var tx = this.entity.get('xform.tx');
+                var ty = this.entity.get('xform.ty');
+                var goalX = this.pathPoints[0][0];
+                var goalY = this.pathPoints[0][1];
+                var dx = goalX - tx;
+                var dy = goalY - ty;
+                var dist = Math.sqrt((dx*dx)+(dy*dy));
+                var mvt =this.entity.get('movement');
+                if (dist<16){
+                    this.pathPoints.shift();
+                    if (this.pathPoints.length<=0){
+                        mvt.set('v', 0, 0);
+                        this.end();
+                        return;
+                    }
+                } else {
+                    var vx = dx / dist;
+                    var vy = dy / dist;
+                    
+                    var speed = mvt.get('speed')
+                    mvt.set('v', vx, vy);
+                    //mvt.tick(delta);
+                    this.state.gameState.physics.moveGameObject(this.entity, vx * speed * delta, vy * speed * delta)
+                }
+            }
+        })
+        EventAction.set('nav', NavAction);
+
+        var EventSequence = sge.Class.extend({
+        	init: function(state){
+                this.state = state;
+        		this._actions = [];
+        		this._currentAction = null;
+        	},
+        	push: function(action){
+        		this._actions.push(action);
+        	},
+        	tick: function(delta){
+        		if (!this._currentAction){
+        			if (this._actions.length>0){
+                        this._currentAction = this._actions.shift();
+                        if (this._currentAction.cutscene){
+                        	this.state.game.fsm.startCutscene(this);
+                            return;
+                        } else {
+                        	this._currentAction.start(this.state);
+                        }
+        			} else {
+        		  	   	//this.end();
+        				return;
+        			}
+        		}
+                this._currentAction.tick(delta);
+                if (this._currentAction.complete){
+                    this._currentAction = null;
+                }    
+        	}
+        })
+
+		var EventSystem = sge.Class.extend({
+			init: function(state){
+				this.state = state;
+
+			},
+			reset: function(){
+				this._events = {};
+				this._triggers = {};
+				this._cutscenes = {};
+				this._quests = {};
+                this._sequences = [];
+			},
+			load: function(eventData){
+				this.reset();
+				if (eventData.events){
+					for (var name in eventData.events){
+						this._events[name] = eventData.events[name];
+					}
+				}
+
+				if (eventData.triggers){
+					for (var name in eventData.triggers){
+						var nameData = name.split(':');
+						var entityName = nameData[0];
+						
+						var evt    = nameData[1];
+						var entity = null;
+						if (entityName.match(/^@/)!=null){
+							entity = this.state.getEntityByName(entityName.replace('@',''));
+						} else {
+							if (entityName=='level'){
+								entity = this.state.level;
+							}
+						}
+
+						if (entity){
+                            var cb = function(){
+                                var e = entity;
+    							var eventName = eventData.triggers[name];
+                                return function(){
+                                    this.run(eventName, {entity: e});
+                                }.bind(this)
+                            }.bind(this)();
+							entity.addListener(evt, cb);
+							console.log('Set Callback', entityName, evt)
+						} else {
+							console.warning('Missing Entity:', nameData[0]);
+						}
+						//this._triggers[name] = eventData.triggers[name];
+					}
+				}
+			},
+
+			run: function(eventName, data){
+				var prototype = this._events[eventName];
+				var seq = new EventSequence(this.state);
+				for (var i = 0; i < prototype.actions.length; i++) {
+					var ptype = prototype.actions[i];
+					var klass = EventAction.get(ptype.xtype);
+					var action = new klass(ptype);
+					seq.push(action);
+				};
+				this._sequences.push(seq);
+			},
+
+			tick: function(delta){
+        		if (this._sequences.length>0){
+        			this._sequences = this._sequences.filter(function(seq){
+                        seq.tick(delta);
+                        return seq._actions.length>0;
+                    }.bind(this))
+        		}
+        	},
+		})
+
+		return EventSystem;
+	}
+);
 define('subzero/components/projectile',['sge'], function(sge){
 	var ProjectileComponent = sge.Component.extend({
 			init: function(entity, data){
@@ -35788,15 +36554,17 @@ define('subzero/subzerostate',[
     './physics',
     './factory',
     './interaction',
+    './events',
     './equipable',
     ],
-    function(sge, TiledLevel, Physics, Factory, Interact){
+    function(sge, TiledLevel, Physics, Factory, Interact, Events){
         var SubzeroState = sge.GameState.extend({
             initState: function(){
                 //Load the physics engine.
                 this.physics = new Physics(this);
                 this.factory = new Factory();
                 this.interact = new Interact(this);
+                this.events = new Events(this);
                 this.loadManifest();                
             },
             loadManifest: function(){
@@ -35852,10 +36620,15 @@ define('subzero/subzerostate',[
                 
 
                 // Create / Load PC
-                this.pc = this.factory.create('pc', {xform: {tx:200,ty:200}});
+                this.pc = this.factory.create('pc');
+                this.pc.name='pc';
                 this.addEntity(this.pc);
                 this.level.updateEntity('pc', this.pc);
                 this.game.fsm.finishLoad();
+
+                setTimeout(function(){
+                    this.level.fireEvent('start');
+                }.bind(this),100)
             },
             tick: function(delta){
                 //Tick Objects
@@ -35866,6 +36639,8 @@ define('subzero/subzerostate',[
                         e.tick(delta);
                     }
                 };
+
+                this.events.tick(delta);
 
                 //Prune entities
                 while (this._killList.length>0){
@@ -35882,7 +36657,10 @@ define('subzero/subzerostate',[
                 this.level.container.setLocation(200-pcx,200-pcy)
 
                 this.interact.tick(delta);
+                this.render(delta);
+            },
 
+            render: function(delta){
                 //Draw Function with Sorting
                 var sortMap = []
                 _.each(this._entity_ids, function(id){
@@ -35891,7 +36669,7 @@ define('subzero/subzerostate',[
                         var tx = entity.get('xform.tx');
                         var ty = entity.get('xform.ty');
                         
-                        entity.componentCall('render', this.game.renderer, 'main');
+                        entity.componentCall('render', delta);
                         sortMap.push([entity, ty]);
                     }
                 }.bind(this));
@@ -35899,38 +36677,107 @@ define('subzero/subzerostate',[
                 var i = 0;
                 sortMap.forEach(function(data){
                     i++;
-                    this.scene.setZOrder(data[0].get('xform.container'), i);
+                    this.entityContainer.setZOrder(data[0].get('xform.container'), i);
                 }.bind(this));
             },
 
             createMap: function(){
                 var loader = new sge.Loader(this.game);
-                loader.loadJSON('content/levels/station.json').then(function(levelData){
+                loader.loadJSON('content/levels/transport.json').then(function(levelData){
                     this.level = new TiledLevel(this, levelData);
-                    this.initGame();
+                    loader.loadJSON('content/levels/transport.events.json').then(function(eventData){
+                        this.events.load(eventData);
+                        this.initGame();
+                    }.bind(this));
                 }.bind(this));
             },
 
-
+            getEntityByName: function(name){
+                testname = name.replace('@','');
+                return _.filter(this.getEntities(), function(e){
+                    return (e.name==testname)
+                })[0];
+            }
         });
 
         return SubzeroState;
     }
 );
+define('subzero/cutscenestate',[
+    'sge',
+    './tiledlevel',
+    './physics',
+    './factory',
+    './interaction',
+    './equipable',
+    ],
+    function(sge, TiledLevel, Physics, Factory, Interact){
+        
+        var CutsceneState = sge.GameState.extend({
+        	initState: function(){
+        		this._keepState = true;
+        		this._actionSeq = null;
+        	},
+        	startState: function(event, from, to, seq){
+        		this.gameState = this.game._states.game;
+                this.scene = new CAAT.ActorContainer().setBounds(0,0,800,800);
+                this.gameState.scene.addChild(this.scene);
+                console.log('Start Cutscene!');
+                this._actionSeq = seq;
+                seq._currentAction.start(this);
+        	},
+        	tick: function(delta){
+        		if (!this._actionSeq._currentAction){
+        			if (this._actionSeq._actions.length>0){
+                        this._actionSeq._currentAction = this._actionSeq._actions.shift();
+                        if (this._actionSeq._currentAction.cutscene){
+                            this._actionSeq._currentAction.start(this);
+                        } else {
+                            this.game.fsm.endCutscene();
+                            this._actionSeq._currentAction.start(this.gameState);
+                        }
+        			} else {
+        				this.game.fsm.endCutscene();
+        				return;
+        			}
+        		}
+                this._actionSeq._currentAction.tick(delta);
+                if (this._actionSeq._currentAction.complete){
+                    this._actionSeq._currentAction = null;
+                }
+                this.gameState.render(delta);    
+        	},
+        	endState: function(){
+                this._super();
+                this.gameState.scene.removeChild(this.scene);
+                console.log('End Cutscene!');
+        	}
+
+        });
+
+        return CutsceneState;
+    }
+);
 define('subzero/main',[
 	'sge',
 	'./subzerostate',
+	'./cutscenestate'
 ],
-function(sge, SubzeroState){
+function(sge, SubzeroState, CutsceneState){
 	return {
 	    CreateGame : function(width, height, fps){
 	        var game = new sge.Game({
 	            elem: document.getElementById('game'),
 	            width: parseInt(width || 720),
-	            height: parseInt(height || 240),
+	            height: parseInt(height || 540),
 	            fps: parseInt(fps || 30),
 	        });
 	        
+	        //Should create function when this works.
+		    game._states['cutscene'] = new CutsceneState(game, 'Cutscene');
+		    game.fsm.addEvent({name:'startCutscene', from:'game',to:'cutscene'});
+		    game.fsm.addEvent({name:'endCutscene', from:'cutscene',to:'game'});
+
 	        var state = game.setGameState(SubzeroState);
 	        return game;
 	    }

@@ -4,6 +4,8 @@ define(['sge'], function(sge){
 			this._super(entity, data);
 			this.data.width = data.width || 24;
 			this.data.height = data.height || 24;
+			this.data.offsetX = data.offsetX || 0;
+			this.data.offsetY = data.offsetY || 0;
 			this.data.type = data.type || 0;
 			this.data.fast = data.fast || false;
 			this._wait = true; //Don't move on first frame after being spawned.

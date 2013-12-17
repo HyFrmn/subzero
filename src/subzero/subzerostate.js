@@ -4,15 +4,17 @@ define([
     './physics',
     './factory',
     './interaction',
+    './events',
     './equipable',
     ],
-    function(sge, TiledLevel, Physics, Factory, Interact){
+    function(sge, TiledLevel, Physics, Factory, Interact, Events){
         var SubzeroState = sge.GameState.extend({
             initState: function(){
                 //Load the physics engine.
                 this.physics = new Physics(this);
                 this.factory = new Factory();
                 this.interact = new Interact(this);
+                this.events = new Events(this);
                 this.loadManifest();                
             },
             loadManifest: function(){
@@ -68,10 +70,15 @@ define([
                 
 
                 // Create / Load PC
-                this.pc = this.factory.create('pc', {xform: {tx:200,ty:200}});
+                this.pc = this.factory.create('pc');
+                this.pc.name='pc';
                 this.addEntity(this.pc);
                 this.level.updateEntity('pc', this.pc);
                 this.game.fsm.finishLoad();
+
+                setTimeout(function(){
+                    this.level.fireEvent('start');
+                }.bind(this),100)
             },
             tick: function(delta){
                 //Tick Objects
@@ -82,6 +89,8 @@ define([
                         e.tick(delta);
                     }
                 };
+
+                this.events.tick(delta);
 
                 //Prune entities
                 while (this._killList.length>0){
@@ -98,7 +107,10 @@ define([
                 this.level.container.setLocation(200-pcx,200-pcy)
 
                 this.interact.tick(delta);
+                this.render(delta);
+            },
 
+            render: function(delta){
                 //Draw Function with Sorting
                 var sortMap = []
                 _.each(this._entity_ids, function(id){
@@ -107,7 +119,7 @@ define([
                         var tx = entity.get('xform.tx');
                         var ty = entity.get('xform.ty');
                         
-                        entity.componentCall('render', this.game.renderer, 'main');
+                        entity.componentCall('render', delta);
                         sortMap.push([entity, ty]);
                     }
                 }.bind(this));
@@ -115,19 +127,27 @@ define([
                 var i = 0;
                 sortMap.forEach(function(data){
                     i++;
-                    this.scene.setZOrder(data[0].get('xform.container'), i);
+                    this.entityContainer.setZOrder(data[0].get('xform.container'), i);
                 }.bind(this));
             },
 
             createMap: function(){
                 var loader = new sge.Loader(this.game);
-                loader.loadJSON('content/levels/station.json').then(function(levelData){
+                loader.loadJSON('content/levels/transport.json').then(function(levelData){
                     this.level = new TiledLevel(this, levelData);
-                    this.initGame();
+                    loader.loadJSON('content/levels/transport.events.json').then(function(eventData){
+                        this.events.load(eventData);
+                        this.initGame();
+                    }.bind(this));
                 }.bind(this));
             },
 
-
+            getEntityByName: function(name){
+                testname = name.replace('@','');
+                return _.filter(this.getEntities(), function(e){
+                    return (e.name==testname)
+                })[0];
+            }
         });
 
         return SubzeroState;
