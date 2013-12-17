@@ -1,0 +1,35 @@
+{
+  "events": {
+    "intro": {
+      "actions": [
+        {
+          "xtype" : "nav",
+          "target" : "@pc",
+          "entity" : "@attendent"
+        },{
+          "xtype": "dialog",
+          "dialog": "Sir you need to wake up."
+        },{
+          "xtype": "question",
+          "dialog": "Do you need help moving?"
+        },{
+          "xtype" : "nav",
+          "target" : "@stop_1",
+          "entity" : "@attendent"
+        }
+      ]
+    },
+    "where_am_i": {
+      "actions": [
+        {
+          "xtype": "dialog",
+          "dialog": "I'm busy go away."
+        }
+      ]
+    }
+  },
+  "triggers": {
+    "level:start": "intro",
+    "@attendent:interact": "where_am_i"
+  }
+}

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="15" height="21" tilewidth="32" tileheight="32">
+ <tileset firstgid="1" name="MegaBlock" tilewidth="32" tileheight="32">
+  <image source="../tiles/base_tiles.png" width="256" height="256"/>
+ </tileset>
+ <tileset firstgid="65" name="entities" tilewidth="32" tileheight="32">
+  <properties>
+   <property name="xtype" value="spawn.pc"/>
+  </properties>
+  <image source="../tiles/entities.png" trans="00ff00" width="192" height="32"/>
+ </tileset>
+ <tileset firstgid="71" name="Terrain" tilewidth="32" tileheight="32">
+  <image source="../tiles/terrain_tiles.png" width="32" height="32"/>
+ </tileset>
+ <layer name="base" width="15" height="21">
+  <data encoding="base64" compression="zlib">
+   eJwTZGBgEBzFo3gUj+JhjgGsERTs
+  </data>
+ </layer>
+ <layer name="layer0" width="15" height="21">
+  <data encoding="base64" compression="zlib">
+   eJyTYmBgkKIAc5OBYXqFycAwveSAUb2jekf1Uk8vPcsMGCanzIBhALbUCck=
+  </data>
+ </layer>
+ <layer name="dynamic" width="15" height="21">
+  <data encoding="base64" compression="zlib">
+   eJxjYBg4IArEYkAsjsYXwyEujqRXFojlgFgejS+HQ1weSe+ovaP2jtpLub1DDQAA7E8R4Q==
+  </data>
+ </layer>
+ <layer name="canopy" width="15" height="21">
+  <data encoding="base64" compression="zlib">
+   eJyTYmBgkKIAkwNG9Y7qHdU79PXSs8ygBgAAl+sGgQ==
+  </data>
+ </layer>
+ <objectgroup name="dynamic" width="15" height="21" visible="0">
+  <object x="32" y="64" width="96" height="64"/>
+  <object x="32" y="128" width="96" height="64"/>
+  <object x="32" y="192" width="96" height="64"/>
+  <object x="32" y="256" width="96" height="64"/>
+  <object x="32" y="320" width="96" height="64"/>
+  <object x="32" y="384" width="96" height="64"/>
+  <object x="32" y="448" width="96" height="64"/>
+  <object x="32" y="512" width="96" height="64"/>
+  <object x="160" y="64" width="160" height="64"/>
+  <object x="160" y="128" width="160" height="64"/>
+  <object x="160" y="192" width="160" height="64"/>
+  <object x="352" y="64" width="96" height="64"/>
+  <object x="352" y="128" width="96" height="64"/>
+  <object x="352" y="192" width="96" height="64"/>
+  <object x="352" y="256" width="96" height="64"/>
+  <object x="352" y="320" width="96" height="64"/>
+  <object x="352" y="384" width="96" height="64"/>
+  <object x="352" y="448" width="96" height="64"/>
+  <object x="352" y="512" width="96" height="64"/>
+  <object x="160" y="256" width="160" height="64"/>
+  <object x="160" y="320" width="160" height="64"/>
+  <object x="160" y="384" width="160" height="64"/>
+  <object x="160" y="448" width="160" height="64"/>
+  <object x="160" y="512" width="160" height="64"/>
+ </objectgroup>
+ <objectgroup name="entities" width="15" height="21">
+  <object name="pc" type="pc" gid="65" x="160" y="256"/>
+  <object name="attendent" type="citizen" gid="68" x="128" y="96">
+   <properties>
+    <property name="sprite.src" value="man_a"/>
+   </properties>
+  </object>
+  <object name="door.left" type="door" gid="66" x="128" y="64"/>
+  <object name="cpu" type="citizien" gid="67" x="320" y="128"/>
+ </objectgroup>
+ <layer name="terrain" width="15" height="21" visible="0">
+  <data encoding="base64" compression="zlib">
+   eJxzZ2BgcB/imIEMcVLBqL2j9o7aSxt76YUBU5g2Fg==
+  </data>
+ </layer>
+</map>
