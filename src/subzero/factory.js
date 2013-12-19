@@ -4,7 +4,8 @@ define([
     './components/rpgcontrols',
     './components/door',
     './components/container',
-    './components/highlight'
+    './components/highlight',
+    './components/ai'
 	],function(sge){
 		var Factory = sge.Class.extend({
 			init: function(){
@@ -31,14 +32,15 @@ define([
 				if (entityData.meta!==undefined){
 					if (entityData.meta.inherit!==undefined){
 						var inherit = entityData.meta.inherit;
-						var bases = [typ, inherit];
+						var bases = [inherit, typ];
 						while (inherit!=null){
 							baseData = this.blueprints[inherit];
 							inherit = null;
 							if (baseData.meta!==undefined){
 								if (baseData.meta.inherit){
 									inherit = baseData.meta.inherit;
-									bases.push(inherit);
+									bases.push(inherit)
+									//bases.splice(0,0,inherit);
 								}
 							}
 						}
@@ -46,6 +48,7 @@ define([
 						while (bases.length){
 							base = bases.shift();
 							entityData = sge.util.deepExtend(entityData, this.blueprints[base]);
+							console.log(base, entityData.sprite)
 						}
 					}
 				}

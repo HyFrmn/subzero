@@ -18,6 +18,7 @@ function(sge, SubzeroState, CutsceneState){
 		    game.fsm.addEvent({name:'startCutscene', from:'game',to:'cutscene'});
 		    game.fsm.addEvent({name:'endCutscene', from:'cutscene',to:'game'});
 
+		    game.data.level = 'transport';
 	        var state = game.setGameState(SubzeroState);
 	        return game;
 	    }

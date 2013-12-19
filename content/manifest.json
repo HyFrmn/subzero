@@ -1,7 +1,9 @@
 {
     "sprites" : [
-        ["man_a",[64,64]],
+        ["prof_walkcycle", [64,64]],
+        ["fbi_walkcycle", [64,64]],
         ["shelves", [32, 64]],
+        ["man_a", [64,64]],
         "laser_hit",
         "man_1",
         "man_2",
@@ -13,5 +15,9 @@
     ],
     "entities" : [
         "standard"
+    ],
+    "levels" : [
+        "docks",
+        "transport"
     ]
 }

@@ -26,6 +26,18 @@ define(['sge'],
             return EventAction._classMap[name];
         }
 
+        var LevelLoadAction = EventAction.extend({
+            start: function(state){
+                this._super(state);
+                state.game.data.level = this.data.level;
+                console.log('Loading:', state.game.data.level);
+                state.game._states.game =  new state.game._gameState(state.game, 'Game');
+                state.game.fsm.startLoad();
+                
+            }
+        });
+        EventAction.set('levelLoad', LevelLoadAction);
+
         var DialogAction = EventAction.extend({
             init: function(data){
                 this._super(data);
@@ -117,7 +129,7 @@ define(['sge'],
             },
             end: function(){
                 result = this.responses[this._index];
-                console.log('Result:', result);
+                this.data.children = result.actions;
                 this._super();
                 this.state.scene.removeChild(this._container);
             },
@@ -181,7 +193,7 @@ define(['sge'],
                 for (var k=0;k<this.responses.length;k++){
                     y+=24
                     actor = new CAAT.TextActor().setFont('24px sans-serif');
-                    actor.setText(this.responses[k]);
+                    actor.setText(this.responses[k].dialog);
                     if (k==this._index){
                         actor.setTextFillStyle('orange');
                     }
@@ -209,7 +221,6 @@ define(['sge'],
             calcPath: function(){
                 this.entity = this.state.gameState.getEntityByName(this.data.entity);
                 this.target = this.state.gameState.getEntityByName(this.data.target);
-                console.log(this.entity, this.target);
                 var tx = this.entity.get('xform.tx');
                 var ty = this.entity.get('xform.ty');
                 var tileX = Math.floor(tx/32);
@@ -297,10 +308,24 @@ define(['sge'],
         			}
         		}
                 this._currentAction.tick(delta);
+                
                 if (this._currentAction.complete){
+                    children = this._currentAction.data.children;
+                    if (children){
+                        this.insert(children);
+                    }
                     this._currentAction = null;
                 }    
-        	}
+        	},
+            insert: function(actions){
+                for (var i = actions.length-1; i>=0; i--) {
+                    var ptype = actions[i];
+                    var klass = EventAction.get(ptype.xtype);
+                    var action = new klass(ptype);
+                    this._actions.splice(0,0,action);
+                }
+                console.log(this._actions);
+            }
         })
 
 		var EventSystem = sge.Class.extend({
@@ -324,16 +349,14 @@ define(['sge'],
 				}
 
 				if (eventData.triggers){
-					for (var name in eventData.triggers){
-						var nameData = name.split(':');
-						var entityName = nameData[0];
-						
-						var evt    = nameData[1];
+					for (var i = eventData.triggers.length - 1; i >= 0; i--) {
+                        var triggerData = eventData.triggers[i];
+                        var name = triggerData.name;
 						var entity = null;
-						if (entityName.match(/^@/)!=null){
-							entity = this.state.getEntityByName(entityName.replace('@',''));
+						if (triggerData.target.match(/^@/)!=null){
+							entity = this.state.getEntityByName(triggerData.target.replace('@',''));
 						} else {
-							if (entityName=='level'){
+							if (triggerData.target=='level'){
 								entity = this.state.level;
 							}
 						}
@@ -341,30 +364,40 @@ define(['sge'],
 						if (entity){
                             var cb = function(){
                                 var e = entity;
-    							var eventName = eventData.triggers[name];
+    							var eventName = triggerData.event;
                                 return function(){
                                     this.run(eventName, {entity: e});
                                 }.bind(this)
                             }.bind(this)();
-							entity.addListener(evt, cb);
-							console.log('Set Callback', entityName, evt)
+							entity.addListener(triggerData.listenFor, cb);
+							console.log('Set Callback', triggerData.target, triggerData.listenFor)
 						} else {
-							console.warning('Missing Entity:', nameData[0]);
+							console.warning('Missing Entity:', triggerData.target);
 						}
 						//this._triggers[name] = eventData.triggers[name];
 					}
 				}
+
+                if (eventData.regions){
+                    for (var name in eventData.regions){
+                        var regionData =eventData.regions[name];
+                        var region = this.state.regions.get(name);
+                        console.log('Re:', region)
+                        if (regionData.spawn){
+                            for (var i = regionData.spawn.length - 1; i >= 0; i--) {
+                                var spawnData = regionData.spawn[i];
+                                console.log(spawnData);
+                                region.spawn(spawnData, {});
+                            };
+                        }
+                    }
+                }
 			},
 
 			run: function(eventName, data){
 				var prototype = this._events[eventName];
 				var seq = new EventSequence(this.state);
-				for (var i = 0; i < prototype.actions.length; i++) {
-					var ptype = prototype.actions[i];
-					var klass = EventAction.get(ptype.xtype);
-					var action = new klass(ptype);
-					seq.push(action);
-				};
+				seq.insert(prototype.actions);
 				this._sequences.push(seq);
 			},
 

@@ -7,7 +7,7 @@
             "dir" : "down"
         },
         "sprite" : {
-            "src" :  "man_a"
+            "src" :  "prof_walkcycle"
         },
         "physics" : {
             "offsetX" : -6,
@@ -41,9 +41,13 @@
         "meta" : {
             "inherit" : "chara"
         },
+        "sprite" : {
+            "src" : "fbi_walkcycle"
+        },
         "interact" : {
-             "targets" : [[0,0]]
-            }
+         "targets" : [[0,0]]
+        },
+        "ai" : {}
 
     },
     "tilecache" : {
@@ -55,6 +59,9 @@
     "trigger" : {
         "xform" : {
             "container": "entityContainer"
+        },
+        "physics" : {
+            "type" : 2
         }
     },
     "door" : {

@@ -1,0 +1,11 @@
+{
+	"actions" : {
+		"nav" : [{
+			"name" : "target",
+			"type" : "entity",
+			},{
+			"name" : "entity",
+			"type" : "entity",
+			}],
+	}
+}

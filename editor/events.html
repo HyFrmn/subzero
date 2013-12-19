@@ -1,0 +1,26 @@
+<!doctype html>
+<html ng-app>
+  <head>
+    <script src="jscolor/jscolor.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.5/angular.min.js"></script>
+    <script src="src/events.js"></script>
+    <link rel="stylesheet" href="todo.css">
+  </head>
+  <body>
+    <div ng-controller="EventsCtrl">
+      <h2>Triggers</h2>
+      <button ng-click="createTrigger()">Create New Trigger</button>
+      <div ng-repeat="trigger in event.triggers">
+        <label>Target:</label><input type="text" ng-model="trigger.target"/>
+        <label>Event:</label><input type="text" ng-model="trigger.event"/>
+        <label>Listen For:</label><input type="text" ng-model="trigger.listenFor"/>
+      </div>
+      <div>
+      <h2>Output:</h2>
+      <pre>
+      {{ event }}
+      </pre>
+      </div>
+    </div>
+  </body>
+</html>

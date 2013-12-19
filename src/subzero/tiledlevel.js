@@ -1,9 +1,10 @@
 define([
     'sge',
     './tilemap',
+    './Region',
     './components/tilecache'
 ],
-function(sge, TileMap){
+function(sge, TileMap, Region){
 	var TiledLoader = function(){
 
 	}
@@ -176,8 +177,7 @@ function(sge, TileMap){
 
 				}
 			}
-			return;
-			/*
+
 			layer = layerData.regions;
 			regions = [];
 			if (layer!==undefined){
@@ -186,34 +186,11 @@ function(sge, TileMap){
 					var tx = region.x + 16;
 					var ty = region.y - 16;
 					var klass = Region
-					if (region.type=='room'){
-						console.log('ROOM!!!')
-						klass = Room;
-					} 
-					regions.push(new klass(this.state, region.name, region.x, region.x+region.width,region.y, region.y+region.height));
+					regions.push(new klass(state, region.name, region.x, region.x+region.width,region.y, region.y+region.height));
+					
 				}
 			}
-			
-			layer = layerData.dynamic
-			if (layer){
-				for (var q=0; q<=layer.objects.length-1;q++){
-					var obj = layer.objects[q];
-					var tileWidth = obj.width/32;
-					var tileHeight = obj.height/32;
-
-					var startX = (obj.x/32);
-					var startY = (obj.y/32);
-					var tiles = []
-					for (var y_=0; y_<tileHeight; y_++){
-						for (var x_=0; x_<tileWidth; x_++){
-							//tiles.push(state.map.getTile(x_ + startX,y_ + startY).layer.dynamic)
-						}
-					}
-					var e = this.state.createEntity('object',{ xform: {tx: obj.x + (obj.width/2), offsetX:0, ty: obj.y + (obj.height/2), offsetY: 0}, tilecache: { tiles: [startX, startY, tileWidth, tileHeight]}});
-					this.state.addEntity(e);
-
-				}
-			}
+			/*
 			
 			var layer = layerData['entities']
 			if (layer){
@@ -316,6 +293,17 @@ function(sge, TileMap){
 			*/
 		}
 	})
+
+	TiledLevel._map = {};
+
+	TiledLevel.set = function(name, data){
+		TiledLevel._map[name] = data;
+	}
+
+	TiledLevel.Load = function(state, name){
+		console.log(name, TiledLevel._map[name]);
+		return new TiledLevel(state, TiledLevel._map[name]);
+	}
 
 	return TiledLevel;
 });

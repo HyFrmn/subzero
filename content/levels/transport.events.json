@@ -11,7 +11,20 @@
           "dialog": "Sir you need to wake up."
         },{
           "xtype": "question",
-          "dialog": "Do you need help moving?"
+          "dialog": "Do you need help moving?",
+          "responses" : [{
+              "dialog" : "Yes!",
+              "actions" : [{
+                "xtype": "dialog",
+                "dialog": "Well I can't help you right now. Eventually an introductary tutorial will go here."
+              }]
+            },{
+              "dialog" : "No",
+              "actions" : [{
+              "xtype": "dialog",
+              "dialog": "Alright, then you can exit at the top of the space craft."
+            }]
+          }]
         },{
           "xtype" : "nav",
           "target" : "@stop_1",
@@ -26,10 +39,13 @@
           "dialog": "I'm busy go away."
         }
       ]
+    },
+    "exit.docks" : {
+      "actions": [{
+          "xtype" : "levelLoad",
+          "level" : "docks"
+        }]
     }
   },
-  "triggers": {
-    "level:start": "intro",
-    "@attendent:interact": "where_am_i"
-  }
+  "triggers":[{"target":"level","listenFor":"start","event":"intro"},{"target":"@attendent","listenFor":"interact","event":"where_am_i"},{"target":"@exit.docks","listenFor":"contact.start","event":"exit.docks"}]    
 }

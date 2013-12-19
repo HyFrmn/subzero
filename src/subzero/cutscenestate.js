@@ -38,6 +38,10 @@ define([
         		}
                 this._actionSeq._currentAction.tick(delta);
                 if (this._actionSeq._currentAction.complete){
+                    children = this._actionSeq._currentAction.data.children;
+                    if (children){
+                        this._actionSeq.insert(children);
+                    }
                     this._actionSeq._currentAction = null;
                 }
                 this.gameState.render(delta);    

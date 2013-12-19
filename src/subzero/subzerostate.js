@@ -5,9 +5,10 @@ define([
     './factory',
     './interaction',
     './events',
+    './regions',
     './equipable',
     ],
-    function(sge, TiledLevel, Physics, Factory, Interact, Events){
+    function(sge, TiledLevel, Physics, Factory, Interact, Events, Regions){
         var SubzeroState = sge.GameState.extend({
             initState: function(){
                 //Load the physics engine.
@@ -15,6 +16,7 @@ define([
                 this.factory = new Factory();
                 this.interact = new Interact(this);
                 this.events = new Events(this);
+                this.regions = new Regions(this);
                 this.loadManifest();                
             },
             loadManifest: function(){
@@ -29,12 +31,14 @@ define([
                         var spriteData = data.sprites[i];
                         var spriteSize = [32,32];
                         var url = 'content/sprites/' + spriteData + '.png';
+                        var spriteName = spriteData;
                         if (typeof(spriteData)!='string'){
                             url = 'content/sprites/' + spriteData[0] + '.png';
                             spriteSize = spriteData[1];
+                            spriteName = spriteData[0];
                         }
                         
-                        defereds.push(loader.loadImage(url, {size: spriteSize}));
+                        defereds.push(loader.loadImage(url, {size: spriteSize, name:spriteName}));
                     };
                 }
                 if (data.tiles){
@@ -51,14 +55,17 @@ define([
                         defereds.push(loader.loadJSON(url).then(this.factory.load.bind(this.factory)));
                     };
                 }
-                /*
                 if (data.levels){
-                    for (var i = data.levels.length - 1; i >= 0; i--) {
-                        var levelData = data.levels[i];
-                        defereds.push(loader.loadJSON(levelData, {size: 32}));
-                    };
+                    data.levels.forEach(function(levelName){
+                        var url = 'content/levels/' + levelName + '.json';
+                        console.log('Loading:', url, levelName)
+                        defereds.push(loader.loadJSON(url, {size: 32}).then(function(data){
+                            console.log('Loaded:', url, levelName)
+                            TiledLevel.set(levelName, data);
+                        }));
+                    })
                 }
-                */
+
                 sge.vendor.when.all(defereds).then(this.createMap.bind(this));
             },
             //Called when game assets are loaded.
@@ -133,12 +140,13 @@ define([
 
             createMap: function(){
                 var loader = new sge.Loader(this.game);
-                loader.loadJSON('content/levels/transport.json').then(function(levelData){
-                    this.level = new TiledLevel(this, levelData);
-                    loader.loadJSON('content/levels/transport.events.json').then(function(eventData){
-                        this.events.load(eventData);
-                        this.initGame();
-                    }.bind(this));
+                
+                this.level = TiledLevel.Load(this, this.game.data.level);
+                console.log('Level:', this.level);
+
+                loader.loadJSON('content/levels/' + this.game.data.level + '.events.json').then(function(eventData){
+                    this.events.load(eventData);
+                    this.initGame();
                 }.bind(this));
             },
 
