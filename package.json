@@ -1,0 +1,25 @@
+{
+  "name": "subzero",
+  "version": "0.0.0",
+  "description": "A game.",
+  "main": "Gruntfile.js",
+  "dependencies": {
+    "grunt": "~0.4.2",
+    "grunt-contrib-requirejs": "~0.4.1",
+    "grunt-contrib-concat": "~0.3.0",
+    "requirejs": "~2.1.9"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HyFrmn/subzero.git"
+  },
+  "author": "Marshall Petersen",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/HyFrmn/subzero/issues"
+  }
+}
