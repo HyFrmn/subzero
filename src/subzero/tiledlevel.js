@@ -1,7 +1,7 @@
 define([
     'sge',
     './tilemap',
-    './Region',
+    './region',
     './components/tilecache'
 ],
 function(sge, TileMap, Region){

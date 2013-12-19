@@ -5,7 +5,7 @@ var SGEGame = null;
 
 requirejs.config({  
     baseUrl: "src/",
-    packages: ['sge','subzero'],
+    packages: ['subzero'],
     shim: {
         'sge/vendor/caat' : {
             exports: 'CAAT'
