@@ -15,6 +15,7 @@ define([
         	},
         	startState: function(event, from, to, seq){
         		this.gameState = this.game._states.game;
+                this.events = this.gameState.events;
                 this.scene = new CAAT.ActorContainer().setBounds(0,0,800,800);
                 this.gameState.scene.addChild(this.scene);
                 console.log('Start Cutscene!');

@@ -1,10 +1,7 @@
 {
 	"regions" : {
 		"dock.main" : {
-			"spawn" : ["citizen", "citizen","citizen", "citizen","citizen", "citizen","citizen", "citizen"],
-			"spawnData" : {
-
-			}
+			"spawn" : ["citizen", "citizen","citizen", "citizen","citizen", "citizen","citizen", "citizen"]
 		}
-	}	
+	}
 }

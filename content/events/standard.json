@@ -1,0 +1,29 @@
+{
+	"events" : {
+		"citizien_dialog_generic" : {
+		  "actions" : [
+			{
+				"xtype" : "dialog",
+				"dialog" : "I'm just a boring generic citizen.",
+				"location" : "citizen_generic",
+				"method" : "random"
+			}
+		  ]
+		}
+	},
+	"triggers" : [
+		{
+			"target":".citizen",
+			"listenFor":"interact",
+			"event":"citizien_dialog_generic"
+		}
+	],
+	"dialog" : {
+		"citizen_generic" : [
+			"Watchout for those punks with mohawks.",
+			"Welcome to Ganymede.",
+			"Did you see the game last night?",
+			"Are you from around here? I don't recongnize you. Are you an OPA spy?"
+		]
+	}
+}

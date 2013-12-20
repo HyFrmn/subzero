@@ -16,6 +16,9 @@
     "entities" : [
         "standard"
     ],
+    "events" : [
+        "standard"
+    ],
     "levels" : [
         "docks",
         "transport"

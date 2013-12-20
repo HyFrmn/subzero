@@ -41,6 +41,7 @@ define([
                         defereds.push(loader.loadImage(url, {size: spriteSize, name:spriteName}));
                     };
                 }
+                
                 if (data.tiles){
                     for (var i = data.tiles.length - 1; i >= 0; i--) {
                         var tileData = data.tiles[i];
@@ -48,6 +49,7 @@ define([
                         defereds.push(loader.loadImage(url, {size: 32}));
                     };
                 }
+                
                 if (data.entities){
                     for (var i = data.entities.length - 1; i >= 0; i--) {
                         var entityUrl = data.entities[i];
@@ -55,12 +57,19 @@ define([
                         defereds.push(loader.loadJSON(url).then(this.factory.load.bind(this.factory)));
                     };
                 }
+                
+                if (data.events){
+                    for (var i = data.events.length - 1; i >= 0; i--) {
+                        var entityUrl = data.events[i];
+                        var url = 'content/events/' + entityUrl + '.json';
+                        defereds.push(loader.loadJSON(url).then(this.events.load.bind(this.events)));
+                    };
+                }
+
                 if (data.levels){
                     data.levels.forEach(function(levelName){
                         var url = 'content/levels/' + levelName + '.json';
-                        console.log('Loading:', url, levelName)
                         defereds.push(loader.loadJSON(url, {size: 32}).then(function(data){
-                            console.log('Loaded:', url, levelName)
                             TiledLevel.set(levelName, data);
                         }));
                     })
@@ -81,6 +90,9 @@ define([
                 this.pc.name='pc';
                 this.addEntity(this.pc);
                 this.level.updateEntity('pc', this.pc);
+
+                this.events.setup();
+
                 this.game.fsm.finishLoad();
 
                 setTimeout(function(){

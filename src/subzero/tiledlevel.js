@@ -121,7 +121,6 @@ function(sge, TileMap, Region){
 								}
 								*/
 							} else {
-
 								var subpaths = key.split('.');
 								var pointer = eData;
 								var val = entityData.properties[key];
@@ -301,7 +300,6 @@ function(sge, TileMap, Region){
 	}
 
 	TiledLevel.Load = function(state, name){
-		console.log(name, TiledLevel._map[name]);
 		return new TiledLevel(state, TiledLevel._map[name]);
 	}
 

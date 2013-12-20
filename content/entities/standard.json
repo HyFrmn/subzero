@@ -1,5 +1,8 @@
 {
     "chara" : {
+        "meta" : {
+            "tags" : ["chara"]
+        },
         "xform" : {
             "container": "entityContainer",
             "offsetX" : -32,
@@ -39,7 +42,8 @@
     },
     "citizen" : {
         "meta" : {
-            "inherit" : "chara"
+            "inherit" : "chara",
+            "tags" : "citizen"
         },
         "sprite" : {
             "src" : "fbi_walkcycle"

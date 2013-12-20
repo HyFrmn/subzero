@@ -34641,7 +34641,7 @@ define('subzero/tilemap',[
 		return TileMap;
 	}
 );
-define('subzero/Region',['sge'], function(sge){
+define('subzero/region',['sge'], function(sge){
     var boxcoords = function(sx, sy, width, height){
         /*
          * Return  a lit of coordinates that are in the box starting
@@ -34758,7 +34758,7 @@ define('subzero/components/tilecache',['sge'], function(sge){
 define('subzero/tiledlevel',[
     'sge',
     './tilemap',
-    './Region',
+    './region',
     './components/tilecache'
 ],
 function(sge, TileMap, Region){
@@ -34878,7 +34878,6 @@ function(sge, TileMap, Region){
 								}
 								*/
 							} else {
-
 								var subpaths = key.split('.');
 								var pointer = eData;
 								var val = entityData.properties[key];
@@ -35058,7 +35057,6 @@ function(sge, TileMap, Region){
 	}
 
 	TiledLevel.Load = function(state, name){
-		console.log(name, TiledLevel._map[name]);
 		return new TiledLevel(state, TiledLevel._map[name]);
 	}
 
@@ -36523,12 +36521,15 @@ define('subzero/factory',[
 				return (this.blueprints[typ]!==undefined);
 			},
 			create: function(typ, data){
-				
+				var tags = [];
 				if (this.blueprints[typ]==undefined){
 					return;
 				}
 				var entityData = sge.util.deepExtend({}, this.blueprints[typ]);
 				if (entityData.meta!==undefined){
+					if (entityData.meta.tags){
+						tags = tags.concat(entityData.meta.tags);
+					}
 					if (entityData.meta.inherit!==undefined){
 						var inherit = entityData.meta.inherit;
 						var bases = [inherit, typ];
@@ -36536,6 +36537,9 @@ define('subzero/factory',[
 							baseData = this.blueprints[inherit];
 							inherit = null;
 							if (baseData.meta!==undefined){
+								if (baseData.meta.tags){
+									tags = tags.concat(baseData.meta.tags);
+								}
 								if (baseData.meta.inherit){
 									inherit = baseData.meta.inherit;
 									bases.push(inherit)
@@ -36547,7 +36551,6 @@ define('subzero/factory',[
 						while (bases.length){
 							base = bases.shift();
 							entityData = sge.util.deepExtend(entityData, this.blueprints[base]);
-							console.log(base, entityData.sprite)
 						}
 					}
 				}
@@ -36556,6 +36559,7 @@ define('subzero/factory',[
 					delete entityData['meta'];
 				}
 				var entity = new sge.Entity(entityData);
+				entity.tags = entity.tags.concat(tags);
 				return entity;
 			}
 		})
@@ -36761,14 +36765,23 @@ define('subzero/events',['sge'],
             start: function(state){
             	this._super(state);
             	this.async = true;
-                this._dialog = data.dialog;
+                if (this.data.location){
+                    this._dialog = state.events.getDialog(this.data.location);
+                } else {
+                    this._dialog = this.data.dialog;
+                }
+                console.log('Dialog:', this._dialog)
                 this.width = state.game.renderer.width - 64;
-                this.height = state.game.renderer.height - 64;
+                this.height = (state.game.renderer.height/2) - 64;
                 this.padding = 64;
-                this._container = new CAAT.ActorContainer().setBounds(32,32,this.width,this.height);
-                this._background = new CAAT.ShapeActor().setShape(CAAT.ShapeActor.SHAPE_RECT).setBounds(0,0,this.width, this.height).setFillStyle('black').setAlpha(0.65);
+                this._container = new CAAT.ActorContainer().setBounds(32,32+(state.game.renderer.height/2),this.width,this.height);
+                
+                this._border = new CAAT.ShapeActor().setShape(CAAT.ShapeActor.SHAPE_RECT).setBounds(0,0,this.width, this.height).setFillStyle('white');
+                this._container.addChild(this._border);
+
+                this._background = new CAAT.ShapeActor().setShape(CAAT.ShapeActor.SHAPE_RECT).setBounds(4,4,this.width-8, this.height-8).setFillStyle('black').setAlpha(0.85);
                 this._container.addChild(this._background);
-                this.setDialogText(this.data.dialog);
+                this.setDialogText(this._dialog);
                 this.state.scene.addChild(this._container);
                 
             },
@@ -36788,8 +36801,8 @@ define('subzero/events',['sge'],
                 var start = 0;
                 var end = 0;
                 var actor = new CAAT.TextActor().setFont('24px sans-serif');
-                var y = 0;
-                var testWidth = this.state.game.renderer.width - 64;
+                var y = 4;
+                var testWidth = this.width - 32;
                 var dialogContainer = new CAAT.ActorContainer().setSize(360,60);
                 while (end<=count){
                     var test = chunks.slice(start, end).join(' ');
@@ -37046,58 +37059,84 @@ define('subzero/events',['sge'],
 		var EventSystem = sge.Class.extend({
 			init: function(state){
 				this.state = state;
+                this.reset();
 
 			},
+            getDialog : function(loc){
+                items = this._dialog[loc];
+                console.log(loc, items);
+                return sge.random.item(items);
+            },
 			reset: function(){
 				this._events = {};
 				this._triggers = {};
 				this._cutscenes = {};
 				this._quests = {};
                 this._sequences = [];
+                this._triggers = [];
+                this._dialog = {};
 			},
+            setup: function(){
+                this.setup_triggers(this._triggers);
+            },
+            setup_triggers: function(triggers){
+                for (var i = triggers.length - 1; i >= 0; i--) {
+                        var triggerData = triggers[i];
+                        console.log(triggerData.target)
+                        var name = triggerData.name;
+                        var entities = null;
+                        if (triggerData.target.match(/^@/)!=null){
+                            entities = [this.state.getEntityByName(triggerData.target.replace('@',''))];
+                        } else if (triggerData.target.match(/^\./)!=null){
+                            var tag = triggerData.target.replace(/^\./,'');
+                            entities = this.state.getEntitiesWithTag(tag);
+                            console.log('Found:', tag, entities)
+                        } else {
+                            if (triggerData.target=='level'){
+                                entities = [this.state.level];
+                            }
+                        }
+
+                        if (entities){
+                            entities.forEach(function(entity){
+                                var cb = function(){
+                                    var e = entity;
+                                    var eventName = triggerData.event;
+                                    return function(){
+                                        this.run(eventName, {entity: e});
+                                    }.bind(this)
+                                }.bind(this)();
+                                entity.addListener(triggerData.listenFor, cb);
+                                console.log('Set Callback', triggerData.target, triggerData.listenFor)
+                            }.bind(this));
+                        } else {
+                            console.warning('Missing Entity:', triggerData.target);
+                        }
+                        //this._triggers[name] = triggers[name];
+                    }
+            },
 			load: function(eventData){
-				this.reset();
+				console.log(eventData)
 				if (eventData.events){
 					for (var name in eventData.events){
 						this._events[name] = eventData.events[name];
 					}
 				}
 
-				if (eventData.triggers){
-					for (var i = eventData.triggers.length - 1; i >= 0; i--) {
-                        var triggerData = eventData.triggers[i];
-                        var name = triggerData.name;
-						var entity = null;
-						if (triggerData.target.match(/^@/)!=null){
-							entity = this.state.getEntityByName(triggerData.target.replace('@',''));
-						} else {
-							if (triggerData.target=='level'){
-								entity = this.state.level;
-							}
-						}
+                if (eventData.dialog){
+                    for (var name in eventData.dialog){
+                        this._dialog[name] = eventData.dialog[name];
+                    }
+                }
 
-						if (entity){
-                            var cb = function(){
-                                var e = entity;
-    							var eventName = triggerData.event;
-                                return function(){
-                                    this.run(eventName, {entity: e});
-                                }.bind(this)
-                            }.bind(this)();
-							entity.addListener(triggerData.listenFor, cb);
-							console.log('Set Callback', triggerData.target, triggerData.listenFor)
-						} else {
-							console.warning('Missing Entity:', triggerData.target);
-						}
-						//this._triggers[name] = eventData.triggers[name];
-					}
+				if (eventData.triggers){
+					this._triggers = this._triggers.concat(eventData.triggers)
 				}
 
                 if (eventData.regions){
                     for (var name in eventData.regions){
                         var regionData =eventData.regions[name];
                         var region = this.state.regions.get(name);
-                        console.log('Re:', region)
                         if (regionData.spawn){
                             for (var i = regionData.spawn.length - 1; i >= 0; i--) {
                                 var spawnData = regionData.spawn[i];
@@ -37487,6 +37526,7 @@ define('subzero/subzerostate',[
                         defereds.push(loader.loadImage(url, {size: spriteSize, name:spriteName}));
                     };
                 }
+                
                 if (data.tiles){
                     for (var i = data.tiles.length - 1; i >= 0; i--) {
                         var tileData = data.tiles[i];
@@ -37494,6 +37534,7 @@ define('subzero/subzerostate',[
                         defereds.push(loader.loadImage(url, {size: 32}));
                     };
                 }
+                
                 if (data.entities){
                     for (var i = data.entities.length - 1; i >= 0; i--) {
                         var entityUrl = data.entities[i];
@@ -37501,12 +37542,19 @@ define('subzero/subzerostate',[
                         defereds.push(loader.loadJSON(url).then(this.factory.load.bind(this.factory)));
                     };
                 }
+                
+                if (data.events){
+                    for (var i = data.events.length - 1; i >= 0; i--) {
+                        var entityUrl = data.events[i];
+                        var url = 'content/events/' + entityUrl + '.json';
+                        defereds.push(loader.loadJSON(url).then(this.events.load.bind(this.events)));
+                    };
+                }
+
                 if (data.levels){
                     data.levels.forEach(function(levelName){
                         var url = 'content/levels/' + levelName + '.json';
-                        console.log('Loading:', url, levelName)
                         defereds.push(loader.loadJSON(url, {size: 32}).then(function(data){
-                            console.log('Loaded:', url, levelName)
                             TiledLevel.set(levelName, data);
                         }));
                     })
@@ -37527,6 +37575,9 @@ define('subzero/subzerostate',[
                 this.pc.name='pc';
                 this.addEntity(this.pc);
                 this.level.updateEntity('pc', this.pc);
+
+                this.events.setup();
+
                 this.game.fsm.finishLoad();
 
                 setTimeout(function(){
@@ -37624,6 +37675,7 @@ define('subzero/cutscenestate',[
         	},
         	startState: function(event, from, to, seq){
         		this.gameState = this.game._states.game;
+                this.events = this.gameState.events;
                 this.scene = new CAAT.ActorContainer().setBounds(0,0,800,800);
                 this.gameState.scene.addChild(this.scene);
                 console.log('Start Cutscene!');
@@ -37686,7 +37738,7 @@ function(sge, SubzeroState, CutsceneState){
 		    game.fsm.addEvent({name:'startCutscene', from:'game',to:'cutscene'});
 		    game.fsm.addEvent({name:'endCutscene', from:'cutscene',to:'game'});
 
-		    game.data.level = 'transport';
+		    game.data.level = 'docks';
 	        var state = game.setGameState(SubzeroState);
 	        return game;
 	    }

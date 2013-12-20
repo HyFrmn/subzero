@@ -24,12 +24,15 @@ define([
 				return (this.blueprints[typ]!==undefined);
 			},
 			create: function(typ, data){
-				
+				var tags = [];
 				if (this.blueprints[typ]==undefined){
 					return;
 				}
 				var entityData = sge.util.deepExtend({}, this.blueprints[typ]);
 				if (entityData.meta!==undefined){
+					if (entityData.meta.tags){
+						tags = tags.concat(entityData.meta.tags);
+					}
 					if (entityData.meta.inherit!==undefined){
 						var inherit = entityData.meta.inherit;
 						var bases = [inherit, typ];
@@ -37,6 +40,9 @@ define([
 							baseData = this.blueprints[inherit];
 							inherit = null;
 							if (baseData.meta!==undefined){
+								if (baseData.meta.tags){
+									tags = tags.concat(baseData.meta.tags);
+								}
 								if (baseData.meta.inherit){
 									inherit = baseData.meta.inherit;
 									bases.push(inherit)
@@ -48,7 +54,6 @@ define([
 						while (bases.length){
 							base = bases.shift();
 							entityData = sge.util.deepExtend(entityData, this.blueprints[base]);
-							console.log(base, entityData.sprite)
 						}
 					}
 				}
@@ -57,6 +62,7 @@ define([
 					delete entityData['meta'];
 				}
 				var entity = new sge.Entity(entityData);
+				entity.tags = entity.tags.concat(tags);
 				return entity;
 			}
 		})
