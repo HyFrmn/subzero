@@ -43,7 +43,7 @@
     "citizen" : {
         "meta" : {
             "inherit" : "chara",
-            "tags" : "citizen"
+            "tags.base" : "citizen"
         },
         "sprite" : {
             "src" : "fbi_walkcycle"
@@ -53,6 +53,17 @@
         },
         "ai" : {}
 
+    },
+    "gangmember" : {
+        "meta" : {
+            "inherit" : "citizen",
+        },
+        "sprite" : {
+            "src" : "man_a"
+        },
+        "ai" : {
+            "behaviour" : "enemy"
+        }
     },
     "tilecache" : {
         "xform" : {
