@@ -28,6 +28,9 @@ define(['sge','../behaviour', './attack', './track'],function(sge, Behaviour){
         *
         *
         */
+        init: function(entity, parent){
+            this._super(entity, parent);
+        },
 	    deferBehaviour: function(behaviour, arg0, arg1, arg2, arg3, arg4){
 			var func = function(){
 				
@@ -47,6 +50,7 @@ define(['sge','../behaviour', './attack', './track'],function(sge, Behaviour){
             if (this._currentBehaviour){
                 this._currentBehaviour.end();
             }
+            this.entity.fireEvent('emote.msg', 'Behaviour: ', behaviour)
             this._currentBehaviour = Behaviour.Create(behaviour, this.entity, this);
             this._currentBehaviour.onStart(arg0, arg1, arg2, arg3, arg4);
             return this._currentBehaviour;
@@ -75,7 +79,7 @@ define(['sge','../behaviour', './attack', './track'],function(sge, Behaviour){
         },
         onStart: function(){
         	this._currentBehaviour = null;
-        	this.setBehaviour('idle');
+        	this.setBehaviour(this.entity.get('ai.initBehaviour'), this.entity.get('ai.behaviourOptions'));
             this.entity.addListener('entity.takeDamage', this.onDamaged.bind(this));
             this.entity.addListener('ai.setBehaviour', this.setBehaviour.bind(this));
         },

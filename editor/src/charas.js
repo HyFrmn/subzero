@@ -17,6 +17,7 @@ function CharaCtrl($scope){
 		var canvas = document.getElementById("canvas");
 		canvas.width = img.width;
 		canvas.height = img.height;
+		var preview = document.getElementById("preview");
 		
 		var buffer = document.createElement('canvas');
 		buffer.width = canvas.width;
@@ -73,6 +74,11 @@ function CharaCtrl($scope){
 		var ctx = canvas.getContext('2d');
 		ctx.drawImage(base,0,0);
 		ctx.drawImage(buffer,0,0);
+
+		var output = canvas.toDataURL("image/png");
+		preview.src =output;
+
+  		$('#previewimg').html('<img src="' + output + '"/>');
 	}
 
 

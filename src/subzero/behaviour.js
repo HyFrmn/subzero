@@ -8,6 +8,7 @@ define(['sge'], function(sge){
             this._ended = false;
         },
         setBehaviour: function(behaviour, arg0, arg1, arg2){
+            this.entity.fireEvent('emote.msg', 'Behaviour: ', behaviour)
             return this.parent.setBehaviour(behaviour, arg0, arg1, arg2);
         },
         deferBehaviour: function(behaviour, arg0, arg1, arg2, arg3, arg4){

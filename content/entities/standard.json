@@ -29,9 +29,8 @@
                 "stand_left" : [9]
             }
         },
-         "highlight" : {
-
-         }
+        "highlight" : {},
+        "emote" : {}
     },
     "pc" : {
         "meta" : {
@@ -43,10 +42,10 @@
     "citizen" : {
         "meta" : {
             "inherit" : "chara",
-            "tags.base" : "citizen"
+            "tagsBase" : ["citizen"]
         },
         "sprite" : {
-            "src" : "fbi_walkcycle"
+            "src" : "man_a"
         },
         "interact" : {
          "targets" : [[0,0]]
@@ -57,12 +56,17 @@
     "gangmember" : {
         "meta" : {
             "inherit" : "citizen",
+            "tagsBase" : ["gangmember"]
         },
         "sprite" : {
-            "src" : "man_a"
+            "src" : "man_b"
         },
         "ai" : {
-            "behaviour" : "enemy"
+            "behaviour" : "enemy",
+            "initBehaviour" : "attackonsight",
+            "behaviourOptions" : {
+                "target" : "@pc"
+            }
         }
     },
     "tilecache" : {

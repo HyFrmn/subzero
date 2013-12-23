@@ -41,6 +41,7 @@ function(sge, TileMap, Region){
             this.container.addChild(state.entityContainer);
             this.container.addChild(this.map.dynamicContainer);
             this.container.addChild(this.map.canopy);
+            this.container.addChild(this.map.canopyDynamic);
 
 			this._entityMap = {};
 			//this._super(state, options);
@@ -152,9 +153,17 @@ function(sge, TileMap, Region){
 
 						}.bind(this));
 						eData = sge.util.deepExtend(eData, {xform: {tx: entityData.x+16, ty: entityData.y-32+16}}); //-32 for tiled hack.
+						var spawn = true;
+						if (eData.meta!==undefined){
+							if (eData.meta.spawn!==undefined){
+								spawn = Boolean(eData.meta.spawn);
+							}
+						}
 						var entity = state.factory.create(entityData.type, eData);
 						entity.name = entityData.name;
-						state.addEntity(entity);
+						if (spawn){
+							state.addEntity(entity);	
+						}
 					} else {
 						console.log('Missing:', entityData.type);
 					}

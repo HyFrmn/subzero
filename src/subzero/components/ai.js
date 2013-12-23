@@ -13,6 +13,8 @@ define(['sge',
             this._super(entity, data);
             this.behaviour = null;
             this.data.region = data.region || null;
+            this.data.initBehaviour = data.initBehaviour || 'idle';
+            this.data.behaviourOptions = data.behaviourOptions || {};
             this._behaviour = data.behaviour || 'idle';
         },
         setBehaviour: function(value, arg0, arg1, arg2){
@@ -42,7 +44,11 @@ define(['sge',
         },
         register: function(state){
             this._super(state);
-            this.set('behaviour', this._behaviour);
+            var cb = function(){
+                this.set('behaviour', this._behaviour);
+                state.level.removeListener('start', cb);
+            }.bind(this);
+            state.level.addListener('start', cb);
         }
 
     });

@@ -77,7 +77,7 @@ define(['sge', './components/projectile'], function(sge){
 					break;
 			}
 			var tx = this.entity.get('xform.tx');
-			var ty = this.entity.get('xform.ty');
+			var ty = this.entity.get('xform.ty') - 16;
 			var bullet = new sge.Entity({
 				xform: {
 					tx: tx,

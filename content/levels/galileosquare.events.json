@@ -1,0 +1,47 @@
+{
+	"regions" : {
+		"market" : {
+			"spawn" : [
+				"citizen",
+				"citizen",
+				"citizen",
+				"citizen",
+				"citizen",
+				"citizen",
+				"citizen",
+				"citizen",
+				"citizen",
+				"citizen",
+				"citizen",
+				"citizen",
+				"citizen",
+				"citizen",
+				"citizen",
+				"citizen",
+				"citizen",
+				"citizen",
+				
+				"gangmember",
+				"gangmember",
+				"gangmember",
+				"gangmember",
+				"gangmember",
+				"gangmember",
+				"gangmember",
+				"gangmember",
+				"gangmember",
+				"gangmember",
+				"gangmember",
+				"gangmember",
+				"gangmember",
+				"gangmember",
+				"gangmember",
+				"gangmember",
+				"gangmember",
+				"gangmember"
+
+
+			]
+		}
+	}
+}

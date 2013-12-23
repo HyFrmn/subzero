@@ -41,12 +41,14 @@ define(['sge'], function(sge){
             padding = padding === undefined ? 0 : padding;
             return Boolean((tx>this.data.left+padding)&&(tx<this.data.right-padding)&&(ty>this.data.top+padding)&&(ty<this.data.bottom-padding));
         },
+        getCoords : function(){
+            return boxcoords(Math.floor(this.data.left/32), Math.floor(this.data.top/32), Math.floor((this.data.right-this.data.left)/32), Math.floor((this.data.bottom-this.data.top)/32));
+        },
         getTiles : function(){
-            var coords = boxcoords(Math.floor(this.data.left/32), Math.floor(this.data.top/32), Math.floor((this.data.right-this.data.left)/32), Math.floor((this.data.bottom-this.data.top)/32));
+            var coords = this.getCoords();
             return this.state.map.getTiles(coords);
         },
         spawn : function(name, data, spawn){
-            console.log('SPAWN', name, spawn)
             if (spawn===undefined){
                 spawn=true;
             }

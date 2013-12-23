@@ -1,0 +1,14 @@
+{
+	"ganymede_guard" : {
+        "meta" : {
+            "inherit" : "citizen",
+            "tagsBase" : ["guard"]
+        },
+        "sprite" : {
+            "src" : "man_c"
+        },
+        "ai" : {
+            "behaviour" : "wait"
+        }
+    }
+}

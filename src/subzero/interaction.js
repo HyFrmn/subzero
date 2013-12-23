@@ -13,7 +13,7 @@ define(['sge'],function(sge){
             this.data.height = data.height || 32;
             this.data.dist = data.dist || 96;
             this.data.priority = data.priority || false;
-            this.data.enabled = true;
+            this.data.enabled = data.enabled === undefined ? true : Boolean(data.enabled);
             this.active = false;
             this.interact = this.interact.bind(this);
             this.interactSecondary = this.interactSecondary.bind(this);
@@ -136,7 +136,6 @@ define(['sge'],function(sge){
                     }
                     if (closest){
                         closest.fireEvent('focus.gain', ccord);
-                        console.log('Closest', closest);
                     }
                     this._closest = closest;
                 }

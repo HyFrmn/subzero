@@ -6,6 +6,7 @@ define(['sge','../behaviour'],function(sge, Behaviour){
             this.timeout = options.timeout || -1;
             this.dist = options.dist || 256;
             this._timeout = -1;
+            this._tick = 0;
             this._pathNavigation = false;
             this.entity.fireEvent('emote.msg', 'Tracking')
 
@@ -41,7 +42,10 @@ define(['sge','../behaviour'],function(sge, Behaviour){
         },
 
         tick: function(delta){
-
+            this._tick++;
+            if (this._tick%5!=0){
+                return;
+            }
             var tx = this.entity.get('xform.tx');
             var ty = this.entity.get('xform.ty');
 
@@ -54,7 +58,6 @@ define(['sge','../behaviour'],function(sge, Behaviour){
             var nx = 0;
             var ny = 0;
             var trace = this.state.map.traceStatic(tx, ty, targetx, targety);
-
             if (trace[2]){
                 if (this._hasSight){
                     this._hasSight = false;

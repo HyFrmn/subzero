@@ -354,58 +354,8 @@ define([
 	            this.data = {
 	            	passable: true
 	            };
-	            //this.entities = [];
+	            this.entities = [];
 	        },
-	        /*
-	        getRect : function(){
-	            var rect = {
-	                left : (this.x*32)-1,
-	                right : (this.x*32)+32,
-	                top : (this.y*32)-1,
-	                bottom : (this.y*32)+32,
-	            }
-	            return rect;
-	        },
-	        hide: function(){
-	            //this.fade=1
-	            if (this.fade!=1){
-	                this.fadeDelta = 0.1;
-	                this.animate = true;
-	            }
-	        },
-	        show: function(){
-	            //this.fade=0;
-	            if (this.fade!=0){
-	                this.fadeDelta = -0.1;
-	                this.animate = true;
-	            }
-	        },
-	        anim: function(){
-	            if (this.animate){
-	                this.fade = Math.round(100 * Math.max(Math.min(this.fade + this.fadeDelta, 1), 0)) / 100.0;
-	                if (this.fade<=0){
-	                    if (this.x == 1 && this.y == 1){
-	                        console.log('visible', this.fade);
-	                    }
-	                    this.animate = false;
-	                    this.fade = 0;
-	                } else if (this.fade>=1){
-	                    this.animate = false;
-	                    this.fade = 1;
-	                }
-	            }
-	        },
-	        update: function(){
-	            if (this.fade<1){
-	                visible = true;
-	            } else {
-	                visible = false;
-	            }
-	            _.each(this.entities, function(e){
-	                e.get('xform.container').setVisible(visible)
-	            })
-	        }
-	        */
 	    });
 
 		var TileMap = Class.extend({
@@ -487,7 +437,11 @@ define([
 	            for (x=0;x<this.width;x++){
 	                var row = []
 	                for (y=0;y<this.height;y++){
-	                    row.push(this.getTile(x, y).data.passable==true ? 1 : 0);
+                        var passable = (this.getTile(x, y).data.passable==true) ? 1 : 0;
+                        if (passable){
+                            passable += (this.getTile(x, y).entities.length)*10;
+                        }
+	                    row.push(passable);
 	                }
 	                graph.push(row);
 	            }

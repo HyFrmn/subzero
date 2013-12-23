@@ -15,6 +15,8 @@ define(['sge'],
             },
             start: function(state){
             	this.state=state;
+                this.gameState = state.game._states.game;
+                this.cutsceneState = state.game._states.cutscene;
             }
         });
 
@@ -26,6 +28,27 @@ define(['sge'],
             return EventAction._classMap[name];
         }
 
+        var EntityRemoveAction = EventAction.extend({
+            start: function(state){
+                this._super(state);
+                this.target = this.gameState.getEntityByName(this.data.target); 
+                this.gameState.removeEntity(this.target);
+                this.end();
+            }
+        });
+        EventAction.set('entity.remove', EntityRemoveAction);
+
+        var EventFireAction = EventAction.extend({
+            start: function(state){
+                this._super(state);
+                this.target = this.gameState.getEntityByName(this.data.target); 
+                this.target.fireEvent(this.data.event, this.data.arg0, this.data.arg1, this.data.arg2, this.data.arg3)
+                //this.gameState.removeEntity(this.target);
+                this.end();
+            }
+        });
+        EventAction.set('event.fire', EventFireAction);
+
         var LevelLoadAction = EventAction.extend({
             start: function(state){
                 this._super(state);
@@ -33,7 +56,7 @@ define(['sge'],
                 console.log('Loading:', state.game.data.level);
                 state.game._states.game =  new state.game._gameState(state.game, 'Game');
                 state.game.fsm.startLoad();
-                
+                this.end();
             }
         });
         EventAction.set('levelLoad', LevelLoadAction);
@@ -42,6 +65,7 @@ define(['sge'],
             init: function(data){
                 this._super(data);
                 this.cutscene = true;
+                this.emote = data.emote || false;
             },
             start: function(state){
             	this._super(state);
@@ -51,20 +75,24 @@ define(['sge'],
                 } else {
                     this._dialog = this.data.dialog;
                 }
-                console.log('Dialog:', this._dialog)
-                this.width = state.game.renderer.width - 64;
-                this.height = (state.game.renderer.height/2) - 64;
-                this.padding = 64;
-                this._container = new CAAT.ActorContainer().setBounds(32,32+(state.game.renderer.height/2),this.width,this.height);
                 
-                this._border = new CAAT.ShapeActor().setShape(CAAT.ShapeActor.SHAPE_RECT).setBounds(0,0,this.width, this.height).setFillStyle('white');
-                this._container.addChild(this._border);
+                if (this.emote){
+                    this.fireEvent('emote.msg', this._dialog);
+                    this.end();
+                } else {
+                    this.width = state.game.renderer.width - 64;
+                    this.height = (state.game.renderer.height/2) - 64;
+                    this.padding = 64;
+                    this._container = new CAAT.ActorContainer().setBounds(32,32+(state.game.renderer.height/2),this.width,this.height);
+                    
+                    this._border = new CAAT.ShapeActor().setShape(CAAT.ShapeActor.SHAPE_RECT).setBounds(0,0,this.width, this.height).setFillStyle('white');
+                    this._container.addChild(this._border);
 
-                this._background = new CAAT.ShapeActor().setShape(CAAT.ShapeActor.SHAPE_RECT).setBounds(4,4,this.width-8, this.height-8).setFillStyle('black').setAlpha(0.85);
-                this._container.addChild(this._background);
-                this.setDialogText(this._dialog);
-                this.state.scene.addChild(this._container);
-                
+                    this._background = new CAAT.ShapeActor().setShape(CAAT.ShapeActor.SHAPE_RECT).setBounds(4,4,this.width-8, this.height-8).setFillStyle('black').setAlpha(0.85);
+                    this._container.addChild(this._background);
+                    this.setDialogText(this._dialog);
+                    this.state.scene.addChild(this._container);
+                }
             },
             end: function(){
                 this._super();
@@ -220,16 +248,27 @@ define(['sge'],
         var NavAction = EventAction.extend({
             init: function(data){
                 this._super(data);
-                this.cutscene = true;
+                this.async = true; //Always async
+                this.cutscene = data.cutscene===undefined ? true : data.cutscene;
+                console.log('Nav', data.target, data.cutscene, this.cutscene)
             },
             start: function(state){
                 this._super(state);
                 console.log('Start Nav');
+                this.entity = this.gameState.getEntityByName(this.data.entity);
+                this.target = this.gameState.getEntityByName(this.data.target);
+                console.log(this.entity, this.target);
+                this.entity.set('ai.active', false);
                 this.calcPath();
             },
+            end: function(){
+                this.entity.set('ai.active', true);
+                var mvt =this.entity.get('movement');
+                mvt.set('v', 0, 0);
+                this._super();
+            },
             calcPath: function(){
-                this.entity = this.state.gameState.getEntityByName(this.data.entity);
-                this.target = this.state.gameState.getEntityByName(this.data.target);
+                console.log('calc')
                 var tx = this.entity.get('xform.tx');
                 var ty = this.entity.get('xform.ty');
                 var tileX = Math.floor(tx/32);
@@ -238,7 +277,7 @@ define(['sge'],
                 var ty2 = this.target.get('xform.ty');
                 var endTileX = Math.floor(tx2/32);
                 var endTileY = Math.floor(ty2/32);
-                this.pathPoints = this.state.gameState.map.getPath(tileX, tileY,endTileX,endTileY);
+                this.pathPoints = this.gameState.map.getPath(tileX, tileY,endTileX,endTileY);
             },
             tick : function(delta){
                 if (this.pathPoints==undefined){
@@ -248,9 +287,6 @@ define(['sge'],
                 if (this.pathPoints.length<1){
                     this.calcPath();
                     if (this.pathPoints.length<1){
-                        this.entity = this.state.gameState.getEntityByName(this.data.entity);
-                        this.target = this.state.gameState.getEntityByName(this.data.target);
-                        console.log(this.entity, this.target);
                         var tx = this.entity.get('xform.tx');
                         var ty = this.entity.get('xform.ty');
                         var tileX = Math.floor(tx/32);
@@ -259,7 +295,7 @@ define(['sge'],
                         var ty2 = this.target.get('xform.ty');
                         var endTileX = Math.floor(tx2/32);
                         var endTileY = Math.floor(ty2/32);
-                        console.log(tileX, tileY,endTileX,endTileY);
+                        //console.log(tileX, tileY,endTileX,endTileY);
                         this.end();
                         return;
                     }
@@ -272,8 +308,9 @@ define(['sge'],
                 var dy = goalY - ty;
                 var dist = Math.sqrt((dx*dx)+(dy*dy));
                 var mvt =this.entity.get('movement');
-                if (dist<16){
-                    this.pathPoints.shift();
+
+                if (dist<12){
+                    this.calcPath();
                     if (this.pathPoints.length<=0){
                         mvt.set('v', 0, 0);
                         this.end();
@@ -282,11 +319,12 @@ define(['sge'],
                 } else {
                     var vx = dx / dist;
                     var vy = dy / dist;
-                    
-                    var speed = mvt.get('speed')
                     mvt.set('v', vx, vy);
                     //mvt.tick(delta);
-                    this.state.gameState.physics.moveGameObject(this.entity, vx * speed * delta, vy * speed * delta)
+                    if (this.cutscene){
+                        var speed = mvt.get('speed')
+                        this.gameState.physics.moveGameObject(this.entity, vx * speed * delta, vy * speed * delta)
+                    }
                 }
             }
         })
@@ -302,7 +340,7 @@ define(['sge'],
         		this._actions.push(action);
         	},
         	tick: function(delta){
-        		if (!this._currentAction){
+        		if (this._currentAction==null){
         			if (this._actions.length>0){
                         this._currentAction = this._actions.shift();
                         if (this._currentAction.cutscene){
@@ -317,7 +355,6 @@ define(['sge'],
         			}
         		}
                 this._currentAction.tick(delta);
-                
                 if (this._currentAction.complete){
                     children = this._currentAction.data.children;
                     if (children){
@@ -333,7 +370,6 @@ define(['sge'],
                     var action = new klass(ptype);
                     this._actions.splice(0,0,action);
                 }
-                console.log(this._actions);
             }
         })
 
@@ -345,7 +381,6 @@ define(['sge'],
 			},
             getDialog : function(loc){
                 items = this._dialog[loc];
-                console.log(loc, items);
                 return sge.random.item(items);
             },
 			reset: function(){
@@ -380,15 +415,29 @@ define(['sge'],
 
                         if (entities){
                             entities.forEach(function(entity){
-                                var cb = function(){
+                                
+                                if (triggerData.once){
                                     var e = entity;
+                                    var triggerName = triggerData.listenFor;
                                     var eventName = triggerData.event;
-                                    return function(){
+                                    var f =  function(){
                                         this.run(eventName, {entity: e});
-                                    }.bind(this)
-                                }.bind(this)();
-                                entity.addListener(triggerData.listenFor, cb);
-                                console.log('Set Callback', triggerData.target, triggerData.listenFor)
+                                        e.removeListener(triggerName, f);
+                                    }.bind(this);
+                                    entity.addListener(triggerData.listenFor, f);
+                                } else {
+                                    var e = entity;
+                                    var triggerName = triggerData.listenFor;
+                                    var eventName = triggerData.event;
+                                    var f =  function(){
+                                        this.run(eventName, {entity: e});
+                                        //e.removeListener(triggerName, f);
+                                    }.bind(this);
+                                    entity.addListener(triggerData.listenFor, f);
+                                }
+                                
+                                
+                                
                             }.bind(this));
                         } else {
                             console.warning('Missing Entity:', triggerData.target);
@@ -397,7 +446,6 @@ define(['sge'],
                     }
             },
 			load: function(eventData){
-				console.log(eventData)
 				if (eventData.events){
 					for (var name in eventData.events){
 						this._events[name] = eventData.events[name];
@@ -421,7 +469,6 @@ define(['sge'],
                         if (regionData.spawn){
                             for (var i = regionData.spawn.length - 1; i >= 0; i--) {
                                 var spawnData = regionData.spawn[i];
-                                console.log(spawnData);
                                 region.spawn(spawnData, {});
                             };
                         }
@@ -440,7 +487,7 @@ define(['sge'],
         		if (this._sequences.length>0){
         			this._sequences = this._sequences.filter(function(seq){
                         seq.tick(delta);
-                        return seq._actions.length>0;
+                        return (seq._actions.length>0 || seq._currentAction!=null);
                     }.bind(this))
         		}
         	},

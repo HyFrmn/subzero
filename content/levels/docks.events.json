@@ -1,7 +1,88 @@
 {
 	"regions" : {
 		"dock.main" : {
-			"spawn" : ["citizen", "citizen","citizen", "citizen","citizen", "citizen","citizen", "citizen"]
+			"spawn" : ["citizen", "citizen","citizen", "citizen","citizen", "citizen","gangmember", "gangmember"]
 		}
-	}
+	},
+	"events" : {
+		"jones_walk_out" : {
+			"actions" : [{
+				"xtype" : "nav",
+				"target" : "@exit.south",
+				"entity" : "@jones",
+				"cutscene" : false
+				},{
+				"xtype" : "entity.remove",
+				"target" : "@jones"
+				}]
+		},
+		"lockedout_a" : {
+			"actions" : [{
+				"xtype" : "event.fire",
+				"target" : "@guard_a",
+				"event" : "emote.msg",
+				"arg0" : "Sorry, you need a job to enter the station."
+				}]
+		},
+		"lockedout_b" : {
+			"actions" : [{
+				"xtype" : "event.fire",
+				"target" : "@guard_b",
+				"event" : "emote.msg",
+				"arg0" : "Sorry, you need a job to enter the station."
+				}]
+		},
+		"lockedout_c" : {
+			"actions" : [{
+				"xtype" : "event.fire",
+				"target" : "@guard_c",
+				"event" : "emote.msg",
+				"arg0" : "Sorry, you need a job to enter the station."
+				}]
+		},
+		"lockedout_d" : {
+			"actions" : [{
+				"xtype" : "event.fire",
+				"target" : "@guard_d",
+				"event" : "emote.msg",
+				"arg0" : "Sorry, you need a job to enter the station."
+				}]
+		},
+		"meet_micah" : {
+			"actions" : [{
+				"xtype" : "dialog",
+				"dialog" : "Hey you. Can you give me a hand with these boxes."
+			}]
+		}
+	},
+	"triggers" : [{
+		"target" : "level",
+		"listenFor" : "start",
+		"event" : "jones_walk_out"
+	},{
+		"target" : "@pc",
+		"listenFor" : "region_enter",
+		"event" : "meet_micah"	
+	},{
+		"target" : "@guard_a",
+		"listenFor" : "interact",
+		"event" : "lockedout_a"
+	},{
+		"target" : "@guard_b",
+		"listenFor" : "interact",
+		"event" : "lockedout_b"
+	},{
+		"target" : "@guard_c",
+		"listenFor" : "interact",
+		"event" : "lockedout_c"
+	},{
+		"target" : "@guard_d",
+		"listenFor" : "interact",
+		"event" : "lockedout_d"
+	},{
+		"target" : "@pc",
+		"listenFor" : "region.enter:trigger.micah",
+		"event" : "meet_micah",
+		"once" : true 
+	}]
 }

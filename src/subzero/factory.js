@@ -5,7 +5,8 @@ define([
     './components/door',
     './components/container',
     './components/highlight',
-    './components/ai'
+    './components/ai',
+    './components/emote'
 	],function(sge){
 		var Factory = sge.Class.extend({
 			init: function(){
@@ -30,12 +31,12 @@ define([
 				}
 				var entityData = sge.util.deepExtend({}, this.blueprints[typ]);
 				if (entityData.meta!==undefined){
-					if (entityData.meta.tags){
-						tags = tags.concat(entityData.meta.tags);
+					if (entityData.meta.tagsBase){
+						tags = tags.concat(entityData.meta.tagsBase);
 					}
 					if (entityData.meta.inherit!==undefined){
 						var inherit = entityData.meta.inherit;
-						var bases = [inherit, typ];
+						var bases = [typ, inherit];
 						while (inherit!=null){
 							baseData = this.blueprints[inherit];
 							inherit = null;
@@ -45,18 +46,19 @@ define([
 								}
 								if (baseData.meta.inherit){
 									inherit = baseData.meta.inherit;
-									bases.push(inherit)
-									//bases.splice(0,0,inherit);
+									bases.push(inherit);
 								}
 							}
 						}
 						entityData = {};
+						bases.reverse();
 						while (bases.length){
 							base = bases.shift();
 							entityData = sge.util.deepExtend(entityData, this.blueprints[base]);
 						}
 					}
 				}
+				
 				entityData = sge.util.deepExtend(entityData, data);
 				if (entityData['meta']!==undefined){
 					delete entityData['meta'];

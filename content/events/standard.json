@@ -6,7 +6,8 @@
 				"xtype" : "dialog",
 				"dialog" : "I'm just a boring generic citizen.",
 				"location" : "citizen_generic",
-				"method" : "random"
+				"method" : "random",
+				"emote" : true
 			}
 		  ]
 		}

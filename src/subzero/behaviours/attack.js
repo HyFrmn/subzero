@@ -2,7 +2,7 @@ define(['sge','../behaviour'],function(sge, Behaviour){
     var AttackBehaviour =  Behaviour.Add('attack', {
         onStart: function(options){
             options = options || {};
-            this.target = options.target;
+            this.target = this.state.getEntityByName(options.target);
             this.timeout = options.timeout || -1;
             this.dist = options.dist || 128;
             this._startTime = this.state.getTime();
@@ -29,9 +29,9 @@ define(['sge','../behaviour'],function(sge, Behaviour){
     var AttackOnSightBehaviour =  Behaviour.Add('attackonsight', {
         onStart: function(options){
             options = options || {};
-            this.target = options.target;
+            this.target = this.state.getEntityByName(options.target);
             this.timeout = options.timeout || -1;
-            this.dist = options.dist || 128;
+            this.dist = options.dist || 256;
             this._startTime = this.state.getTime();
             this.end();
         },

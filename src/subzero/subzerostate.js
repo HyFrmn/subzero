@@ -73,6 +73,7 @@ define([
                             TiledLevel.set(levelName, data);
                         }));
                     })
+                    this.game.data.level = data.levels[0];
                 }
 
                 sge.vendor.when.all(defereds).then(this.createMap.bind(this));
@@ -80,19 +81,21 @@ define([
             //Called when game assets are loaded.
             initGame: function(){
                 var map = this.level.map;
-
-                this.physics.setMap(map);
-                this.level.map.render();
                 
+                this.physics.setMap(map);
+                
+                this.level.map.render();
+                console.log('Init')
 
                 // Create / Load PC
                 this.pc = this.factory.create('pc');
                 this.pc.name='pc';
+                this.pc.tags = ['pc'];
                 this.addEntity(this.pc);
                 this.level.updateEntity('pc', this.pc);
 
                 this.events.setup();
-
+                this.regions.setup();
                 this.game.fsm.finishLoad();
 
                 setTimeout(function(){
@@ -100,6 +103,7 @@ define([
                 }.bind(this),100)
             },
             tick: function(delta){
+
                 //Tick Objects
                 for (var i = this._entity_ids.length - 1; i >= 0; i--) {
                     var id = this._entity_ids[i];
@@ -110,7 +114,8 @@ define([
                 };
 
                 this.events.tick(delta);
-
+                this.tickTimeouts(delta);
+                
                 //Prune entities
                 while (this._killList.length>0){
                   var e = this._killList.shift();  
@@ -123,7 +128,7 @@ define([
 
                 var pcx = this.pc.get('xform.tx');
                 var pcy = this.pc.get('xform.ty');
-                this.level.container.setLocation(200-pcx,200-pcy)
+                this.level.container.setLocation(this.game.renderer.width/2-pcx,this.game.renderer.height/2-pcy)
 
                 this.interact.tick(delta);
                 this.render(delta);
@@ -163,10 +168,23 @@ define([
             },
 
             getEntityByName: function(name){
+                if (name.id!==undefined){
+                    return name;
+                }
                 testname = name.replace('@','');
                 return _.filter(this.getEntities(), function(e){
                     return (e.name==testname)
                 })[0];
+            },
+
+            addEntity: function(entity){
+                this._super(entity);
+                entity.addListener('xform.update', function(){
+                    this.regions.updateEntity(entity);
+                    if (this.physics.dirty.indexOf(entity)<0){
+                        this.physics.dirty.push(entity);
+                    }
+                }.bind(this));
             }
         });
 
