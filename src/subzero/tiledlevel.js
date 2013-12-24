@@ -27,6 +27,7 @@ function(sge, TileMap, Region){
 		},
 		init: function(state, levelData){
 			this._super();
+			state.level = this;
 			this.map = new TileMap(levelData.width, levelData.height);
 			state.map = this.map;
 			this.container = new CAAT.ActorContainer();
@@ -49,6 +50,7 @@ function(sge, TileMap, Region){
 			levelData.layers.forEach(function(layer){
 				layerData[layer.name] = layer;
 			});
+
 			levelData.layers.forEach(function(layer){
 				if (layer.type=='tilelayer'){
 					var layerName = layer.name;
@@ -79,6 +81,7 @@ function(sge, TileMap, Region){
 						this._entityMap[entityData.name] = {xform:{tx: entityData.x+16, ty: entityData.y+16-32}}; //-32 For tiled hack.
 						continue;
 					}
+
 					if (state.factory.has(entityData.type)){
 
 						var eData = {};
@@ -153,6 +156,7 @@ function(sge, TileMap, Region){
 
 						}.bind(this));
 						eData = sge.util.deepExtend(eData, {xform: {tx: entityData.x+16, ty: entityData.y-32+16}}); //-32 for tiled hack.
+						
 						var spawn = true;
 						if (eData.meta!==undefined){
 							if (eData.meta.spawn!==undefined){
@@ -160,14 +164,17 @@ function(sge, TileMap, Region){
 							}
 						}
 						var entity = state.factory.create(entityData.type, eData);
+						console.log('Created', entityData.name, entityData.type, eData);
 						entity.name = entityData.name;
 						if (spawn){
 							state.addEntity(entity);	
 						}
+						console.log('Registered', entityData.name);
 					} else {
 						console.log('Missing:', entityData.type);
 					}
 				}
+
 			}
 
 			layer = layerData.dynamic

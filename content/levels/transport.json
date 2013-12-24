@@ -414,20 +414,6 @@
                  "y":96
                 }, 
                 {
-                 "gid":67,
-                 "height":0,
-                 "name":"cpu",
-                 "properties":
-                    {
-
-                    },
-                 "type":"citizien",
-                 "visible":true,
-                 "width":0,
-                 "x":320,
-                 "y":128
-                }, 
-                {
                  "gid":69,
                  "height":0,
                  "name":"stop_1",

@@ -73,13 +73,13 @@ define([
                             TiledLevel.set(levelName, data);
                         }));
                     })
-                    this.game.data.level = data.levels[0];
                 }
-
+                
                 sge.vendor.when.all(defereds).then(this.createMap.bind(this));
             },
             //Called when game assets are loaded.
             initGame: function(){
+                
                 var map = this.level.map;
                 
                 this.physics.setMap(map);
@@ -97,6 +97,8 @@ define([
                 this.events.setup();
                 this.regions.setup();
                 this.game.fsm.finishLoad();
+
+
 
                 setTimeout(function(){
                     this.level.fireEvent('start');
@@ -158,7 +160,7 @@ define([
             createMap: function(){
                 var loader = new sge.Loader(this.game);
                 
-                this.level = TiledLevel.Load(this, this.game.data.level);
+                TiledLevel.Load(this, this.game.data.level);
                 console.log('Level:', this.level);
 
                 loader.loadJSON('content/levels/' + this.game.data.level + '.events.json').then(function(eventData){

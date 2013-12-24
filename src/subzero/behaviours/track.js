@@ -38,7 +38,23 @@ define(['sge','../behaviour'],function(sge, Behaviour){
                 this._targetX = tx2;
                 this._targetY = ty2;
             }
-            
+            if (this._pathActor){
+                this.entity.state.map.canopyDynamic.removeChild(this._pathActor);
+            }
+
+            if (this._pathPoints.length>0){
+                this._pathActor = new CAAT.PathActor();
+                this._path = new CAAT.Path();
+                this._path.beginPath(this._pathPoints[0][0], this._pathPoints[0][1]);
+                for (var i=1; i<this._pathPoints.length;i++){
+                    this._path.addLineTo(this._pathPoints[i][0], this._pathPoints[i][1], 'red');
+                }
+                this._path.endPath();
+                this._pathActor.setBounds(0,0,800,800).create();
+                this._pathActor.setPath(this._path);
+                this._pathActor.setStrokeStyle('2px solid red')
+                this.entity.state.map.canopyDynamic.addChild(this._pathActor);
+            }
         },
 
         tick: function(delta){

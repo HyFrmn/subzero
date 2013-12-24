@@ -69,6 +69,7 @@ define(['sge'],
             },
             start: function(state){
             	this._super(state);
+                this.entity = this.gameState.getEntityByName(this.data.entity); 
             	this.async = true;
                 if (this.data.location){
                     this._dialog = state.events.getDialog(this.data.location);
@@ -77,7 +78,7 @@ define(['sge'],
                 }
                 
                 if (this.emote){
-                    this.fireEvent('emote.msg', this._dialog);
+                    this.entity.fireEvent('emote.msg', this._dialog);
                     this.end();
                 } else {
                     this.width = state.game.renderer.width - 64;
@@ -90,7 +91,7 @@ define(['sge'],
 
                     this._background = new CAAT.ShapeActor().setShape(CAAT.ShapeActor.SHAPE_RECT).setBounds(4,4,this.width-8, this.height-8).setFillStyle('black').setAlpha(0.85);
                     this._container.addChild(this._background);
-                    this.setDialogText(this._dialog);
+                    this.setDialogText(this.entity.name + ': ' + this._dialog);
                     this.state.scene.addChild(this._container);
                 }
             },
@@ -152,6 +153,7 @@ define(['sge'],
             },
             start: function(state){
                 this._super(state);
+                this.entity = this.gameState.getEntityByName(this.data.entity);
                 this.async = true;
                 this._dialog = data.dialog;
                 this.width = state.game.renderer.width - 64;
@@ -258,11 +260,18 @@ define(['sge'],
                 this.entity = this.gameState.getEntityByName(this.data.entity);
                 this.target = this.gameState.getEntityByName(this.data.target);
                 console.log(this.entity, this.target);
-                this.entity.set('ai.active', false);
+                if (this.entity.get('ai')){
+                    this.entity.set('ai.active', false);
+                }
                 this.calcPath();
             },
             end: function(){
-                this.entity.set('ai.active', true);
+                if (this._pathActor){
+                    this.entity.state.map.canopyDynamic.removeChild(this._pathActor);
+                }
+                if (this.entity.get('ai')){
+                    this.entity.set('ai.active', true);
+                }
                 var mvt =this.entity.get('movement');
                 mvt.set('v', 0, 0);
                 this._super();
@@ -278,6 +287,24 @@ define(['sge'],
                 var endTileX = Math.floor(tx2/32);
                 var endTileY = Math.floor(ty2/32);
                 this.pathPoints = this.gameState.map.getPath(tileX, tileY,endTileX,endTileY);
+                if (this._pathActor){
+                    this.entity.state.map.canopyDynamic.removeChild(this._pathActor);
+                }
+
+                if (this.pathPoints.length>0){
+                    this._pathActor = new CAAT.PathActor();
+                    this._path = new CAAT.Path();
+                    this._path.beginPath(this.pathPoints[0][0], this.pathPoints[0][1]);
+                    for (var i=1; i<this.pathPoints.length;i++){
+                        this._path.addLineTo(this.pathPoints[i][0], this.pathPoints[i][1], 'red');
+                    }
+                    this._path.endPath();
+                    this._pathActor.setBounds(0,0,800,800).create();
+                    this._pathActor.setPath(this._path);
+                    this._pathActor.setStrokeStyle('2px solid red')
+                    this.entity.state.map.canopyDynamic.addChild(this._pathActor);
+                }
+                
             },
             tick : function(delta){
                 if (this.pathPoints==undefined){
@@ -331,9 +358,10 @@ define(['sge'],
         EventAction.set('nav', NavAction);
 
         var EventSequence = sge.Class.extend({
-        	init: function(state){
+        	init: function(state, defaults){
                 this.state = state;
         		this._actions = [];
+                this._defaults = defaults;
         		this._currentAction = null;
         	},
         	push: function(action){
@@ -365,7 +393,8 @@ define(['sge'],
         	},
             insert: function(actions){
                 for (var i = actions.length-1; i>=0; i--) {
-                    var ptype = actions[i];
+                    var ptype = sge.util.deepExtend(sge.util.deepExtend({}, this._defaults), actions[i]);
+                    console.log(actions[i], ptype)
                     var klass = EventAction.get(ptype.xtype);
                     var action = new klass(ptype);
                     this._actions.splice(0,0,action);
@@ -476,9 +505,9 @@ define(['sge'],
                 }
 			},
 
-			run: function(eventName, data){
+			run: function(eventName, defaults){
 				var prototype = this._events[eventName];
-				var seq = new EventSequence(this.state);
+				var seq = new EventSequence(this.state, defaults);
 				seq.insert(prototype.actions);
 				this._sequences.push(seq);
 			},

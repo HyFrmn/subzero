@@ -202,20 +202,6 @@
                  "y":160
                 }, 
                 {
-                 "gid":68,
-                 "height":0,
-                 "name":"jones",
-                 "properties":
-                    {
-                     "sprite.src":"man_b"
-                    },
-                 "type":"citizen",
-                 "visible":true,
-                 "width":0,
-                 "x":352,
-                 "y":192
-                }, 
-                {
                  "gid":70,
                  "height":0,
                  "name":"exit.south",
@@ -297,13 +283,27 @@
                     {
                      "meta.spawn":"",
                      "meta.tagsBase":"",
-                     "sprite.src":"man_d"
+                     "sprite.src":"man_e"
                     },
                  "type":"citizen",
                  "visible":true,
                  "width":0,
                  "x":32,
                  "y":288
+                }, 
+                {
+                 "gid":68,
+                 "height":0,
+                 "name":"jones",
+                 "properties":
+                    {
+                     "sprite.src":"man_d"
+                    },
+                 "type":"citizen",
+                 "visible":true,
+                 "width":0,
+                 "x":352,
+                 "y":192
                 }],
          "opacity":1,
          "type":"objectgroup",

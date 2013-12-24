@@ -11,15 +11,15 @@
 				"target" : "@exit.south",
 				"entity" : "@jones",
 				"cutscene" : false
-				},{
+			},{
 				"xtype" : "entity.remove",
 				"target" : "@jones"
-				}]
+			}]
 		},
 		"lockedout_a" : {
 			"actions" : [{
 				"xtype" : "event.fire",
-				"target" : "@guard_a",
+				"entity" : "@guard_a",
 				"event" : "emote.msg",
 				"arg0" : "Sorry, you need a job to enter the station."
 				}]
@@ -27,7 +27,7 @@
 		"lockedout_b" : {
 			"actions" : [{
 				"xtype" : "event.fire",
-				"target" : "@guard_b",
+				"entity" : "@guard_b",
 				"event" : "emote.msg",
 				"arg0" : "Sorry, you need a job to enter the station."
 				}]
@@ -35,7 +35,7 @@
 		"lockedout_c" : {
 			"actions" : [{
 				"xtype" : "event.fire",
-				"target" : "@guard_c",
+				"entity" : "@guard_c",
 				"event" : "emote.msg",
 				"arg0" : "Sorry, you need a job to enter the station."
 				}]
@@ -43,7 +43,7 @@
 		"lockedout_d" : {
 			"actions" : [{
 				"xtype" : "event.fire",
-				"target" : "@guard_d",
+				"entity" : "@guard_d",
 				"event" : "emote.msg",
 				"arg0" : "Sorry, you need a job to enter the station."
 				}]
@@ -51,6 +51,7 @@
 		"meet_micah" : {
 			"actions" : [{
 				"xtype" : "dialog",
+				"entity" : "@micah",
 				"dialog" : "Hey you. Can you give me a hand with these boxes."
 			}]
 		}

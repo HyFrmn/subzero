@@ -8,10 +8,12 @@
           "entity" : "@attendent"
         },{
           "xtype": "dialog",
-          "dialog": "Sir you need to wake up."
+          "dialog": "Sir you need to wake up.",
+          "entity" : "@attendent"
         },{
           "xtype": "question",
           "dialog": "Do you need help moving?",
+          "entity" : "@attendent",
           "responses" : [{
               "dialog" : "Yes!",
               "actions" : [{
@@ -36,7 +38,8 @@
       "actions": [
         {
           "xtype": "dialog",
-          "dialog": "I'm busy go away."
+          "dialog": "I'm busy go away.",
+          "entity" : "@pc"
         }
       ]
     },

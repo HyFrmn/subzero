@@ -6,6 +6,9 @@
         ["man_a", [64,64]],
         ["man_b", [64,64]],
         ["man_c", [64,64]],
+        ["man_d", [64,64]],
+        ["man_e", [64,64]],
+        ["man_f", [64,64]],
         "laser_hit",
         "man_1",
         "man_2",
@@ -23,8 +26,10 @@
         "standard"
     ],
     "levels" : [
-        "galileosquare",
+    "transport",
         "docks",
-        "transport"
+        
+        "galileosquare"
+        
     ]
 }
