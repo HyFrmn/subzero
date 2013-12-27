@@ -81,7 +81,6 @@ define(['sge'],
 
                 	for (var i = new_regions.length - 1; i >= 0; i--) {
                 		entity.fireEvent('region.enter:' + new_regions[i]);
-                		console.log('region.enter:' + new_regions[i]);
                 	};
 
                 	for (var i = old_regions.length - 1; i >= 0; i--) {

@@ -75,17 +75,15 @@ define(['sge'], function(sge){
                     y1 = Math.floor(ny/32);
                     if (x0!=x1||y0!=y1){
                         var result = this.traceStaticTiles(x0, y0, x1, y1);
-                        if (result[2]){
-                            entity.fireEvent('contact.tile');
-                            var collisionTile = this.map.getTile(result[0], result[1]);
+                        if (result[2]){var collisionTile = this.map.getTile(result[0], result[1]);
                             if (collisionTile!=null){
                                 intersection = sge.collision.lineRectIntersect(tx, ty, nx, ny, collisionTile.getRect());
-                                
                             } else {
                                 intersection = sge.collision.lineRectIntersect(tx, ty, nx, ny, {top: 0, left: 0, right: this.map.width*32, bottom: this.map.height*32});
                             }
                             nx = intersection[0];
                             ny = intersection[1];
+                            entity.fireEvent('contact.tile', nx, ny);
                         }
                     }
                 } else {

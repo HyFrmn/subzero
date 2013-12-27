@@ -85,7 +85,6 @@ define([
                 this.physics.setMap(map);
                 
                 this.level.map.render();
-                console.log('Init')
 
                 // Create / Load PC
                 this.pc = this.factory.create('pc');
@@ -161,7 +160,6 @@ define([
                 var loader = new sge.Loader(this.game);
                 
                 TiledLevel.Load(this, this.game.data.level);
-                console.log('Level:', this.level);
 
                 loader.loadJSON('content/levels/' + this.game.data.level + '.events.json').then(function(eventData){
                     this.events.load(eventData);

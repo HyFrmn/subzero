@@ -28,6 +28,18 @@ define(['sge'],
             return EventAction._classMap[name];
         }
 
+        EventAction.set('attr.set', EventAction);
+
+        var EntitySpawnAction = EventAction.extend({
+            start: function(state){
+                this._super(state);
+                this.entity = state.level.getUnspawnedEntity(this.data.entity);
+                state.addEntity(this.entity);
+                this.end();
+            }
+        })
+        EventAction.set('entity.spawn', EntitySpawnAction);
+
         var EntityRemoveAction = EventAction.extend({
             start: function(state){
                 this._super(state);
@@ -41,7 +53,7 @@ define(['sge'],
         var EventFireAction = EventAction.extend({
             start: function(state){
                 this._super(state);
-                this.target = this.gameState.getEntityByName(this.data.target); 
+                this.target = this.gameState.getEntityByName(this.data.entity); 
                 this.target.fireEvent(this.data.event, this.data.arg0, this.data.arg1, this.data.arg2, this.data.arg3)
                 //this.gameState.removeEntity(this.target);
                 this.end();
@@ -53,7 +65,6 @@ define(['sge'],
             start: function(state){
                 this._super(state);
                 state.game.data.level = this.data.level;
-                console.log('Loading:', state.game.data.level);
                 state.game._states.game =  new state.game._gameState(state.game, 'Game');
                 state.game.fsm.startLoad();
                 this.end();
@@ -252,14 +263,11 @@ define(['sge'],
                 this._super(data);
                 this.async = true; //Always async
                 this.cutscene = data.cutscene===undefined ? true : data.cutscene;
-                console.log('Nav', data.target, data.cutscene, this.cutscene)
             },
             start: function(state){
                 this._super(state);
-                console.log('Start Nav');
                 this.entity = this.gameState.getEntityByName(this.data.entity);
                 this.target = this.gameState.getEntityByName(this.data.target);
-                console.log(this.entity, this.target);
                 if (this.entity.get('ai')){
                     this.entity.set('ai.active', false);
                 }
@@ -277,7 +285,6 @@ define(['sge'],
                 this._super();
             },
             calcPath: function(){
-                console.log('calc')
                 var tx = this.entity.get('xform.tx');
                 var ty = this.entity.get('xform.ty');
                 var tileX = Math.floor(tx/32);
@@ -322,7 +329,6 @@ define(['sge'],
                         var ty2 = this.target.get('xform.ty');
                         var endTileX = Math.floor(tx2/32);
                         var endTileY = Math.floor(ty2/32);
-                        //console.log(tileX, tileY,endTileX,endTileY);
                         this.end();
                         return;
                     }
@@ -394,7 +400,6 @@ define(['sge'],
             insert: function(actions){
                 for (var i = actions.length-1; i>=0; i--) {
                     var ptype = sge.util.deepExtend(sge.util.deepExtend({}, this._defaults), actions[i]);
-                    console.log(actions[i], ptype)
                     var klass = EventAction.get(ptype.xtype);
                     var action = new klass(ptype);
                     this._actions.splice(0,0,action);
@@ -427,7 +432,6 @@ define(['sge'],
             setup_triggers: function(triggers){
                 for (var i = triggers.length - 1; i >= 0; i--) {
                         var triggerData = triggers[i];
-                        console.log(triggerData.target)
                         var name = triggerData.name;
                         var entities = null;
                         if (triggerData.target.match(/^@/)!=null){
@@ -435,7 +439,6 @@ define(['sge'],
                         } else if (triggerData.target.match(/^\./)!=null){
                             var tag = triggerData.target.replace(/^\./,'');
                             entities = this.state.getEntitiesWithTag(tag);
-                            console.log('Found:', tag, entities)
                         } else {
                             if (triggerData.target=='level'){
                                 entities = [this.state.level];

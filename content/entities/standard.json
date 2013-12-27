@@ -67,6 +67,10 @@
             "behaviourOptions" : {
                 "target" : "@pc"
             }
+        },
+        "equipable" : {},
+        "interact" : {
+            "enabled" : false
         }
     },
     "tilecache" : {

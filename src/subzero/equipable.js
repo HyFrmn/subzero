@@ -47,10 +47,22 @@ define(['sge', './components/projectile'], function(sge){
 			return true;
 		},
 		use: function(){
-			this.fireProjectile();
+			if (this.canFire()){
+				this.fireProjectile();
+			}
 		},
-		tick: function(){
-
+		canFire : function(){
+			if (this._cooldown>0){
+				return false;
+			} else {
+				this._cooldown = 1 / (this._rps);
+				return true;
+			}
+		},
+		tick : function(delta){
+			if (this._cooldown>0){
+				this._cooldown -= delta;
+			}
 		},
 		start: function(entity){
 			this.entity = entity

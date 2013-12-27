@@ -50,6 +50,7 @@ define(['sge','../behaviour', './attack', './track'],function(sge, Behaviour){
             if (this._currentBehaviour){
                 this._currentBehaviour.end();
             }
+            console.log('Set Enemy Behaviour:', behaviour);
             this.entity.fireEvent('emote.msg', 'Behaviour: ' + behaviour)
             this._currentBehaviour = Behaviour.Create(behaviour, this.entity, this);
             this._currentBehaviour.onStart(arg0, arg1, arg2, arg3, arg4);
@@ -103,7 +104,7 @@ define(['sge','../behaviour', './attack', './track'],function(sge, Behaviour){
 
         tick: function(delta){
             //Determine Behaviour
-            var enemy = this.seePlayer();
+            //var enemy = this.seePlayer();
             if (this._currentBehaviour){
                 this._currentBehaviour.tick(delta);
             }

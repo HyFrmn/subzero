@@ -356,6 +356,15 @@ define([
 	            };
 	            this.entities = [];
 	        },
+            getRect : function(){
+                var rect = {
+                    left : (this.x*32)-1,
+                    right : (this.x*32)+32,
+                    top : (this.y*32)-1,
+                    bottom : (this.y*32)+32,
+                }
+                return rect;
+            },
 	    });
 
 		var TileMap = Class.extend({
@@ -491,7 +500,7 @@ define([
 	            var tile = this.getTile(tx, ty);
 	            var result = true;
 	            if (tile){
-	                result = tile[attr] != true;
+	                result = tile.data[attr] != true;
 	            }
 	            return result;
 	        },

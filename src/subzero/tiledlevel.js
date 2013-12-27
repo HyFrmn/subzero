@@ -25,6 +25,9 @@ function(sge, TileMap, Region){
 				}
 			}
 		},
+		getUnspawnedEntity: function(name){
+			return this._unspawnedEntities[name.replace('@','')];
+		},
 		init: function(state, levelData){
 			this._super();
 			state.level = this;
@@ -44,6 +47,7 @@ function(sge, TileMap, Region){
             this.container.addChild(this.map.canopy);
             this.container.addChild(this.map.canopyDynamic);
 
+            this._unspawnedEntities = {};
 			this._entityMap = {};
 			//this._super(state, options);
 			var layerData = {};
@@ -164,12 +168,13 @@ function(sge, TileMap, Region){
 							}
 						}
 						var entity = state.factory.create(entityData.type, eData);
-						console.log('Created', entityData.name, entityData.type, eData);
 						entity.name = entityData.name;
+
 						if (spawn){
 							state.addEntity(entity);	
+						} else {
+							this._unspawnedEntities[entity.name] = entity;
 						}
-						console.log('Registered', entityData.name);
 					} else {
 						console.log('Missing:', entityData.type);
 					}

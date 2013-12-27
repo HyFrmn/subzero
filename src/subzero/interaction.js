@@ -44,11 +44,13 @@ define(['sge'],function(sge){
             }
         },
         activate: function(coord){
+            //console.log('Look at me! Look at me!', this.entity.id);
             if (this.get('enabled')){
                 this.activeCoord = coord;
                 this.active = true;
                 this.state.input.addListener('keydown:' + config.BButton, this.interact);
                 this.state.input.addListener('keydown:' + config.YButton, this.interactSecondary);
+                //console.log('Add Listener:', this.entity.id);
             }
         },
         deactivate: function(){
@@ -91,7 +93,6 @@ define(['sge'],function(sge){
                 var closest = null;
                 var cdist = 128*128;
                 var ccord = null;
-                var pcHash = this.state._spatialHashReverse[this.state.pc.id];
                 var pcTx = this.state.pc.get('xform.tx');
                 var pcTy = this.state.pc.get('xform.ty')
                 var entities = this.state.findEntities(pcTx, pcTy, 128)

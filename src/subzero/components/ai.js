@@ -50,7 +50,6 @@ define(['sge',
                 state.level.removeListener('start', cb);
             }.bind(this);
             state.level.addListener('start', cb);
-            console.log('Register ai', this.entity.name)
         }
 
     });

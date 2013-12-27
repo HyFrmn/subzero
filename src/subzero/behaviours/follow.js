@@ -2,7 +2,7 @@ define(['sge', '../behaviour'], function(sge, Behaviour){
 	var FollowBehaviour = Behaviour.Add('follow', {
         onStart: function(target, options){
             options = options || {};
-            this.target = target;
+            this.target = this.state.getEntityByName(target);
             this.dist = options.dist || 64;
             
             this._matchSpeed = null;

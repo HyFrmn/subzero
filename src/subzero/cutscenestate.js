@@ -18,7 +18,6 @@ define([
                 this.events = this.gameState.events;
                 this.scene = new CAAT.ActorContainer().setBounds(0,0,800,800);
                 this.gameState.scene.addChild(this.scene);
-                console.log('Start Cutscene!');
                 this._actionSeq = seq;
                 seq._currentAction.start(this);
         	},
@@ -50,7 +49,6 @@ define([
         	endState: function(){
                 this._super();
                 this.gameState.scene.removeChild(this.scene);
-                console.log('End Cutscene!');
         	}
 
         });

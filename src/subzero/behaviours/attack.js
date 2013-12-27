@@ -20,8 +20,25 @@ define(['sge','../behaviour'],function(sge, Behaviour){
             var deltay = targety - ty;
             var dist = Math.sqrt(deltax * deltax + deltay * deltay);
 
-            if (Math.abs(deltax)<10||Math.abs(deltay)<10&&dist<this.dist){
-                this.entity.fireEvent('weapon.fire');
+            if (Math.abs(deltax)<10||Math.abs(deltay)<10&&(dist<this.dist)){
+                if (Math.abs(deltax) > Math.abs(deltay)){
+                    if (deltax > 0){
+                        this.entity.set('anim.anim', 'walk_right');
+                        this.entity.set('xform.dir', 'right');
+                    } else {
+                        this.entity.set('anim.anim', 'walk_left');
+                        this.entity.set('xform.dir', 'left');
+                    }
+                } else {
+                    if (deltay < 0){
+                        this.entity.set('anim.anim', 'walk_up');
+                        this.entity.set('xform.dir', 'up');
+                    } else {
+                        this.entity.set('anim.anim', 'walk_down');
+                        this.entity.set('xform.dir', 'down');
+                    }
+                }
+                this.entity.fireEvent('equipment.use');
             }
         }
     })
