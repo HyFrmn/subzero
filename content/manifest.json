@@ -26,10 +26,8 @@
         "standard"
     ],
     "levels" : [
-    "transport",
-        "docks",
-        
-        "galileosquare"
-        
+        "galileosquare",
+        "transport",
+        "docks"
     ]
 }

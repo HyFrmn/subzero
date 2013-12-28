@@ -6,7 +6,11 @@ define([
     './components/container',
     './components/highlight',
     './components/ai',
-    './components/emote'
+    './components/emote',
+    './components/noise',
+    './components/data',
+
+    './behaviours/citizen'
 	],function(sge){
 		var Factory = sge.Class.extend({
 			init: function(){
@@ -26,10 +30,19 @@ define([
 			},
 			create: function(typ, data){
 				var tags = [];
+				if (data===undefined){
+					data = {}
+				}
 				if (this.blueprints[typ]==undefined){
 					return;
 				}
 				var entityData = sge.util.deepExtend({}, this.blueprints[typ]);
+
+				if (data.meta!==undefined){
+					if (data.meta.tag){
+						tags = tags.concat(data.meta.tag);
+					}
+				}
 				if (entityData.meta!==undefined){
 					if (entityData.meta.tagsBase){
 						tags = tags.concat(entityData.meta.tagsBase);

@@ -70,8 +70,8 @@
                  "type":"pc",
                  "visible":true,
                  "width":0,
-                 "x":96,
-                 "y":512
+                 "x":416,
+                 "y":544
                 }, 
                 {
                  "gid":66,
@@ -90,7 +90,7 @@
                 {
                  "gid":70,
                  "height":0,
-                 "name":"exit.south",
+                 "name":"exit.south_a",
                  "properties":
                     {
 
@@ -104,7 +104,7 @@
                 {
                  "gid":70,
                  "height":0,
-                 "name":"exit.south",
+                 "name":"exit.south_b",
                  "properties":
                     {
 
@@ -118,7 +118,7 @@
                 {
                  "gid":70,
                  "height":0,
-                 "name":"exit.south",
+                 "name":"exit.south_c",
                  "properties":
                     {
 
@@ -132,7 +132,7 @@
                 {
                  "gid":70,
                  "height":0,
-                 "name":"exit.south",
+                 "name":"exit.south_d",
                  "properties":
                     {
 
@@ -154,8 +154,95 @@
                  "type":"door",
                  "visible":true,
                  "width":0,
-                 "x":1824,
+                 "x":416,
                  "y":128
+                }, 
+                {
+                 "gid":70,
+                 "height":0,
+                 "name":"exit.docks",
+                 "properties":
+                    {
+
+                    },
+                 "type":"trigger",
+                 "visible":true,
+                 "width":0,
+                 "x":416,
+                 "y":640
+                }, 
+                {
+                 "gid":68,
+                 "height":0,
+                 "name":"guard_a",
+                 "properties":
+                    {
+
+                    },
+                 "type":"ganymede_guard",
+                 "visible":true,
+                 "width":0,
+                 "x":384,
+                 "y":160
+                }, 
+                {
+                 "gid":68,
+                 "height":0,
+                 "name":"guard_a",
+                 "properties":
+                    {
+
+                    },
+                 "type":"ganymede_guard",
+                 "visible":true,
+                 "width":0,
+                 "x":448,
+                 "y":160
+                }, 
+                {
+                 "gid":68,
+                 "height":0,
+                 "name":"hooker",
+                 "properties":
+                    {
+
+                    },
+                 "type":"citizen",
+                 "visible":true,
+                 "width":0,
+                 "x":704,
+                 "y":224
+                }, 
+                {
+                 "gid":70,
+                 "height":0,
+                 "name":"guard_talk_target",
+                 "properties":
+                    {
+
+                    },
+                 "type":"trigger",
+                 "visible":true,
+                 "width":0,
+                 "x":416,
+                 "y":192
+                }, 
+                {
+                 "gid":68,
+                 "height":0,
+                 "name":"juggler",
+                 "properties":
+                    {
+                     "ai.behaviour":"wait",
+                     "interact.strength":"2",
+                     "meta.removeTags":"citizen",
+                     "sprite.src":"man_d"
+                    },
+                 "type":"citizen_base",
+                 "visible":true,
+                 "width":0,
+                 "x":544,
+                 "y":320
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -170,7 +257,7 @@
          "name":"terrain",
          "opacity":1,
          "type":"tilelayer",
-         "visible":true,
+         "visible":false,
          "width":64,
          "x":0,
          "y":0
@@ -194,7 +281,7 @@
                 }],
          "opacity":1,
          "type":"objectgroup",
-         "visible":true,
+         "visible":false,
          "width":64,
          "x":0,
          "y":0

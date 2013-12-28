@@ -18,11 +18,11 @@ define(['sge',
             this._behaviour = data.behaviour || 'idle';
         },
         setBehaviour: function(value, arg0, arg1, arg2){
-            if (this.behaviour.setBehaviour){
-                this.behaviour.setBehaviour(value, arg0, arg1, arg2)
-            } else {
-                this.set('behaviour', value, arg0, arg1, arg2);
-            }
+            //if (this.behaviour.setBehaviour){
+            //    this.behaviour.setBehaviour(value, arg0, arg1, arg2)
+            //} else {
+                return this.set('behaviour', value, arg0, arg1, arg2);
+            //}
 
         },
         _get_behaviour : function(){
@@ -53,6 +53,7 @@ define(['sge',
         }
 
     });
+
     sge.Component.register('ai', AIComponent);
 
     return AIComponent;

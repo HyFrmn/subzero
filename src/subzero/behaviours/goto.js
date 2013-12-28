@@ -10,12 +10,12 @@ define(['sge','../behaviour'],function(sge, Behaviour){
             this._beep = 0;
             this._avoidVector = null;
             this._onContact = this.onContact.bind(this);
-            this.entity.addListener('contact.start', this._onContact);
+            //this.entity.addListener('contact.start', this._onContact);
         },
 
         onEnd: function(){
             this._super();
-            this.entity.removeListener('contact.start', this._onContact);
+            //this.entity.removeListener('contact.start', this._onContact);
         },
 
         onContact : function(entity){

@@ -13,6 +13,8 @@ define(['sge'],function(sge){
             this.data.height = data.height || 32;
             this.data.dist = data.dist || 96;
             this.data.priority = data.priority || false;
+            this.data.strength = data.strength === undefined ? 1 : parseInt(data.strength)
+            console.log('Strength:', this.data.strength)
             this.data.enabled = data.enabled === undefined ? true : Boolean(data.enabled);
             this.active = false;
             this.interact = this.interact.bind(this);
@@ -120,7 +122,8 @@ define(['sge'],function(sge){
                     for (var j = coords.length - 1; j >= 0; j--) {
                         var dx = coords[j][0] - pcTx;
                         var dy = coords[j][1] - pcTy;
-                        var distSqr = (dx*dx)+(dy*dy);
+                        var distSqr = ((dx*dx)+(dy*dy)) / (entity.get('interact.strength'));
+
                         if (distSqr <= (entity.get('interact.dist') * entity.get('interact.dist'))){
                             if (distSqr < cdist){
                                 closest = entity;

@@ -18,14 +18,16 @@
               "dialog" : "Yes!",
               "actions" : [{
                 "xtype": "dialog",
+                "entity" : "@attendent",
                 "dialog": "Well I can't help you right now. Eventually an introductary tutorial will go here."
               }]
             },{
               "dialog" : "No",
               "actions" : [{
-              "xtype": "dialog",
-              "dialog": "Alright, then you can exit at the top of the space craft."
-            }]
+                "xtype": "dialog",
+                "entity" : "@attendent",
+                "dialog": "Alright, then you can exit at the top of the space craft."
+              }]
           }]
         },{
           "xtype" : "nav",

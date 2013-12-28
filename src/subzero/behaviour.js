@@ -8,7 +8,8 @@ define(['sge'], function(sge){
             this._ended = false;
         },
         setBehaviour: function(behaviour, arg0, arg1, arg2){
-            this.entity.fireEvent('emote.msg', 'Behaviour: ', behaviour)
+            console.log('Behaviour', behaviour)
+            this.entity.fireEvent('emote.msg', 'Behaviour: ' + behaviour)
             return this.parent.setBehaviour(behaviour, arg0, arg1, arg2);
         },
         deferBehaviour: function(behaviour, arg0, arg1, arg2, arg3, arg4){
@@ -89,6 +90,9 @@ define(['sge'], function(sge){
             behaviour._init();
             
         } else {
+            if (!Behaviour._classMap[type]){
+                console.error('Missing Behaviour', type);
+            }
             var behaviour = new Behaviour._classMap[type](entity, parent);
         }
         behaviour.type = type;

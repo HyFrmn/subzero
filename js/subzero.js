@@ -31940,6 +31940,9 @@ define('sge/gamestate',['sge/lib/class', 'sge/vendor/underscore'],
 			entity.state = this;
 			entity.register(this);
 			this.updateSpatialHash(entity);
+			entity.addListener('xform.move', function(){
+				this.updateSpatialHash(entity);
+			}.bind(this))
 			entity.addListener('entity.kill', function(){
                 entity.active = false;
                 this._killList.push(entity);
@@ -34395,6 +34398,15 @@ define('subzero/tilemap',[
 	            };
 	            this.entities = [];
 	        },
+            getRect : function(){
+                var rect = {
+                    left : (this.x*32)-1,
+                    right : (this.x*32)+32,
+                    top : (this.y*32)-1,
+                    bottom : (this.y*32)+32,
+                }
+                return rect;
+            },
 	    });
 
 		var TileMap = Class.extend({
@@ -34530,7 +34542,7 @@ define('subzero/tilemap',[
 	            var tile = this.getTile(tx, ty);
 	            var result = true;
 	            if (tile){
-	                result = tile[attr] != true;
+	                result = tile.data[attr] != true;
 	            }
 	            return result;
 	        },
@@ -34738,8 +34750,12 @@ function(sge, TileMap, Region){
 				}
 			}
 		},
+		getUnspawnedEntity: function(name){
+			return this._unspawnedEntities[name.replace('@','')];
+		},
 		init: function(state, levelData){
 			this._super();
+			state.level = this;
 			this.map = new TileMap(levelData.width, levelData.height);
 			state.map = this.map;
 			this.container = new CAAT.ActorContainer();
@@ -34756,12 +34772,14 @@ function(sge, TileMap, Region){
             this.container.addChild(this.map.canopy);
             this.container.addChild(this.map.canopyDynamic);
 
+            this._unspawnedEntities = {};
 			this._entityMap = {};
 			//this._super(state, options);
 			var layerData = {};
 			levelData.layers.forEach(function(layer){
 				layerData[layer.name] = layer;
 			});
+
 			levelData.layers.forEach(function(layer){
 				if (layer.type=='tilelayer'){
 					var layerName = layer.name;
@@ -34792,6 +34810,7 @@ function(sge, TileMap, Region){
 						this._entityMap[entityData.name] = {xform:{tx: entityData.x+16, ty: entityData.y+16-32}}; //-32 For tiled hack.
 						continue;
 					}
+
 					if (state.factory.has(entityData.type)){
 
 						var eData = {};
@@ -34866,6 +34885,7 @@ function(sge, TileMap, Region){
 
 						}.bind(this));
 						eData = sge.util.deepExtend(eData, {xform: {tx: entityData.x+16, ty: entityData.y-32+16}}); //-32 for tiled hack.
+						
 						var spawn = true;
 						if (eData.meta!==undefined){
 							if (eData.meta.spawn!==undefined){
@@ -34874,13 +34894,17 @@ function(sge, TileMap, Region){
 						}
 						var entity = state.factory.create(entityData.type, eData);
 						entity.name = entityData.name;
+
 						if (spawn){
 							state.addEntity(entity);	
+						} else {
+							this._unspawnedEntities[entity.name] = entity;
 						}
 					} else {
 						console.log('Missing:', entityData.type);
 					}
 				}
+
 			}
 
 			layer = layerData.dynamic
@@ -35104,17 +35128,15 @@ define('subzero/physics',['sge'], function(sge){
                     y1 = Math.floor(ny/32);
                     if (x0!=x1||y0!=y1){
                         var result = this.traceStaticTiles(x0, y0, x1, y1);
-                        if (result[2]){
-                            entity.fireEvent('contact.tile');
-                            var collisionTile = this.map.getTile(result[0], result[1]);
+                        if (result[2]){var collisionTile = this.map.getTile(result[0], result[1]);
                             if (collisionTile!=null){
                                 intersection = sge.collision.lineRectIntersect(tx, ty, nx, ny, collisionTile.getRect());
-                                
                             } else {
                                 intersection = sge.collision.lineRectIntersect(tx, ty, nx, ny, {top: 0, left: 0, right: this.map.width*32, bottom: this.map.height*32});
                             }
                             nx = intersection[0];
                             ny = intersection[1];
+                            entity.fireEvent('contact.tile', nx, ny);
                         }
                     }
                 } else {
@@ -35709,7 +35731,8 @@ define('subzero/behaviour',['sge'], function(sge){
             this._ended = false;
         },
         setBehaviour: function(behaviour, arg0, arg1, arg2){
-            this.entity.fireEvent('emote.msg', 'Behaviour: ', behaviour)
+            console.log('Behaviour', behaviour)
+            this.entity.fireEvent('emote.msg', 'Behaviour: ' + behaviour)
             return this.parent.setBehaviour(behaviour, arg0, arg1, arg2);
         },
         deferBehaviour: function(behaviour, arg0, arg1, arg2, arg3, arg4){
@@ -35790,6 +35813,9 @@ define('subzero/behaviour',['sge'], function(sge){
             behaviour._init();
             
         } else {
+            if (!Behaviour._classMap[type]){
+                console.error('Missing Behaviour', type);
+            }
             var behaviour = new Behaviour._classMap[type](entity, parent);
         }
         behaviour.type = type;
@@ -35799,53 +35825,89 @@ define('subzero/behaviour',['sge'], function(sge){
     return Behaviour;
 });
 define('subzero/behaviours/idle',['sge', '../behaviour'], function(sge, Behaviour){
+    var proxyTarget = function(tx, ty){
+        return new (function(){
+            this.get = function(attr){
+                if (attr=='xform.tx'){
+                    return tx
+                }
+                if (attr=='xform.ty'){
+                    return ty;
+                }
+            }
+        })
+    }
+
 
     var IdleBehaviour = Behaviour.Add('idle', {
         onStart: function(){
             this.entity.set('movement.v',0,0);
-            this._timeout=0;       
+            this._timeout=0;
+            this._wanderTarget = 0;
+            this.entity.addListener('noise.stop', function(){
+                console.log('noise stop')
+                this.setBehaviour('idle');
+            }.bind(this))
+            this.entity.addListener('noise.hear', function(tx, ty, volume, type, strength){
+                target = proxyTarget(tx, ty);
+                switch (type){
+                    case 0:
+                    default:
+                        this.setBehaviour('goto', {target: proxyTarget(tx, ty)}).then(this.deferBehaviour('wait'));
+                        break;
+
+                    case 1:
+                        this.setBehaviour('flee', {target: proxyTarget(tx, ty)}).then(this.deferBehaviour('wait'));
+                        break;
+                }
+                
+            }.bind(this))    
         },
         tick: function(){
-            var region = this.entity.get('ai.region');
-            if (this._timeout<=0){
-                this._timeout = 30 + (Math.random()*30);
-                var vx = 0;
-                var vy = 0;
-                if (Math.random()>0.75){    
-                    vx = ((Math.random() * 2) - 1);
-                    vy = ((Math.random() * 2) - 1);
-                    if (region){
-                        var tx = this.entity.get('xform.tx');
-                        var ty = this.entity.get('xform.ty');
-                        if (region.test(tx,ty,4)){ 
-                            while (!region.test(tx+vx*32,ty+vy*32,4)){
-                                vx = ((Math.random() * 2) - 1);
-                                vy = ((Math.random() * 2) - 1);
+            if (this._wanderTarget){
+
+            } else {
+                var region = this.entity.get('ai.region');
+                if (this._timeout<=0){
+                    this._timeout = 30 + (Math.random()*30);
+                    var vx = 0;
+                    var vy = 0;
+                    if (Math.random()>0.75){    
+                        vx = ((Math.random() * 2) - 1);
+                        vy = ((Math.random() * 2) - 1);
+                        if (region){
+                            var tx = this.entity.get('xform.tx');
+                            var ty = this.entity.get('xform.ty');
+                            if (region.test(tx,ty,4)){ 
+                                while (!region.test(tx+vx*32,ty+vy*32,4)){
+                                    vx = ((Math.random() * 2) - 1);
+                                    vy = ((Math.random() * 2) - 1);
+                                }
                             }
                         }
                     }
-                }
-                this.entity.set('movement.v', vx, vy);
-            } else {
-                this._timeout--;
-                if (region){
-                    var tx = this.entity.get('xform.tx');
-                    var ty = this.entity.get('xform.ty');
-                    if (!region.test(tx,ty)){
-                        var rx = region.get('xform.tx');
-                        var ry = region.get('xform.ty');
-                        var trace = this.state.map.traceStatic(tx,ty,rx,ry)
-                        if (trace[2]){
-                            this.setBehaviour('goto', { target: region }).
-                                then(this.deferBehaviour('idle'),
-                                    this.deferBehaviour('wait',{timeout:20}))
-                        } else {
-                            var dx = tx - rx;
-                        var dy = ty - ry;
-                        var dist = Math.sqrt(dx*dx+dy*dy);
-                        this.entity.set('movement.v', -dx/dist, -dy/dist);
+                    this.entity.set('movement.v', vx, vy);
+                } else {
+                    this._timeout--;
+                    if (region){
+                        var tx = this.entity.get('xform.tx');
+                        var ty = this.entity.get('xform.ty');
+                        if (!region.test(tx,ty)){
+                            var rx = region.get('xform.tx');
+                            var ry = region.get('xform.ty');
+                            var trace = this.state.map.traceStatic(tx,ty,rx,ry)
+                            if (trace[2]){
+                                this.setBehaviour('goto', { target: region }).
+                                    then(this.deferBehaviour('idle'),
+                                        this.deferBehaviour('wait',{timeout:20}))
+                            } else {
+                                var dx = tx - rx;
+                            var dy = ty - ry;
+                            var dist = Math.sqrt(dx*dx+dy*dy);
+                            this.entity.set('movement.v', -dx/dist, -dy/dist);
+                            }
+                            
                         }
-                        
                     }
                 }
             }
@@ -35858,7 +35920,7 @@ define('subzero/behaviours/follow',['sge', '../behaviour'], function(sge, Behavi
 	var FollowBehaviour = Behaviour.Add('follow', {
         onStart: function(target, options){
             options = options || {};
-            this.target = target;
+            this.target = this.state.getEntityByName(target);
             this.dist = options.dist || 64;
             
             this._matchSpeed = null;
@@ -35868,7 +35930,7 @@ define('subzero/behaviours/follow',['sge', '../behaviour'], function(sge, Behavi
             if (options.speed == 'match'){
                 this._matchSpeed = this.entity.get('movement.speed');
                 this.entity.set('movement.speed', 
-                    target.get('movement.speed'))
+                    this.target.get('movement.speed'))
             }
         },
 
@@ -35975,8 +36037,25 @@ define('subzero/behaviours/attack',['sge','../behaviour'],function(sge, Behaviou
             var deltay = targety - ty;
             var dist = Math.sqrt(deltax * deltax + deltay * deltay);
 
-            if (Math.abs(deltax)<10||Math.abs(deltay)<10&&dist<this.dist){
-                this.entity.fireEvent('weapon.fire');
+            if (Math.abs(deltax)<10||Math.abs(deltay)<10&&(dist<this.dist)){
+                if (Math.abs(deltax) > Math.abs(deltay)){
+                    if (deltax > 0){
+                        this.entity.set('anim.anim', 'walk_right');
+                        this.entity.set('xform.dir', 'right');
+                    } else {
+                        this.entity.set('anim.anim', 'walk_left');
+                        this.entity.set('xform.dir', 'left');
+                    }
+                } else {
+                    if (deltay < 0){
+                        this.entity.set('anim.anim', 'walk_up');
+                        this.entity.set('xform.dir', 'up');
+                    } else {
+                        this.entity.set('anim.anim', 'walk_down');
+                        this.entity.set('xform.dir', 'down');
+                    }
+                }
+                this.entity.fireEvent('equipment.use');
             }
         }
     })
@@ -36013,13 +36092,18 @@ define('subzero/behaviours/attack',['sge','../behaviour'],function(sge, Behaviou
 define('subzero/behaviours/track',['sge','../behaviour'],function(sge, Behaviour){
     var TrackBehaviour = Behaviour.Add('track', {
         onStart: function(options){
+            console.log('Start Track')
             options = options || {};
-            this.target = options.target;
+            this.target = this.state.getEntityByName(options.target);
+            
             this.timeout = options.timeout || -1;
-            this.dist = options.dist || 256;
+            this.minDist = options.minDist || 32;
+            this.maxDist = options.maxDist || 256;
+            
             this._timeout = -1;
             this._tick = 0;
             this._pathNavigation = false;
+            this.pathPoints = [];
             this.entity.fireEvent('emote.msg', 'Tracking')
 
             var tx = this.entity.get('xform.tx');
@@ -36031,33 +36115,45 @@ define('subzero/behaviours/track',['sge','../behaviour'],function(sge, Behaviour
             
             this._hasSight = !trace[2];
             if (!this._hasSight){
-                this.startNavigation();
-            }
+                console.log('I can not see you.')
+                this._pathNavigation = true;
+                this.calcPath();
+            } 
         },
 
-        startNavigation: function(){
-            var tx1 = this.entity.get('xform.tx');
-            var ty1 = this.entity.get('xform.ty');
-            var tileX = Math.floor(tx1/32);
-            var tileY = Math.floor(ty1/32);
+        calcPath: function(){
+            var tx = this.entity.get('xform.tx');
+            var ty = this.entity.get('xform.ty');
+            var tileX = Math.floor(tx/32);
+            var tileY = Math.floor(ty/32);
             var tx2 = this.target.get('xform.tx');
             var ty2 = this.target.get('xform.ty');
             var endTileX = Math.floor(tx2/32);
             var endTileY = Math.floor(ty2/32);
-            this._pathPoints = this.state.map.getPath(tileX, tileY, endTileX, endTileY);
-            if (this._pathPoints){
-                this._pathNavigation = true;
-                this._targetX = tx2;
-                this._targetY = ty2;
+            this.pathPoints = this.state.map.getPath(tileX, tileY,endTileX,endTileY);
+            if (this._pathActor){
+                this.entity.state.map.canopyDynamic.removeChild(this._pathActor);
+            }
+
+            if (this.pathPoints.length>0){
+                this._pathActor = new CAAT.PathActor();
+                this._path = new CAAT.Path();
+                this._path.beginPath(this.pathPoints[0][0], this.pathPoints[0][1]);
+                for (var i=1; i<this.pathPoints.length;i++){
+                    this._path.addLineTo(this.pathPoints[i][0], this.pathPoints[i][1], 'red');
+                }
+                this._path.endPath();
+                this._pathActor.setBounds(0,0,800,800).create();
+                this._pathActor.setPath(this._path);
+                this._pathActor.setStrokeStyle('2px solid red')
+                this.entity.state.map.canopyDynamic.addChild(this._pathActor);
             }
             
         },
 
         tick: function(delta){
             this._tick++;
-            if (this._tick%5!=0){
-                return;
-            }
+            
             var tx = this.entity.get('xform.tx');
             var ty = this.entity.get('xform.ty');
 
@@ -36067,59 +36163,61 @@ define('subzero/behaviours/track',['sge','../behaviour'],function(sge, Behaviour
             var deltax = targetx - tx;
             var deltay = targety - ty;
             var dist = Math.sqrt(deltax * deltax + deltay * deltay);
+
             var nx = 0;
             var ny = 0;
-            var trace = this.state.map.traceStatic(tx, ty, targetx, targety);
-            if (trace[2]){
-                if (this._hasSight){
-                    this._hasSight = false;
-                    this.entity.fireEvent('emote.msg', "Lost him");
-                    this.startNavigation();
-                    this._timeout = this.state.getTime();
-                }
-            } else {
-                if (!this._hasSight){
-                    this._hasSight = true;
-                    this._pathNavigation = false;
-                    this._pathPoints = [];
-                    this._timeout = -1;
-                    this.entity.fireEvent('emote.msg', "Gotcha");
-                }
-                if (this._timeout>0){
-                    if (this.state.getTime()-this._timeout>this.timeout){
-                        //this.end();
+
+            if (dist < this.maxDist && dist>this.minDist){
+                
+                var trace = this.state.map.traceStatic(tx, ty, targetx, targety);
+                if (trace[2]){
+                    if (this._hasSight){
+                        this._hasSight = false;
+                        this.entity.fireEvent('emote.msg', "Lost him");
+                        this.startNavigation();
+                        this._timeout = this.state.getTime();
                     }
-                }
-                nx = deltax/dist;
-                ny = deltay/dist;
-            }
-
-            if (this._pathNavigation){
-                var targetOffsetX = Math.abs(this._targetX - targetx);
-                var targetOffsetY = Math.abs(this._targetY - targety);
-                if (targetOffsetX>64||targetOffsetY>16){
-                    this.startNavigation();
-                }
-
-
-                if (this._pathPoints.length<=0){
-                    this._pathNavigation = false;
                 } else {
-                    var goalX = this._pathPoints[0][0];
-                    var goalY = this._pathPoints[0][1];
-                    var dx = goalX - tx;
-                    var dy = goalY - ty;
-                    dist = Math.sqrt((dx*dx)+(dy*dy));
-                    if (dist<6){
-                        this._pathPoints.shift();
+                    if (!this._hasSight){
+                        this._hasSight = true;
+                        this._pathNavigation = false;
+                        this.pathPoints = [];
+                        this._timeout = -1;
+                        this.entity.fireEvent('emote.msg', "Gotcha");
                     }
-                    nx = dx / dist;
-                    ny = dy / dist;
+                    if (this._timeout>0){
+                        if (this.state.getTime()-this._timeout>this.timeout){
+                            //this.end();
+                        }
+                    }
+                    nx = deltax/dist;
+                    ny = deltay/dist;
                 }
-            } 
-            if (dist<64){
-	            //nx = ny = 0;
-    		}
+
+                if (this._pathNavigation){
+                    var targetOffsetX = Math.abs(this._targetX - targetx);
+                    var targetOffsetY = Math.abs(this._targetY - targety);
+                    if (targetOffsetX>64||targetOffsetY>16){
+                        this.startNavigation();
+                    }
+
+
+                    if (this.pathPoints.length<=0){
+                        this._pathNavigation = false;
+                    } else {
+                        var goalX = this.pathPoints[0][0];
+                        var goalY = this.pathPoints[0][1];
+                        var dx = goalX - tx;
+                        var dy = goalY - ty;
+                        dist = Math.sqrt((dx*dx)+(dy*dy));
+                        if (dist<16){
+                            this.pathPoints.shift();
+                        }
+                        nx = dx / dist;
+                        ny = dy / dist;
+                    }
+                }
+            }
             this.entity.set('movement.v', nx, ny);
         }
     })
@@ -36177,7 +36275,8 @@ define('subzero/behaviours/enemy',['sge','../behaviour', './attack', './track'],
             if (this._currentBehaviour){
                 this._currentBehaviour.end();
             }
-            this.entity.fireEvent('emote.msg', 'Behaviour: ', behaviour)
+            console.log('Set Enemy Behaviour:', behaviour);
+            this.entity.fireEvent('emote.msg', 'Behaviour: ' + behaviour)
             this._currentBehaviour = Behaviour.Create(behaviour, this.entity, this);
             this._currentBehaviour.onStart(arg0, arg1, arg2, arg3, arg4);
             return this._currentBehaviour;
@@ -36230,7 +36329,7 @@ define('subzero/behaviours/enemy',['sge','../behaviour', './attack', './track'],
 
         tick: function(delta){
             //Determine Behaviour
-            var enemy = this.seePlayer();
+            //var enemy = this.seePlayer();
             if (this._currentBehaviour){
                 this._currentBehaviour.tick(delta);
             }
@@ -36251,12 +36350,12 @@ define('subzero/behaviours/goto',['sge','../behaviour'],function(sge, Behaviour)
             this._beep = 0;
             this._avoidVector = null;
             this._onContact = this.onContact.bind(this);
-            this.entity.addListener('contact.start', this._onContact);
+            //this.entity.addListener('contact.start', this._onContact);
         },
 
         onEnd: function(){
             this._super();
-            this.entity.removeListener('contact.start', this._onContact);
+            //this.entity.removeListener('contact.start', this._onContact);
         },
 
         onContact : function(entity){
@@ -36436,11 +36535,11 @@ define('subzero/components/ai',['sge',
             this._behaviour = data.behaviour || 'idle';
         },
         setBehaviour: function(value, arg0, arg1, arg2){
-            if (this.behaviour.setBehaviour){
-                this.behaviour.setBehaviour(value, arg0, arg1, arg2)
-            } else {
-                this.set('behaviour', value, arg0, arg1, arg2);
-            }
+            //if (this.behaviour.setBehaviour){
+            //    this.behaviour.setBehaviour(value, arg0, arg1, arg2)
+            //} else {
+                return this.set('behaviour', value, arg0, arg1, arg2);
+            //}
 
         },
         _get_behaviour : function(){
@@ -36462,6 +36561,7 @@ define('subzero/components/ai',['sge',
         },
         register: function(state){
             this._super(state);
+
             var cb = function(){
                 this.set('behaviour', this._behaviour);
                 state.level.removeListener('start', cb);
@@ -36470,6 +36570,7 @@ define('subzero/components/ai',['sge',
         }
 
     });
+
     sge.Component.register('ai', AIComponent);
 
     return AIComponent;
@@ -36531,6 +36632,105 @@ define('subzero/components/emote',['sge'], function(sge){
 	return Emote;
 });
 
+define('subzero/components/noise',['sge/component'], function(Component){
+    var NOISETYPES = [
+        'vendor',      //3 - Standard, 5-Street, 7-Celeb
+        'explosion',   //3 - Gun Shot, 5-Person Screaming, 7-Bomb Explosion
+        'alarm'        //3 - Public Address Warning, 5 - Public Threat, 7 - Env Hazard
+    ]
+    var NoiseComponent = Component.extend({
+    	init: function(entity, data){
+    		this._super(entity, data);
+    	},
+    	register: function(state){
+    		this._super(state);
+    		this.entity.addListener('noise.emit', this.emitNoise.bind(this));
+    	},
+    	emitNoise: function(volume, length){
+    		var tx = this.entity.get('xform.tx');
+    		var ty = this.entity.get('xform.ty');
+    		var entities = this.state.findEntities(
+    								tx,
+    								ty,
+    								volume);
+    		entities.forEach(function(entity){
+    			entity.fireEvent('noise.hear', tx, ty, volume);
+    		})
+            this.state.createTimeout(10, function(){
+                console.log('Timeout')
+                entities.forEach(function(entity){
+                    entity.fireEvent('noise.stop', tx, ty, volume);
+                })
+            })
+            console.log('emit')
+    	}
+    })
+    Component.register('noise', NoiseComponent);
+    return NoiseComponent;
+});
+define('subzero/components/data',['sge/component'], function(Component){
+    var DataComponent = Component.extend({
+    	
+    })
+    Component.register('data', DataComponent);
+    return DataComponent;
+});
+define('subzero/behaviours/citizen',['sge','../behaviour', './attack', './track'],function(sge, Behaviour){
+var CitizenBehaviour = Behaviour.Add('citizen', {
+        /**
+        * Character:
+        *    Attacks when hit.
+        *    Chases enemy when hit.
+        *    Flees from enemy when damaged.
+        *
+        *
+        */
+        init: function(entity, parent){
+            this._super(entity, parent);
+        },
+	    deferBehaviour: function(behaviour, arg0, arg1, arg2, arg3, arg4){
+			var func = function(){
+				
+				var deferred = new sge.vendor.when.defer();
+				this.setBehaviour(behaviour, arg0, arg1, arg2, arg3, arg4)
+					.then(deferred.resolve);
+				return deferred.promise;
+			}.bind(this)
+			return func;
+		},
+
+        _setBehaviourCallback: function(behaviour, arg0, arg1, arg2, arg3, arg4){
+            this.setBehaviourCallback(behaviour, arg0, arg1, arg2, arg3, arg4);
+        },
+
+        setBehaviour: function(behaviour, arg0, arg1, arg2, arg3, arg4){
+            if (this._currentBehaviour){
+                this._currentBehaviour.end();
+            }
+            console.log('Set Enemy Behaviour:', behaviour);
+            this.entity.fireEvent('emote.msg', 'Behaviour: ' + behaviour)
+            this._currentBehaviour = Behaviour.Create(behaviour, this.entity, this);
+            this._currentBehaviour.onStart(arg0, arg1, arg2, arg3, arg4);
+            return this._currentBehaviour;
+        },
+        onStart: function(){
+        	this._currentBehaviour = null;
+        	this.setBehaviour(this.entity.get('ai.initBehaviour'), this.entity.get('ai.behaviourOptions'));
+            this.entity.addListener('ai.setBehaviour', this.setBehaviour.bind(this));
+        },
+        
+        tick: function(delta){
+            //Determine Behaviour
+            //var enemy = this.seePlayer();
+            if (this._currentBehaviour){
+                this._currentBehaviour.tick(delta);
+            }
+
+        }
+    })
+	return CitizenBehaviour
+})
+;
 define('subzero/factory',[
 	'sge',
     './components/physics',
@@ -36539,7 +36739,11 @@ define('subzero/factory',[
     './components/container',
     './components/highlight',
     './components/ai',
-    './components/emote'
+    './components/emote',
+    './components/noise',
+    './components/data',
+
+    './behaviours/citizen'
 	],function(sge){
 		var Factory = sge.Class.extend({
 			init: function(){
@@ -36559,10 +36763,19 @@ define('subzero/factory',[
 			},
 			create: function(typ, data){
 				var tags = [];
+				if (data===undefined){
+					data = {}
+				}
 				if (this.blueprints[typ]==undefined){
 					return;
 				}
 				var entityData = sge.util.deepExtend({}, this.blueprints[typ]);
+
+				if (data.meta!==undefined){
+					if (data.meta.tag){
+						tags = tags.concat(data.meta.tag);
+					}
+				}
 				if (entityData.meta!==undefined){
 					if (entityData.meta.tagsBase){
 						tags = tags.concat(entityData.meta.tagsBase);
@@ -36619,6 +36832,8 @@ define('subzero/interaction',['sge'],function(sge){
             this.data.height = data.height || 32;
             this.data.dist = data.dist || 96;
             this.data.priority = data.priority || false;
+            this.data.strength = data.strength === undefined ? 1 : parseInt(data.strength)
+            console.log('Strength:', this.data.strength)
             this.data.enabled = data.enabled === undefined ? true : Boolean(data.enabled);
             this.active = false;
             this.interact = this.interact.bind(this);
@@ -36650,11 +36865,13 @@ define('subzero/interaction',['sge'],function(sge){
             }
         },
         activate: function(coord){
+            //console.log('Look at me! Look at me!', this.entity.id);
             if (this.get('enabled')){
                 this.activeCoord = coord;
                 this.active = true;
                 this.state.input.addListener('keydown:' + config.BButton, this.interact);
                 this.state.input.addListener('keydown:' + config.YButton, this.interactSecondary);
+                //console.log('Add Listener:', this.entity.id);
             }
         },
         deactivate: function(){
@@ -36697,7 +36914,6 @@ define('subzero/interaction',['sge'],function(sge){
                 var closest = null;
                 var cdist = 128*128;
                 var ccord = null;
-                var pcHash = this.state._spatialHashReverse[this.state.pc.id];
                 var pcTx = this.state.pc.get('xform.tx');
                 var pcTy = this.state.pc.get('xform.ty')
                 var entities = this.state.findEntities(pcTx, pcTy, 128)
@@ -36725,7 +36941,8 @@ define('subzero/interaction',['sge'],function(sge){
                     for (var j = coords.length - 1; j >= 0; j--) {
                         var dx = coords[j][0] - pcTx;
                         var dy = coords[j][1] - pcTy;
-                        var distSqr = (dx*dx)+(dy*dy);
+                        var distSqr = ((dx*dx)+(dy*dy)) / (entity.get('interact.strength'));
+
                         if (distSqr <= (entity.get('interact.dist') * entity.get('interact.dist'))){
                             if (distSqr < cdist){
                                 closest = entity;
@@ -36781,8 +36998,31 @@ define('subzero/events',['sge'],
             EventAction._classMap[name] = cls;
         };
         EventAction.get = function(name){
+            if (!EventAction._classMap[name]){
+                console.log('Missing: ' + name)
+            }
             return EventAction._classMap[name];
         }
+
+        var AttrSetAction = EventAction.extend({
+            start: function(state){
+                this._super(state);
+                this.entity = this.gameState.getEntityByName(this.data.entity);
+                this.entity.set(this.data.attr, this.data.value, this.data.arg0)
+                this.end();
+            }
+        })
+        EventAction.set('attr.set', AttrSetAction);
+
+        var EntitySpawnAction = EventAction.extend({
+            start: function(state){
+                this._super(state);
+                this.entity = state.level.getUnspawnedEntity(this.data.entity);
+                state.addEntity(this.entity);
+                this.end();
+            }
+        })
+        EventAction.set('entity.spawn', EntitySpawnAction);
 
         var EntityRemoveAction = EventAction.extend({
             start: function(state){
@@ -36797,7 +37037,7 @@ define('subzero/events',['sge'],
         var EventFireAction = EventAction.extend({
             start: function(state){
                 this._super(state);
-                this.target = this.gameState.getEntityByName(this.data.target); 
+                this.target = this.gameState.getEntityByName(this.data.entity); 
                 this.target.fireEvent(this.data.event, this.data.arg0, this.data.arg1, this.data.arg2, this.data.arg3)
                 //this.gameState.removeEntity(this.target);
                 this.end();
@@ -36809,13 +37049,12 @@ define('subzero/events',['sge'],
             start: function(state){
                 this._super(state);
                 state.game.data.level = this.data.level;
-                console.log('Loading:', state.game.data.level);
                 state.game._states.game =  new state.game._gameState(state.game, 'Game');
                 state.game.fsm.startLoad();
                 this.end();
             }
         });
-        EventAction.set('levelLoad', LevelLoadAction);
+        EventAction.set('level.load', LevelLoadAction);
 
         var DialogAction = EventAction.extend({
             init: function(data){
@@ -36825,6 +37064,7 @@ define('subzero/events',['sge'],
             },
             start: function(state){
             	this._super(state);
+                this.entity = this.gameState.getEntityByName(this.data.entity); 
             	this.async = true;
                 if (this.data.location){
                     this._dialog = state.events.getDialog(this.data.location);
@@ -36833,7 +37073,7 @@ define('subzero/events',['sge'],
                 }
                 
                 if (this.emote){
-                    this.fireEvent('emote.msg', this._dialog);
+                    this.entity.fireEvent('emote.msg', this._dialog);
                     this.end();
                 } else {
                     this.width = state.game.renderer.width - 64;
@@ -36846,7 +37086,7 @@ define('subzero/events',['sge'],
 
                     this._background = new CAAT.ShapeActor().setShape(CAAT.ShapeActor.SHAPE_RECT).setBounds(4,4,this.width-8, this.height-8).setFillStyle('black').setAlpha(0.85);
                     this._container.addChild(this._background);
-                    this.setDialogText(this._dialog);
+                    this.setDialogText(this.entity.name + ': ' + this._dialog);
                     this.state.scene.addChild(this._container);
                 }
             },
@@ -36908,6 +37148,7 @@ define('subzero/events',['sge'],
             },
             start: function(state){
                 this._super(state);
+                this.entity = this.gameState.getEntityByName(this.data.entity);
                 this.async = true;
                 this._dialog = data.dialog;
                 this.width = state.game.renderer.width - 64;
@@ -36939,14 +37180,14 @@ define('subzero/events',['sge'],
                     this.down();
                 }
             },
-            up : function(){
+            down : function(){
                 this._index += 1;
                 if (this._index>=this.responses.length){
                     this._index=0;
                 }
                 this.setDialogText(this.data.dialog);
             },
-            down: function(){
+            up: function(){
                 this._index -= 1;
                 if (this._index<0){
                     this._index=this.responses.length-1;
@@ -37006,25 +37247,28 @@ define('subzero/events',['sge'],
                 this._super(data);
                 this.async = true; //Always async
                 this.cutscene = data.cutscene===undefined ? true : data.cutscene;
-                console.log('Nav', data.target, data.cutscene, this.cutscene)
             },
             start: function(state){
                 this._super(state);
-                console.log('Start Nav');
                 this.entity = this.gameState.getEntityByName(this.data.entity);
                 this.target = this.gameState.getEntityByName(this.data.target);
-                console.log(this.entity, this.target);
-                this.entity.set('ai.active', false);
+                if (this.entity.get('ai')){
+                    this.entity.set('ai.active', false);
+                }
                 this.calcPath();
             },
             end: function(){
-                this.entity.set('ai.active', true);
+                if (this._pathActor){
+                    this.entity.state.map.canopyDynamic.removeChild(this._pathActor);
+                }
+                if (this.entity.get('ai')){
+                    this.entity.set('ai.active', true);
+                }
                 var mvt =this.entity.get('movement');
                 mvt.set('v', 0, 0);
                 this._super();
             },
             calcPath: function(){
-                console.log('calc')
                 var tx = this.entity.get('xform.tx');
                 var ty = this.entity.get('xform.ty');
                 var tileX = Math.floor(tx/32);
@@ -37034,6 +37278,24 @@ define('subzero/events',['sge'],
                 var endTileX = Math.floor(tx2/32);
                 var endTileY = Math.floor(ty2/32);
                 this.pathPoints = this.gameState.map.getPath(tileX, tileY,endTileX,endTileY);
+                if (this._pathActor){
+                    this.entity.state.map.canopyDynamic.removeChild(this._pathActor);
+                }
+
+                if (this.pathPoints.length>0){
+                    this._pathActor = new CAAT.PathActor();
+                    this._path = new CAAT.Path();
+                    this._path.beginPath(this.pathPoints[0][0], this.pathPoints[0][1]);
+                    for (var i=1; i<this.pathPoints.length;i++){
+                        this._path.addLineTo(this.pathPoints[i][0], this.pathPoints[i][1], 'red');
+                    }
+                    this._path.endPath();
+                    this._pathActor.setBounds(0,0,800,800).create();
+                    this._pathActor.setPath(this._path);
+                    this._pathActor.setStrokeStyle('2px solid red')
+                    this.entity.state.map.canopyDynamic.addChild(this._pathActor);
+                }
+                
             },
             tick : function(delta){
                 if (this.pathPoints==undefined){
@@ -37051,7 +37313,6 @@ define('subzero/events',['sge'],
                         var ty2 = this.target.get('xform.ty');
                         var endTileX = Math.floor(tx2/32);
                         var endTileY = Math.floor(ty2/32);
-                        //console.log(tileX, tileY,endTileX,endTileY);
                         this.end();
                         return;
                     }
@@ -37087,9 +37348,10 @@ define('subzero/events',['sge'],
         EventAction.set('nav', NavAction);
 
         var EventSequence = sge.Class.extend({
-        	init: function(state){
+        	init: function(state, defaults){
                 this.state = state;
         		this._actions = [];
+                this._defaults = defaults;
         		this._currentAction = null;
         	},
         	push: function(action){
@@ -37110,7 +37372,9 @@ define('subzero/events',['sge'],
         				return;
         			}
         		}
-                this._currentAction.tick(delta);
+                if (!this._currentAction.complete){
+                    this._currentAction.tick(delta);
+                }
                 if (this._currentAction.complete){
                     children = this._currentAction.data.children;
                     if (children){
@@ -37121,7 +37385,7 @@ define('subzero/events',['sge'],
         	},
             insert: function(actions){
                 for (var i = actions.length-1; i>=0; i--) {
-                    var ptype = actions[i];
+                    var ptype = sge.util.deepExtend(sge.util.deepExtend({}, this._defaults), actions[i]);
                     var klass = EventAction.get(ptype.xtype);
                     var action = new klass(ptype);
                     this._actions.splice(0,0,action);
@@ -37154,7 +37418,6 @@ define('subzero/events',['sge'],
             setup_triggers: function(triggers){
                 for (var i = triggers.length - 1; i >= 0; i--) {
                         var triggerData = triggers[i];
-                        console.log(triggerData.target)
                         var name = triggerData.name;
                         var entities = null;
                         if (triggerData.target.match(/^@/)!=null){
@@ -37162,7 +37425,6 @@ define('subzero/events',['sge'],
                         } else if (triggerData.target.match(/^\./)!=null){
                             var tag = triggerData.target.replace(/^\./,'');
                             entities = this.state.getEntitiesWithTag(tag);
-                            console.log('Found:', tag, entities)
                         } else {
                             if (triggerData.target=='level'){
                                 entities = [this.state.level];
@@ -37204,7 +37466,25 @@ define('subzero/events',['sge'],
 			load: function(eventData){
 				if (eventData.events){
 					for (var name in eventData.events){
-						this._events[name] = eventData.events[name];
+                        if (name.match(/^@/)){
+                            entity = name.split('.')[0];
+                            name = name.replace(/^@/,'');
+                            evtName = name.replace(/^[a-zA-Z0-9_]*\./,'');
+                            if (evtName == 'init'){
+                                evtName = 'start';
+                                entity = 'level';
+                            }
+                            var trigger ={
+                                target: entity,
+                                listenFor: evtName,
+                                event: name
+                            }
+                            eventData.triggers.push(trigger);
+                            this._events[name] = eventData.events['@' + name];
+                        } else {
+                            this._events[name] = eventData.events[name];
+                        }
+						
 					}
 				}
 
@@ -37232,9 +37512,9 @@ define('subzero/events',['sge'],
                 }
 			},
 
-			run: function(eventName, data){
+			run: function(eventName, defaults){
 				var prototype = this._events[eventName];
-				var seq = new EventSequence(this.state);
+				var seq = new EventSequence(this.state, defaults);
 				seq.insert(prototype.actions);
 				this._sequences.push(seq);
 			},
@@ -37335,7 +37615,6 @@ define('subzero/regions',['sge'],
 
                 	for (var i = new_regions.length - 1; i >= 0; i--) {
                 		entity.fireEvent('region.enter:' + new_regions[i]);
-                		console.log('region.enter:' + new_regions[i]);
                 	};
 
                 	for (var i = old_regions.length - 1; i >= 0; i--) {
@@ -37481,10 +37760,22 @@ define('subzero/equipable',['sge', './components/projectile'], function(sge){
 			return true;
 		},
 		use: function(){
-			this.fireProjectile();
+			if (this.canFire()){
+				this.fireProjectile();
+			}
 		},
-		tick: function(){
-
+		canFire : function(){
+			if (this._cooldown>0){
+				return false;
+			} else {
+				this._cooldown = 1 / (this._rps);
+				return true;
+			}
+		},
+		tick : function(delta){
+			if (this._cooldown>0){
+				this._cooldown -= delta;
+			}
 		},
 		start: function(entity){
 			this.entity = entity
@@ -37718,19 +38009,18 @@ define('subzero/subzerostate',[
                             TiledLevel.set(levelName, data);
                         }));
                     })
-                    this.game.data.level = data.levels[0];
                 }
-
+                
                 sge.vendor.when.all(defereds).then(this.createMap.bind(this));
             },
             //Called when game assets are loaded.
             initGame: function(){
+                
                 var map = this.level.map;
                 
                 this.physics.setMap(map);
                 
                 this.level.map.render();
-                console.log('Init')
 
                 // Create / Load PC
                 this.pc = this.factory.create('pc');
@@ -37742,6 +38032,8 @@ define('subzero/subzerostate',[
                 this.events.setup();
                 this.regions.setup();
                 this.game.fsm.finishLoad();
+
+
 
                 setTimeout(function(){
                     this.level.fireEvent('start');
@@ -37803,8 +38095,7 @@ define('subzero/subzerostate',[
             createMap: function(){
                 var loader = new sge.Loader(this.game);
                 
-                this.level = TiledLevel.Load(this, this.game.data.level);
-                console.log('Level:', this.level);
+                TiledLevel.Load(this, this.game.data.level);
 
                 loader.loadJSON('content/levels/' + this.game.data.level + '.events.json').then(function(eventData){
                     this.events.load(eventData);
@@ -37856,7 +38147,6 @@ define('subzero/cutscenestate',[
                 this.events = this.gameState.events;
                 this.scene = new CAAT.ActorContainer().setBounds(0,0,800,800);
                 this.gameState.scene.addChild(this.scene);
-                console.log('Start Cutscene!');
                 this._actionSeq = seq;
                 seq._currentAction.start(this);
         	},
@@ -37875,12 +38165,15 @@ define('subzero/cutscenestate',[
         				return;
         			}
         		}
-                this._actionSeq._currentAction.tick(delta);
+                if (!this._actionSeq._currentAction.complete){
+                    this._actionSeq._currentAction.tick(delta);
+                }
                 if (this._actionSeq._currentAction.complete){
                     children = this._actionSeq._currentAction.data.children;
                     if (children){
                         this._actionSeq.insert(children);
                     }
+                    console.log(this._actionSeq._actions)
                     this._actionSeq._currentAction = null;
                 }
                 this.gameState.render(delta);    
@@ -37888,7 +38181,6 @@ define('subzero/cutscenestate',[
         	endState: function(){
                 this._super();
                 this.gameState.scene.removeChild(this.scene);
-                console.log('End Cutscene!');
         	}
 
         });
@@ -37916,7 +38208,7 @@ function(sge, SubzeroState, CutsceneState){
 		    game.fsm.addEvent({name:'startCutscene', from:'game',to:'cutscene'});
 		    game.fsm.addEvent({name:'endCutscene', from:'cutscene',to:'game'});
 
-		    game.data.level = 'docks';
+		    game.data.level = 'galileosquare';
 	        var state = game.setGameState(SubzeroState);
 	        return game;
 	    }

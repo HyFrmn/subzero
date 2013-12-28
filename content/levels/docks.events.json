@@ -58,11 +58,18 @@
 				"dialog" : "Hey you. Can you give me a hand with these boxes."
 			},{
 				"xtype" : "attr.set",
-				"target" : "@micah",
+				"entity" : "@micah",
 				"attr" : "ai.behaviour",
 				"value" : "follow",
 				"arg0" : "@pc"
 			}]
+		},
+		"exit.galileo" : {
+			"actions" : [{
+					"xtype" : "levelLoad",
+					"level" : "galileosquare"
+
+				}]
 		}
 	},
 	"triggers" : [{
@@ -94,5 +101,9 @@
 		"listenFor" : "region.enter:trigger.micah",
 		"event" : "meet_micah",
 		"once" : true 
+	},{
+		"target" : ".exit.galileo",
+		"listenFor" : "contact.start",
+		"event" : "exit.galileo"
 	}]
 }

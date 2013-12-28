@@ -30,7 +30,9 @@
             }
         },
         "highlight" : {},
-        "emote" : {}
+        "emote" : {},
+        "noise" : {},
+        "data" : {}
     },
     "pc" : {
         "meta" : {
@@ -39,10 +41,9 @@
         "controls" : {},
         "equipable" : {}
     },
-    "citizen" : {
+    "citizen_base" : {
         "meta" : {
-            "inherit" : "chara",
-            "tagsBase" : ["citizen"]
+            "inherit" : "chara"
         },
         "sprite" : {
             "src" : "man_a"
@@ -50,8 +51,17 @@
         "interact" : {
          "targets" : [[0,0]]
         },
-        "ai" : {}
+        "ai" : {
+            "behaviour" : "citizen",
+            "initBehaviour" : "idle"
+        }
 
+    },
+    "citizen" : {
+        "meta" : {
+            "inherit" : "citizen_base",
+            "tagsBase" : ["citizen"]
+        }
     },
     "gangmember" : {
         "meta" : {

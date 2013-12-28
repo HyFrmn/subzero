@@ -1,11 +1,54 @@
 {
-	"actions" : {
 		"nav" : [{
-			"name" : "target",
-			"type" : "entity",
+				"name" : "target",
+				"type" : "entity"
 			},{
-			"name" : "entity",
-			"type" : "entity",
+				"name" : "entity",
+				"type" : "entity"
 			}],
-	}
+		"attr.set" : [{
+				"name" : "entity",
+				"type" : "entity"
+			},{
+				"name" : "attr",
+				"type" : "string"
+			},{
+				"name" : "value",
+				"type" : "mixed"
+			},{
+				"name" : "arg0",
+				"type" : "mixed"
+			},{
+				"name" : "arg1",
+				"type" : "mixed"
+			}],
+		"entity.spawn" : [{
+				"name" : "entity",
+				"type" : "entity"
+			}],
+		"entity.remove" : [{
+				"name" : "entity",
+				"type" : "entity"
+			},{
+				"name" : "arg0",
+				"type" : "mixed"
+			},{
+				"name" : "arg1",
+				"type" : "mixed"
+			}],
+		"level.load" : [{
+			"name" : "level",
+			"type" : "string"
+			}],
+		"dialog" : [{
+				"name" : "entity",
+				"type" : "entity"
+			},{
+				"name" : "dialog",
+				"type" : "string"
+				},{
+				"name" : "location",
+				"type" : "string"
+				}]
+	
 }

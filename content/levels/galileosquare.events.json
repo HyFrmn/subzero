@@ -1,47 +1,124 @@
 {
-	"regions" : {
-		"market" : {
-			"spawn" : [
-				"citizen",
-				"citizen",
-				"citizen",
-				"citizen",
-				"citizen",
-				"citizen",
-				"citizen",
-				"citizen",
-				"citizen",
-				"citizen",
-				"citizen",
-				"citizen",
-				"citizen",
-				"citizen",
-				"citizen",
-				"citizen",
-				"citizen",
-				"citizen",
-				
-				"gangmember",
-				"gangmember",
-				"gangmember",
-				"gangmember",
-				"gangmember",
-				"gangmember",
-				"gangmember",
-				"gangmember",
-				"gangmember",
-				"gangmember",
-				"gangmember",
-				"gangmember",
-				"gangmember",
-				"gangmember",
-				"gangmember",
-				"gangmember",
-				"gangmember",
-				"gangmember"
-
-
-			]
-		}
-	}
+  "regions": {
+    "market": {
+      "spawn": [
+        "citizen",
+        "citizen",
+        "citizen",
+        "citizen",
+        "citizen",
+        "citizen",
+        "citizen",
+        "citizen",
+        "citizen",
+        "citizen",
+        "citizen",
+        "citizen",
+        "citizen",
+        "citizen",
+        "citizen",
+        "citizen",
+        "citizen",
+        "citizen"
+      ]
+    }
+  },
+  "events": {
+    "exit.docks": {
+      "actions": [
+        {
+          "xtype": "level.load",
+          "level": "docks"
+        }
+      ]
+    },
+    "@juggler.init": {
+      "actions": [
+        {
+          "xtype": "attr.set",
+          "attr": "data.isFollowing",
+          "value": true,
+          "entity" : "@juggler"
+        },{
+          "xtype": "attr.set",
+          "attr": "ai.behaviour",
+          "value": "wait",
+          "entity" : "@juggler"
+        }
+      ]
+    },
+    "@juggler.interact": {
+      "actions": [
+        {
+          "xtype": "question",
+          "dialog": "How can I help you?",
+          "responses": [
+            {
+              "dialog": "Follow me.",
+              "filter": "@juggler.data.isFollowing",
+              "actions": [
+                {
+                  "xtype": "attr.set",
+                  "attr": "ai.behaviour",
+                  "value": "follow",
+                  "arg0": "@pc"
+                }
+              ]
+            },
+            {
+              "dialog": "Wait here.",
+              "filter": "!@juggler.data.isFollowing",
+              "actions": [
+                {
+                  "xtype": "attr.set",
+                  "attr": "ai.behaviour",
+                  "value": "wait",
+                  "arg0": "@pc"
+                }
+              ]
+            },
+            {
+              "dialog": "Start the show.",
+              "actions": [
+                {
+                  "xtype": "attr.set",
+                  "attr": "ai.behaviour",
+                  "value": "wait"
+                },
+                {
+                  "xtype": "event.fire",
+                  "event": "noise.emit",
+                  "arg0": 960,
+                  "arg1": 0,
+                  "arg2": 6
+                },
+                {
+                  "xtype": "dialog",
+                  "emote": true,
+                  "dialog": "Come one, Come all!"
+                },
+                {
+                  "xtype": "dialog",
+                  "emote": true,
+                  "dialog": "Come watch the show."
+                },
+                {
+                  "xtype": "dialog",
+                  "emote": true,
+                  "dialog": "The Great McClain is about to perform!"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "triggers": [
+    {
+      "target": "@exit.docks",
+      "listenFor": "contact.start",
+      "event": "exit.docks"
+    }
+  ]
 }

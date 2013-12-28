@@ -25,10 +25,21 @@ define(['sge'],
             EventAction._classMap[name] = cls;
         };
         EventAction.get = function(name){
+            if (!EventAction._classMap[name]){
+                console.log('Missing: ' + name)
+            }
             return EventAction._classMap[name];
         }
 
-        EventAction.set('attr.set', EventAction);
+        var AttrSetAction = EventAction.extend({
+            start: function(state){
+                this._super(state);
+                this.entity = this.gameState.getEntityByName(this.data.entity);
+                this.entity.set(this.data.attr, this.data.value, this.data.arg0)
+                this.end();
+            }
+        })
+        EventAction.set('attr.set', AttrSetAction);
 
         var EntitySpawnAction = EventAction.extend({
             start: function(state){
@@ -70,7 +81,7 @@ define(['sge'],
                 this.end();
             }
         });
-        EventAction.set('levelLoad', LevelLoadAction);
+        EventAction.set('level.load', LevelLoadAction);
 
         var DialogAction = EventAction.extend({
             init: function(data){
@@ -196,14 +207,14 @@ define(['sge'],
                     this.down();
                 }
             },
-            up : function(){
+            down : function(){
                 this._index += 1;
                 if (this._index>=this.responses.length){
                     this._index=0;
                 }
                 this.setDialogText(this.data.dialog);
             },
-            down: function(){
+            up: function(){
                 this._index -= 1;
                 if (this._index<0){
                     this._index=this.responses.length-1;
@@ -388,7 +399,9 @@ define(['sge'],
         				return;
         			}
         		}
-                this._currentAction.tick(delta);
+                if (!this._currentAction.complete){
+                    this._currentAction.tick(delta);
+                }
                 if (this._currentAction.complete){
                     children = this._currentAction.data.children;
                     if (children){
@@ -480,7 +493,25 @@ define(['sge'],
 			load: function(eventData){
 				if (eventData.events){
 					for (var name in eventData.events){
-						this._events[name] = eventData.events[name];
+                        if (name.match(/^@/)){
+                            entity = name.split('.')[0];
+                            name = name.replace(/^@/,'');
+                            evtName = name.replace(/^[a-zA-Z0-9_]*\./,'');
+                            if (evtName == 'init'){
+                                evtName = 'start';
+                                entity = 'level';
+                            }
+                            var trigger ={
+                                target: entity,
+                                listenFor: evtName,
+                                event: name
+                            }
+                            eventData.triggers.push(trigger);
+                            this._events[name] = eventData.events['@' + name];
+                        } else {
+                            this._events[name] = eventData.events[name];
+                        }
+						
 					}
 				}
 

@@ -12,7 +12,7 @@ define(['sge', '../behaviour'], function(sge, Behaviour){
             if (options.speed == 'match'){
                 this._matchSpeed = this.entity.get('movement.speed');
                 this.entity.set('movement.speed', 
-                    target.get('movement.speed'))
+                    this.target.get('movement.speed'))
             }
         },
 

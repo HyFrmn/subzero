@@ -1,13 +1,11 @@
 <!doctype html>
-<html ng-app>
+<html>
   <head>
-    <script src="jscolor/jscolor.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.5/angular.min.js"></script>
-    <script src="src/events.js"></script>
-    <link rel="stylesheet" href="todo.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.6/angular.min.js"></script>
+    <script src="editor.js"></script>
   </head>
-  <body>
-    <div ng-controller="EventsCtrl">
+  <body ng-app="subzeroEditor">
+    <div ng-controller="EventController" ng-init="init()">
       <h2>Triggers</h2>
       <button ng-click="createTrigger()">Create New Trigger</button>
       <div ng-repeat="trigger in event.triggers">
@@ -15,12 +13,30 @@
         <label>Event:</label><input type="text" ng-model="trigger.event"/>
         <label>Listen For:</label><input type="text" ng-model="trigger.listenFor"/>
       </div>
-      <div>
+
+      <h2>Events</h2>
+      <button ng-click="createEvent()">Create New Event</button>
+      <div ng-repeat="evt in event.events">
+        <h4>{{ evt.name }} - Actions</h4>
+        <button ng-click="addAction(evt)">Add Action</button>
+        <ul>
+          <li ng-repeat="action in evt.actions">
+            <ul>
+              <li>
+                TYPE: <select ng-options="key as key for (key, value) in actionMeta" ng-model="action.xtype"></select>
+              </li>
+              <li ng-repeat="meta in actionMeta[action.xtype]">
+                {{ meta.name }}: <input type="text" ng-model="action[meta.name]">
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
       <h2>Output:</h2>
       <pre>
       {{ event }}
       </pre>
-      </div>
     </div>
   </body>
 </html>
