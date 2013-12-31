@@ -1,17 +1,23 @@
 define([
 	'sge',
-    './components/physics',
-    './components/rpgcontrols',
-    './components/door',
-    './components/container',
-    './components/highlight',
-    './components/ai',
-    './components/emote',
-    './components/noise',
-    './components/data',
+	'./entity',
+	'./components/sprite',
+	'./components/rpgcontrols',
+	'./components/chara'
+	],function(sge, Entity){
+		var deepExtend = function(destination, source) {
+          for (var property in source) {
+            if (source[property] && source[property].constructor &&
+             source[property].constructor === Object) {
+              destination[property] = destination[property] || {};
+              arguments.callee(destination[property], source[property]);
+            } else {
+              destination[property] = source[property];
+            }
+          }
+          return destination;
+        };
 
-    './behaviours/citizen'
-	],function(sge){
 		var Factory = sge.Class.extend({
 			init: function(){
 				this.blueprints = {}
@@ -29,14 +35,17 @@ define([
 				return (this.blueprints[typ]!==undefined);
 			},
 			create: function(typ, data){
+				
 				var tags = [];
 				if (data===undefined){
 					data = {}
 				}
+
 				if (this.blueprints[typ]==undefined){
 					return;
 				}
-				var entityData = sge.util.deepExtend({}, this.blueprints[typ]);
+
+				var entityData = deepExtend({}, this.blueprints[typ]);
 
 				if (data.meta!==undefined){
 					if (data.meta.tag){
@@ -47,6 +56,7 @@ define([
 					if (entityData.meta.tagsBase){
 						tags = tags.concat(entityData.meta.tagsBase);
 					}
+
 					if (entityData.meta.inherit!==undefined){
 						var inherit = entityData.meta.inherit;
 						var bases = [typ, inherit];
@@ -67,16 +77,19 @@ define([
 						bases.reverse();
 						while (bases.length){
 							base = bases.shift();
-							entityData = sge.util.deepExtend(entityData, this.blueprints[base]);
+							entityData = deepExtend(entityData, this.blueprints[base]);
 						}
 					}
+
 				}
 				
-				entityData = sge.util.deepExtend(entityData, data);
+				entityData = deepExtend(entityData, data);
+				
+
 				if (entityData['meta']!==undefined){
 					delete entityData['meta'];
 				}
-				var entity = new sge.Entity(entityData);
+				var entity = Entity.Factory(entityData);
 				entity.tags = entity.tags.concat(tags);
 				return entity;
 			}

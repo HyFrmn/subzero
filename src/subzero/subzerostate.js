@@ -1,193 +1,131 @@
 define([
-    'sge',
-    './tiledlevel',
-    './physics',
-    './factory',
-    './interaction',
-    './events',
-    './regions',
-    './equipable',
-    ],
-    function(sge, TiledLevel, Physics, Factory, Interact, Events, Regions){
-        var SubzeroState = sge.GameState.extend({
-            initState: function(){
-                //Load the physics engine.
-                this.physics = new Physics(this);
-                this.factory = new Factory();
-                this.interact = new Interact(this);
-                this.events = new Events(this);
-                this.regions = new Regions(this);
-                this.loadManifest();                
-            },
-            loadManifest: function(){
-                var loader = new sge.Loader(this.game);
-                loader.loadJSON('content/manifest.json').then(this.parseManifest.bind(this));
-            },
-            parseManifest: function(data){
-                var defereds = [];
-                var loader = new sge.Loader(this.game);
-                if (data.sprites){
-                    for (var i = data.sprites.length - 1; i >= 0; i--) {
-                        var spriteData = data.sprites[i];
-                        var spriteSize = [32,32];
-                        var url = 'content/sprites/' + spriteData + '.png';
-                        var spriteName = spriteData;
-                        if (typeof(spriteData)!='string'){
-                            url = 'content/sprites/' + spriteData[0] + '.png';
-                            spriteSize = spriteData[1];
-                            spriteName = spriteData[0];
-                        }
-                        
-                        defereds.push(loader.loadImage(url, {size: spriteSize, name:spriteName}));
-                    };
-                }
-                
-                if (data.tiles){
-                    for (var i = data.tiles.length - 1; i >= 0; i--) {
-                        var tileData = data.tiles[i];
-                        var url = 'content/tiles/' + tileData + '.png';
-                        defereds.push(loader.loadImage(url, {size: 32}));
-                    };
-                }
-                
-                if (data.entities){
-                    for (var i = data.entities.length - 1; i >= 0; i--) {
-                        var entityUrl = data.entities[i];
-                        var url = 'content/entities/' + entityUrl + '.json';
-                        defereds.push(loader.loadJSON(url).then(this.factory.load.bind(this.factory)));
-                    };
-                }
-                
-                if (data.events){
-                    for (var i = data.events.length - 1; i >= 0; i--) {
-                        var entityUrl = data.events[i];
-                        var url = 'content/events/' + entityUrl + '.json';
-                        defereds.push(loader.loadJSON(url).then(this.events.load.bind(this.events)));
-                    };
-                }
+		'sge',
+		'./tilemap',
+		'./tiledlevel',
+		'./entity',
+		'./input',
+		'./physics',
+		'./factory'
+	], function(sge, TileMap, TiledLevel, Entity, Input, Physics, Factory){
+		var SubzeroState = sge.GameState.extend({
+			init: function(game){
+				this._super(game);
+				this._entities = {};
+				this._entity_ids = [];
+				this.stage = new PIXI.Stage(0x66FF99);
+				this.container = new PIXI.DisplayObjectContainer();
+				console.log(window.innerWidth, game.width)
+				//if (navigator.isCocoonJS){
+					this.container.scale.x= window.innerWidth / game.width;
+					this.container.scale.y= window.innerHeight / game.height;
+				//}
+				this.container.scale.x *= 2;
+				this.container.scale.y *= 2;
+				this.containers={};
+				this.containers.entities = new PIXI.DisplayObjectContainer();
+				this.containers.map = new PIXI.DisplayObjectContainer();
+				this.container.addChild(this.containers.map);
+				this.containers.map.addChild(this.containers.entities);
+				this.stage.addChild(this.container);
+				this.input = new Input(game.renderer.view);
+				this.physics = new Physics();
+				this.factory = new Factory();
 
-                if (data.levels){
-                    data.levels.forEach(function(levelName){
-                        var url = 'content/levels/' + levelName + '.json';
-                        defereds.push(loader.loadJSON(url, {size: 32}).then(function(data){
-                            TiledLevel.set(levelName, data);
-                        }));
-                    })
-                }
-                
-                sge.vendor.when.all(defereds).then(this.createMap.bind(this));
-            },
-            //Called when game assets are loaded.
-            initGame: function(){
-                
-                var map = this.level.map;
-                
-                this.physics.setMap(map);
-                
-                this.level.map.render();
+				this.loadManifest();
+			},
+			loadManifest: function(){
+				var loader = new sge.Loader();
+				var promises = [];
 
-                // Create / Load PC
-                this.pc = this.factory.create('pc');
-                this.pc.name='pc';
-                this.pc.tags = ['pc'];
-                this.addEntity(this.pc);
-                this.level.updateEntity('pc', this.pc);
+				promises.push(loader.loadSpriteFrames('content/sprites/man_a.png','man_a', 64,64));
+				promises.push(loader.loadSpriteFrames('content/sprites/man_b.png','man_b', 64,64));
+				promises.push(loader.loadSpriteFrames('content/sprites/man_c.png','man_c', 64,64));
+				promises.push(loader.loadSpriteFrames('content/sprites/man_d.png','man_d', 64,64));
+				promises.push(loader.loadJSON('content/entities/standard.json').then(this.factory.load.bind(this.factory)));
 
-                this.events.setup();
-                this.regions.setup();
-                this.game.fsm.finishLoad();
+				sge.When.all(promises).then(function(){
+					console.log('Load Sprites!');
+					loader.loadJSON('content/levels/ai_test_a.json').then(function(data){
+						this.loadLevel(data);
+					}.bind(this))
+				}.bind(this));
+			},
+			loadLevel : function(levelData){
+				console.log('Loaded', levelData);
+				this.map = new TileMap(levelData.width, levelData.height, this.game.renderer);
+				TiledLevel(this, this.map, levelData).then(function(){
+					this.map.preRender();
+					this.physics.setMap(this.map);
+					this.initGame();
+				}.bind(this), 500)
+			},
+			initGame: function(){
+				this.containers.map.addChild(this.map.container);
+				this.containers.map.addChild(this.containers.entities);
+				console.log('Making PC')
+				this.pc = this.factory.create('pc', {
+					xform: { tx: 200, ty: 200}
+				});
+				console.log('PC:', this.pc)
+				this.addEntity(this.pc);
+				this.physics.entities.push(this.pc);
+
+				this.containers.map.position.x = this.pc.get('xform.tx');
+
+				/*
+				for (var i = 30; i >= 0; i--) {
+					e = Entity.Factory({
+						xform: { tx: 100 + (Math.random() * 500), ty: 100 + (Math.random() * 300)},
+						sprite: { src: 'man_a', frame: Math.round(Math.random() * 35)}
+					});
+					this.addEntity(e);
+				};
+				*/
+
+				this.game.changeState('game');
+
+			},
+			tick: function(delta){
+				this.input.tick(delta);
+				for (var i = this._entity_ids.length - 1; i >= 0; i--) {
+					var e = this._entities[this._entity_ids[i]];
+					e.tick(delta);
+				};
+				this.physics.tick(delta);
+
+				this.containers.map.position.x = -this.pc.get('xform.tx')+this.game.width/4;
+				this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/4;
+			},
+
+			render: function(){
+				this.map.render();
+				for (var i = this._entity_ids.length - 1; i >= 0; i--) {
+					var e = this._entities[this._entity_ids[i]];
+					e.render();
+				};
+				this.game.renderer.render(this.stage);
+			},
 
 
+			addEntity : function(e){
+				var id = 0;
+				while (this._entities[id]!==undefined){
+					id++;
+				}
+				e.id = id;
+				this._entity_ids.push(e.id);
+				this._entities[e.id] = e;
+				e.register(this);
+				return e;
+			},
+			removeEntity: function(e){
 
-                setTimeout(function(){
-                    this.level.fireEvent('start');
-                }.bind(this),100)
-            },
-            tick: function(delta){
+			},
+			getEntities: function(query){
 
-                //Tick Objects
-                for (var i = this._entity_ids.length - 1; i >= 0; i--) {
-                    var id = this._entity_ids[i];
-                    var e = this.getEntity(id);
-                    if (e){
-                        e.tick(delta);
-                    }
-                };
+			}
+		})
 
-                this.events.tick(delta);
-                this.tickTimeouts(delta);
-                
-                //Prune entities
-                while (this._killList.length>0){
-                  var e = this._killList.shift();  
-                  this._removeFromHash(e);
-                  this.removeEntity(e);
-                };
-
-                //Move Objecs and Resolve Collisions.
-                this.physics.resolveCollisions(delta);
-
-                var pcx = this.pc.get('xform.tx');
-                var pcy = this.pc.get('xform.ty');
-                this.level.container.setLocation(this.game.renderer.width/2-pcx,this.game.renderer.height/2-pcy)
-
-                this.interact.tick(delta);
-                this.render(delta);
-            },
-
-            render: function(delta){
-                //Draw Function with Sorting
-                var sortMap = []
-                _.each(this._entity_ids, function(id){
-                    if (this.entities[id].active){
-                        var entity = this.entities[id];
-                        var tx = entity.get('xform.tx');
-                        var ty = entity.get('xform.ty');
-                        
-                        entity.componentCall('render', delta);
-                        sortMap.push([entity, ty]);
-                    }
-                }.bind(this));
-                sortMap.sort(function(a,b){return a[1]-b[1]});
-                var i = 0;
-                sortMap.forEach(function(data){
-                    i++;
-                    this.entityContainer.setZOrder(data[0].get('xform.container'), i);
-                }.bind(this));
-            },
-
-            createMap: function(){
-                var loader = new sge.Loader(this.game);
-                
-                TiledLevel.Load(this, this.game.data.level);
-
-                loader.loadJSON('content/levels/' + this.game.data.level + '.events.json').then(function(eventData){
-                    this.events.load(eventData);
-                    this.initGame();
-                }.bind(this));
-            },
-
-            getEntityByName: function(name){
-                if (name.id!==undefined){
-                    return name;
-                }
-                testname = name.replace('@','');
-                return _.filter(this.getEntities(), function(e){
-                    return (e.name==testname)
-                })[0];
-            },
-
-            addEntity: function(entity){
-                this._super(entity);
-                entity.addListener('xform.update', function(){
-                    this.regions.updateEntity(entity);
-                    if (this.physics.dirty.indexOf(entity)<0){
-                        this.physics.dirty.push(entity);
-                    }
-                }.bind(this));
-            }
-        });
-
-        return SubzeroState;
-    }
+		return SubzeroState
+	}
 )

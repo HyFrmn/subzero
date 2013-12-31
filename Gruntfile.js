@@ -11,7 +11,7 @@ module.exports = function(grunt) {
         clean: [".tmp/"],
 
         concat: {
-            "js/subzero.js" : ["node_modules/requirejs/require.js",".tmp/app.js"],
+            "js/subzero.js" : ["vendor/require.js", ".tmp/app.js"],
             "options" : {
                 process : function(content, srcpath){
                     content = content.replace(/\$\$BUILD_DATE/, grunt.template.today('yyyy-mm-dd'))
@@ -32,12 +32,7 @@ module.exports = function(grunt) {
                     optimize: "none",
                     packages: ['sge','subzero'],
                     shim: {
-                        'sge/vendor/caat' : {
-                            exports: 'CAAT'
-                        },
-                        'sge/vendor/underscore' : {
-                            exports: '_'
-                        }
+
                     }
                 }
             }
