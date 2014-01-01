@@ -86,6 +86,7 @@ define([
 
 			},
 			tick: function(delta){
+			    this._super(delta);
 				this.input.tick(delta);
 				for (var i = this._entity_ids.length - 1; i >= 0; i--) {
 					var e = this._entities[this._entity_ids[i]];

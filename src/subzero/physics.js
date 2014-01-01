@@ -26,15 +26,17 @@ define([
 
 				if (this.map){
 					var newTile = this.map.getTileAtPos(ptx, pty);
-					if (!newTile.data.passable){
-						horzTile = this.map.getTileAtPos(ptx, ty);
-						if (!horzTile.data.passable){
-							ptx = tx;
-						}
-						vertTile = this.map.getTileAtPos(tx, pty);
-						if (!vertTile.data.passable){
-							pty = ty;
-						}
+					if (newTile){
+					    if (!newTile.data.passable){
+						    horzTile = this.map.getTileAtPos(ptx, ty);
+						    if (!horzTile.data.passable){
+							    ptx = tx;
+						    }
+						    vertTile = this.map.getTileAtPos(tx, pty);
+						    if (!vertTile.data.passable){
+							    pty = ty;
+						    }
+					    }
 					}
 				} else {
 					if (pty<0){
