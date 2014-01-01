@@ -2,8 +2,9 @@ define([
 		'sge',
 		'./component',
 	], function(sge, Component){
-		var Entity = sge.Class.extend({
+		var Entity = sge.Observable.extend({
 			init: function(){
+				this._super();
 				this.id = null
 				this.data = {};
 				this.components = {};

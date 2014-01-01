@@ -38,14 +38,13 @@ define([
 						    }
 					    }
 					}
-				} else {
-					if (pty<0){
-						pty=0;
-					}
+					
 				}
-
-				entity.set('xform.tx', ptx);
-				entity.set('xform.ty', pty);
+				if (tx!=ptx||ty!=pty){
+					entity.set('xform.tx', ptx);
+					entity.set('xform.ty', pty);
+					entity.trigger('entity.moved', entity, ptx, pty);
+				}
 			},
 			setMap: function(map){
 				this.map = map;

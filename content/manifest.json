@@ -25,6 +25,9 @@
     "events" : [
         "standard"
     ],
+    "ai" : [
+        "standard"
+    ],
     "levels" : [
         "galileosquare",
         "transport",

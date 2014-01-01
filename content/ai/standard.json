@@ -1,0 +1,28 @@
+{
+	"ai" : {
+		"citizen" : {
+			"objectives" : [{
+					"behaviour" : "social",
+					"importance" : "95"
+				},{
+					"behaviour" : "idle",
+					"importance" : 0
+				}]
+		},
+		"merchant" : {
+			"objectives" : [{
+					"behaviour" : "sell",
+					"importance" : "95"
+				},{
+					"behaviour" : "social",
+					"importance" : "75"
+				},{
+					"behaviour" : "wait",
+					"importance" : "50"
+				},{
+					"behaviour" : "idle",
+					"importance" : 0
+				}]
+		}
+	}
+}

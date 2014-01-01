@@ -5,7 +5,8 @@ define([
 	'./components/rpgcontrols',
 	'./components/chara',
 	'./components/ai',
-	'./components/physics'
+	'./components/physics',
+	'./components/sound'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {

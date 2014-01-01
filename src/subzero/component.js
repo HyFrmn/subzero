@@ -3,7 +3,8 @@ define([
 	], function(sge){
 		var Component = sge.Class.extend({
 			init: function(entity){
-				this.entity = entity
+				this.entity = entity;
+				this._callbacks = [];
 			},
 			get: function(attr){
 				return this.entity.get(attr)
@@ -16,6 +17,15 @@ define([
 			},
 			deregister: function(){
 
+			},
+			on: function(evt, cb){
+				if (this._callbacks[cb]===undefined){
+					this._callbacks[cb] = cb.bind(this);
+				}
+				this.entity.on(evt, this._callbacks[cb]);
+			},
+			off: function(evt, cb){
+				this.entity.off(evt, this._callbacks[cb]);
 			}
 		})
 

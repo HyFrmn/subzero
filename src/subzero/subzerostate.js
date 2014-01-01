@@ -6,13 +6,18 @@ define([
 		'./input',
 		'./physics',
 		'./factory',
-		'./social'
-	], function(sge, TileMap, TiledLevel, Entity, Input, Physics, Factory, Social){
+		'./social',
+		'./ai'
+	], function(sge, TileMap, TiledLevel, Entity, Input, Physics, Factory, Social, AI){
 		var SubzeroState = sge.GameState.extend({
 			init: function(game){
 				this._super(game);
 				this._entities = {};
 				this._entity_ids = [];
+
+				this._entity_spatial_hash = {}
+
+
 				this.stage = new PIXI.Stage(0x66FF99);
 				this.container = new PIXI.DisplayObjectContainer();
 				this._scale = 1;
@@ -45,6 +50,7 @@ define([
 				promises.push(loader.loadSpriteFrames('content/sprites/man_c.png','man_c', 64,64));
 				promises.push(loader.loadSpriteFrames('content/sprites/man_d.png','man_d', 64,64));
 				promises.push(loader.loadJSON('content/entities/standard.json').then(this.factory.load.bind(this.factory)));
+				promises.push(loader.loadJSON('content/ai/standard.json').then(AI.load.bind(this.factory)));
 
 				sge.When.all(promises).then(function(){
 					console.log('Load Sprites!');
@@ -75,16 +81,6 @@ define([
 				this.physics.entities.push(this.pc);
 
 				this.containers.map.position.x = this.pc.get('xform.tx');
-
-				/*
-				for (var i = 30; i >= 0; i--) {
-					e = Entity.Factory({
-						xform: { tx: 100 + (Math.random() * 500), ty: 100 + (Math.random() * 300)},
-						sprite: { src: 'man_a', frame: Math.round(Math.random() * 35)}
-					});
-					this.addEntity(e);
-				};
-				*/
 
 				this.game.changeState('game');
 
@@ -121,7 +117,60 @@ define([
 				this._entity_ids.push(e.id);
 				this._entities[e.id] = e;
 				e.register(this);
+
+				tx = e.get('xform.tx');
+				ty = e.get('xform.ty');
+				e.on('entity.moved', this._updateHash.bind(this));
+				this._updateHash(e, tx, ty);
 				return e;
+			},
+			_updateHash: function(e, tx, ty){
+				if (!e){
+					return;
+				}
+				var hx = Math.floor(tx/32);
+				var hy = Math.floor(ty/32);
+				var hash = e.get('map.hash');
+				var tile = null;
+				
+				if (hash != hx + '.' + hy){
+					
+					tile = e.get('map.tile');
+					if (tile){
+						idx = tile.data.entities.indexOf(e);
+						tile.data.entities.splice(idx, 1);
+					}
+					e.set('map.hash', hx + '.' + hy)
+					tile = this.map.getTile(hx, hy)
+					e.set('map.tile', tile);
+					if (tile.data.entities==undefined){
+						tile.data.entities=[];
+					}
+					tile.data.entities.push(e);
+					//console.log('Moved:', tile.data.entities, hash, hx + '.' + hy)
+					
+				}
+				
+
+			},
+			findEntities: function(tx, ty, radius){
+				var hx = Math.floor(tx/32);
+				var hy = Math.floor(ty/32);
+				var tileRad = Math.ceil(radius/32);
+				var tile = null
+				var entities = []
+				for (var j=hx-tileRad;j<tileRad+1+hx;j++){
+					for(var k=hy-tileRad;k<tileRad+1+hy;k++){
+						tile = this.map.getTile(j,k);
+						if (tile){
+							var es = tile.data.entities;
+							if (es){
+								entities = entities.concat(es);
+							}
+						}
+					}
+				}
+				return entities;
 			},
 			removeEntity: function(e){
 
