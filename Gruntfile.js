@@ -5,6 +5,7 @@
 module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-requirejs');
+    grunt.loadNpmTasks('grunt-contrib-compress');
     grunt.initConfig({
         // The clean task ensures all files are removed from the dist/ directory so
         // that no files linger from previous builds.
@@ -36,7 +37,15 @@ module.exports = function(grunt) {
                     }
                 }
             }
+        },
+        compress: {
+            main: {
+                options: {
+                    archive: "game.zip"
+                },
+                files: [{src: 'content/**'},{src: 'js/*'},{src: 'vendor/*'},{src: 'index.html'}]
+            }
         }
     });
-    grunt.registerTask("default", ["requirejs", "concat"]);
+    grunt.registerTask("default", ["requirejs", "concat","compress"]);
 }

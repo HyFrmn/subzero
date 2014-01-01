@@ -5,8 +5,9 @@ define([
 		'./entity',
 		'./input',
 		'./physics',
-		'./factory'
-	], function(sge, TileMap, TiledLevel, Entity, Input, Physics, Factory){
+		'./factory',
+		'./social'
+	], function(sge, TileMap, TiledLevel, Entity, Input, Physics, Factory, Social){
 		var SubzeroState = sge.GameState.extend({
 			init: function(game){
 				this._super(game);
@@ -14,13 +15,14 @@ define([
 				this._entity_ids = [];
 				this.stage = new PIXI.Stage(0x66FF99);
 				this.container = new PIXI.DisplayObjectContainer();
+				this._scale = 1;
 				console.log(window.innerWidth, game.width)
 				//if (navigator.isCocoonJS){
 					this.container.scale.x= window.innerWidth / game.width;
 					this.container.scale.y= window.innerHeight / game.height;
 				//}
-				this.container.scale.x *= 2;
-				this.container.scale.y *= 2;
+				this.container.scale.x *= this._scale;
+				this.container.scale.y *= this._scale
 				this.containers={};
 				this.containers.entities = new PIXI.DisplayObjectContainer();
 				this.containers.map = new PIXI.DisplayObjectContainer();
@@ -30,8 +32,9 @@ define([
 				this.input = new Input(game.renderer.view);
 				this.physics = new Physics();
 				this.factory = new Factory();
-
+				this.social = new Social();
 				this.loadManifest();
+				
 			},
 			loadManifest: function(){
 				var loader = new sge.Loader();
@@ -45,7 +48,7 @@ define([
 
 				sge.When.all(promises).then(function(){
 					console.log('Load Sprites!');
-					loader.loadJSON('content/levels/ai_test_a.json').then(function(data){
+					loader.loadJSON('content/levels/' + this.game.data.map + '.json').then(function(data){
 						this.loadLevel(data);
 					}.bind(this))
 				}.bind(this));
@@ -54,6 +57,7 @@ define([
 				console.log('Loaded', levelData);
 				this.map = new TileMap(levelData.width, levelData.height, this.game.renderer);
 				TiledLevel(this, this.map, levelData).then(function(){
+					this.social.setMap(this.map);
 					this.map.preRender();
 					this.physics.setMap(this.map);
 					this.initGame();
@@ -94,8 +98,8 @@ define([
 				};
 				this.physics.tick(delta);
 
-				this.containers.map.position.x = -this.pc.get('xform.tx')+this.game.width/4;
-				this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/4;
+				this.containers.map.position.x = -this.pc.get('xform.tx')+this.game.width/(2*this._scale);
+				this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
 			},
 
 			render: function(){

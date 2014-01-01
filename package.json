@@ -17,7 +17,9 @@
     "grunt-contrib-requirejs": "~0.4.1",
     "requirejs": "~2.1.9"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "grunt-contrib-compress": "~0.5.3"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/HyFrmn/subzero.git"

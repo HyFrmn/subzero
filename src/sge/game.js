@@ -32,8 +32,8 @@ define([
 				this._currentState = null;
 				this.renderer = PIXI.autoDetectRenderer(this.width, this.height, canvas);
 			},
-			start: function(){
-				
+			start: function(data){
+				this.data = data || {};
 				document.body.appendChild(this.renderer.view);
 				this.run();
 				requestAnimFrame(this.render.bind(this))

@@ -4,7 +4,7 @@
  * Copyright (c) 2012, Mat Groves
  * http://goodboydigital.com/
  *
- * Compiled: 2013-10-17
+ * Compiled: 2013-12-31
  *
  * Pixi.JS is licensed under the MIT License.
  * http://www.opensource.org/licenses/mit-license.php
@@ -1255,7 +1255,7 @@ Object.defineProperty(PIXI.DisplayObjectContainer.prototype, 'visible', {
  */
 PIXI.DisplayObjectContainer.prototype.addChild = function(child)
 {
-	if(child.parent != undefined)
+	if(child.parent)
 	{
 		
 		//// COULD BE THIS???
@@ -1432,30 +1432,43 @@ PIXI.DisplayObjectContainer.prototype.addChildAt = function(child, index)
  */
 PIXI.DisplayObjectContainer.prototype.swapChildren = function(child, child2)
 {
-        if(child === child2) {
-                return;
-        }
-
-        var index1 = this.children.indexOf(child);
-        var index2 = this.children.indexOf(child2);
-        
-        if(index1 < 0 || index2 < 0) {
-                throw new Error("swapChildren: Both the supplied DisplayObjects must be a child of the caller.");
-        }
-
-        this.removeChild(child);
-        this.removeChild(child2);
-        
-        if(index1 < index2)
-        {
-                this.addChildAt(child2, index1);
-                this.addChildAt(child, index2);
-        }
-        else
-        {
-                this.addChildAt(child, index2);
-                this.addChildAt(child2, index1);
-        }
+	/*
+	 * this funtion needs to be recoded.. 
+	 * can be done a lot faster..
+	 */
+	return;
+	
+	// need to fix this function :/
+	/*
+	// TODO I already know this??
+	var index = this.children.indexOf( child );
+	var index2 = this.children.indexOf( child2 );
+	
+	if ( index !== -1 && index2 !== -1 ) 
+	{
+		// cool
+		
+		/*
+		if(this.stage)
+		{
+			// this is to satisfy the webGL batching..
+			// TODO sure there is a nicer way to achieve this!
+			this.stage.__removeChild(child);
+			this.stage.__removeChild(child2);
+			
+			this.stage.__addChild(child);
+			this.stage.__addChild(child2);
+		}
+		
+		// swap the positions..
+		this.children[index] = child2;
+		this.children[index2] = child;
+		
+	}
+	else
+	{
+		throw new Error(child + " Both the supplied DisplayObjects must be a child of the caller " + this);
+	}*/
 }
 
 /**
@@ -9781,7 +9794,7 @@ PIXI.JsonLoader.prototype.load = function () {
  */
 PIXI.JsonLoader.prototype.onJSONLoaded = function () {
 	if (this.ajaxRequest.readyState == 4) {
-		if (this.ajaxRequest.status == 200 || window.location.href.indexOf("http") == -1) {
+		if (this.ajaxRequest.status == 200 || window.location.protocol.indexOf("http") == -1) {
 			this.json = JSON.parse(this.ajaxRequest.responseText);
 			
 			if(this.json.frames)
@@ -10156,7 +10169,7 @@ PIXI.BitmapFontLoader.prototype.onXMLLoaded = function()
 {
     if (this.ajaxRequest.readyState == 4)
     {
-        if (this.ajaxRequest.status == 200 || window.location.href.indexOf("http") == -1)
+        if (this.ajaxRequest.status == 200 || window.location.protocol.indexOf("http") == -1)
         {
             var textureUrl = this.baseUrl + this.ajaxRequest.responseXML.getElementsByTagName("page")[0].attributes.getNamedItem("file").nodeValue;
             var image = new PIXI.ImageLoader(textureUrl, this.crossorigin);

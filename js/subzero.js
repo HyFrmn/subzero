@@ -2199,8 +2199,8 @@ define('sge/game',[
 				this._currentState = null;
 				this.renderer = PIXI.autoDetectRenderer(this.width, this.height, canvas);
 			},
-			start: function(){
-				
+			start: function(data){
+				this.data = data || {};
 				document.body.appendChild(this.renderer.view);
 				this.run();
 				requestAnimFrame(this.render.bind(this))
@@ -2283,10 +2283,16 @@ define('sge/gamestate',[
 		var GameState =  Class.extend({
 			init: function(game, options){
 				this.game = game;
+				this._time = 0;
 			},
 			startState: function(){},
 			endState: function(){},
-			tick: function(delta){}
+			tick: function(delta){
+			    this._time += delta;
+			},
+		    getTime: function(){
+		        return this._time;
+		    }
 		});
 
 
@@ -3248,6 +3254,15 @@ define('sge/loader',[
 				});
 				return defered.promise;
 			},
+			loadFont: function(url){
+				var defered = new when.defer();
+				var loader = new PIXI.AssetLoader([url]);
+				loader.onComplete = function(){
+					defered.resolve();
+				}
+				loader.load();
+				return defered.promise;
+			},
 			loadTexture: function(url){
 				var defered = new when.defer();
 				var tex = new PIXI.ImageLoader(url);
@@ -3351,6 +3366,9 @@ define('subzero/tilemap',[
 	        getTileAtPos : function(x, y){
 	        	return this.getTile(Math.floor(x / this.tileSize), Math.floor(y / this.tileSize))
 	        },
+	        getTiles: function(){
+	        	return this.tiles.slice(0);
+	        },
 			render: function(){
 				if (!this._ready){
 					return
@@ -3416,6 +3434,10 @@ define('subzero/tilemap',[
 									var sprite = new PIXI.Sprite(this._tileTextures[tile.layers[name]]);
 									sprite.position.x = (x*this.tileSize) - startX;
 									sprite.position.y = (y*this.tileSize) - startY;
+									//sprite.anchor.x = 0.5;
+									//sprite.anchor.y = 0.5;
+									//sprite.scale.x = tile.data.socialValue;
+									//sprite.scale.y = tile.data.socialValue;
 									chunk.addChild(sprite);
 								}
 							}
@@ -4119,15 +4141,17 @@ define('subzero/physics',[
 
 				if (this.map){
 					var newTile = this.map.getTileAtPos(ptx, pty);
-					if (!newTile.data.passable){
-						horzTile = this.map.getTileAtPos(ptx, ty);
-						if (!horzTile.data.passable){
-							ptx = tx;
-						}
-						vertTile = this.map.getTileAtPos(tx, pty);
-						if (!vertTile.data.passable){
-							pty = ty;
-						}
+					if (newTile){
+					    if (!newTile.data.passable){
+						    horzTile = this.map.getTileAtPos(ptx, ty);
+						    if (!horzTile.data.passable){
+							    ptx = tx;
+						    }
+						    vertTile = this.map.getTileAtPos(tx, pty);
+						    if (!vertTile.data.passable){
+							    pty = ty;
+						    }
+					    }
 					}
 				} else {
 					if (pty<0){
@@ -4318,12 +4342,57 @@ define('subzero/components/chara',[
 		});
 	}
 );
+define('subzero/components/ai',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		Component.add('ai', {
+			init: function(entity, data){
+				this._super(entity, data);
+			    //this.set('movement.vx', Math.random() * 2 - 1);
+			    //this.set('movement.vy', Math.random() * 2 - 1);
+			    this._timeout = 0;
+			},
+			tick: function(){
+				var tx = this.get('xform.tx');
+				var ty = this.get('xform.ty');
+				var tile = this.state.map.getTileAtPos(tx, ty);
+				if (tile){
+					if (tile.data.socialValue<0.9){
+						var vec = tile.data.socialVector;
+						//console.log(vec)
+					    if (vec[0]!=0||vec[1]!=0){
+					    	this.set('movement.vx', vec[0]);
+						    this.set('movement.vy', vec[1]);
+					    }
+					}
+				}
+			}
+		});		
+	}
+);
+define('subzero/components/physics',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		Component.add('physics', {
+			init: function(entity, data){
+				this._super(entity, data);
+			},
+			register: function(state){
+			    state.physics.entities.push(this.entity);   
+			}
+		});		
+	}
+);
 define('subzero/factory',[
 	'sge',
 	'./entity',
 	'./components/sprite',
 	'./components/rpgcontrols',
-	'./components/chara'
+	'./components/chara',
+	'./components/ai',
+	'./components/physics'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {
@@ -4417,6 +4486,91 @@ define('subzero/factory',[
 
 		return Factory;
 });
+define('subzero/social',[
+	'sge',
+	], function(sge){
+		var SocialSystem = sge.Class.extend({
+			init: function(){
+				this._socialMap = [];
+			},
+			setMap : function(map){
+				this.map = map;
+				this.map.getTiles().forEach(function(t){
+						return t.data.socialValue = t.layers.base==0 ? 1 : 0;
+				});
+				for (var i=0; i<this.map.width;i++){
+					this.diffuseMap();
+				}
+				this.calcGradient();
+			},
+			diffuseMap: function(){
+				var origMap = this.map.getTiles().map(function(x){return x.data.socialValue});
+				for (var x = 0; x<this.map.width; x++){
+					for (var y=0; y<this.map.height; y++){
+
+						var value = 0;
+						var count = 0;
+
+						for (var j=-1;j<2;j++){
+							for(var k=-1;k<2;k++){
+								var amt = this.getData(x+j,y+k, origMap);
+								if (amt!=undefined){
+									value += amt;
+									count++;
+								}
+							}
+						}
+						this.map.getTile(x, y).data.socialValue = Math.max((value/count),this.getData(x,y, origMap));
+					}
+				}
+			},
+			calcGradient : function(){
+				for (var x = 1; x<this.map.width-1; x++){
+
+					for (var y=1; y<this.map.height-1; y++){
+						
+						var ax = x-1;
+						var bx = x+1;
+
+						var amtAx = this.map.getTile(ax,y).data.socialValue;
+						var amtBx = this.map.getTile(bx,y).data.socialValue;
+						
+						var dx = (amtBx - amtAx) / 2;
+
+						var ay = y-1;
+						var by = y+1;
+
+						var amtAy = this.map.getTile(x,ay).data.socialValue;
+						var amtBy = this.map.getTile(x,by).data.socialValue;
+						
+						var dy = (amtBy - amtAy) / 2;
+
+						var dist = Math.sqrt((dx*dx)+(dy*dy))
+						this.map.getTile(x,y).data.socialVector=[dx/dist,dy/dist];
+					}
+				}
+			},
+			getIndex : function(x, y){
+	            var index = (y * this.map.width) + x;
+	            if (x > this.map.width-1 || x < 0){
+	                return null;
+	            }
+	            if (y > this.map.height-1 || y < 0){
+	                return null;
+	            }
+	            return index;
+	        },
+	        getData : function(x, y, arr){
+	            return arr[this.getIndex(x, y)];
+	        },
+	        getTileAtPos : function(x, y){
+	        	return this.getTile(Math.floor(x / this.tileSize), Math.floor(y / this.tileSize))
+	        },
+		})
+
+		return SocialSystem;
+	}
+);
 define('subzero/subzerostate',[
 		'sge',
 		'./tilemap',
@@ -4424,8 +4578,9 @@ define('subzero/subzerostate',[
 		'./entity',
 		'./input',
 		'./physics',
-		'./factory'
-	], function(sge, TileMap, TiledLevel, Entity, Input, Physics, Factory){
+		'./factory',
+		'./social'
+	], function(sge, TileMap, TiledLevel, Entity, Input, Physics, Factory, Social){
 		var SubzeroState = sge.GameState.extend({
 			init: function(game){
 				this._super(game);
@@ -4433,13 +4588,14 @@ define('subzero/subzerostate',[
 				this._entity_ids = [];
 				this.stage = new PIXI.Stage(0x66FF99);
 				this.container = new PIXI.DisplayObjectContainer();
+				this._scale = 1;
 				console.log(window.innerWidth, game.width)
 				//if (navigator.isCocoonJS){
 					this.container.scale.x= window.innerWidth / game.width;
 					this.container.scale.y= window.innerHeight / game.height;
 				//}
-				this.container.scale.x *= 2;
-				this.container.scale.y *= 2;
+				this.container.scale.x *= this._scale;
+				this.container.scale.y *= this._scale
 				this.containers={};
 				this.containers.entities = new PIXI.DisplayObjectContainer();
 				this.containers.map = new PIXI.DisplayObjectContainer();
@@ -4449,8 +4605,9 @@ define('subzero/subzerostate',[
 				this.input = new Input(game.renderer.view);
 				this.physics = new Physics();
 				this.factory = new Factory();
-
+				this.social = new Social();
 				this.loadManifest();
+				
 			},
 			loadManifest: function(){
 				var loader = new sge.Loader();
@@ -4464,7 +4621,7 @@ define('subzero/subzerostate',[
 
 				sge.When.all(promises).then(function(){
 					console.log('Load Sprites!');
-					loader.loadJSON('content/levels/ai_test_a.json').then(function(data){
+					loader.loadJSON('content/levels/' + this.game.data.map + '.json').then(function(data){
 						this.loadLevel(data);
 					}.bind(this))
 				}.bind(this));
@@ -4473,6 +4630,7 @@ define('subzero/subzerostate',[
 				console.log('Loaded', levelData);
 				this.map = new TileMap(levelData.width, levelData.height, this.game.renderer);
 				TiledLevel(this, this.map, levelData).then(function(){
+					this.social.setMap(this.map);
 					this.map.preRender();
 					this.physics.setMap(this.map);
 					this.initGame();
@@ -4505,6 +4663,7 @@ define('subzero/subzerostate',[
 
 			},
 			tick: function(delta){
+			    this._super(delta);
 				this.input.tick(delta);
 				for (var i = this._entity_ids.length - 1; i >= 0; i--) {
 					var e = this._entities[this._entity_ids[i]];
@@ -4512,8 +4671,8 @@ define('subzero/subzerostate',[
 				};
 				this.physics.tick(delta);
 
-				this.containers.map.position.x = -this.pc.get('xform.tx')+this.game.width/4;
-				this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/4;
+				this.containers.map.position.x = -this.pc.get('xform.tx')+this.game.width/(2*this._scale);
+				this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
 			},
 
 			render: function(){

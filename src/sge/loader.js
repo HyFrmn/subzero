@@ -29,6 +29,15 @@ define([
 				});
 				return defered.promise;
 			},
+			loadFont: function(url){
+				var defered = new when.defer();
+				var loader = new PIXI.AssetLoader([url]);
+				loader.onComplete = function(){
+					defered.resolve();
+				}
+				loader.load();
+				return defered.promise;
+			},
 			loadTexture: function(url){
 				var defered = new when.defer();
 				var tex = new PIXI.ImageLoader(url);

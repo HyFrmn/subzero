@@ -45,6 +45,9 @@ define([
 	        getTileAtPos : function(x, y){
 	        	return this.getTile(Math.floor(x / this.tileSize), Math.floor(y / this.tileSize))
 	        },
+	        getTiles: function(){
+	        	return this.tiles.slice(0);
+	        },
 			render: function(){
 				if (!this._ready){
 					return
@@ -110,6 +113,10 @@ define([
 									var sprite = new PIXI.Sprite(this._tileTextures[tile.layers[name]]);
 									sprite.position.x = (x*this.tileSize) - startX;
 									sprite.position.y = (y*this.tileSize) - startY;
+									//sprite.anchor.x = 0.5;
+									//sprite.anchor.y = 0.5;
+									//sprite.scale.x = tile.data.socialValue;
+									//sprite.scale.y = tile.data.socialValue;
 									chunk.addChild(sprite);
 								}
 							}

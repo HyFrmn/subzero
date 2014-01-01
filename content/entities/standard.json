@@ -37,7 +37,10 @@
             "inherit" : "chara"
         },
         "controls" : {},
-        "equipable" : {}
+        "equipable" : {},
+        "sprite" : {
+            "src" :  "man_b"
+        }
     },
     "citizen_base" : {
         "meta" : {
