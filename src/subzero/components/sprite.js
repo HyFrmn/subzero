@@ -25,6 +25,7 @@ define([
 				this._super(state);
 				this.parent = state.containers[this.get('sprite.container')];
 				this.parent.addChild(this._sprite);
+				console.log('SPRITES:', this.parent.children.length)
 				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
 					this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
 				this._test_a = this.get('xform.ty');
@@ -43,22 +44,21 @@ define([
 						next = this.parent.children[idx-1];
 					}
 				}
+				this.on('entity.moved', this.updateSort);
 			},
 
-
-			render: function(){
-				
-				var dx = this.get('xform.tx') - (this._sprite.position.x - this.get('sprite.offsetx'));
-				var dy = this.get('xform.ty') - (this._sprite.position.y - this.get('sprite.offsety'));
+			updateSort: function(entity, tx, ty, dx, dy){
 				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
 				this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
+				//console.log('sort', dx, dy)
 				if (dx != 0 || dy != 0){
 					//*
 					if (dy>0){
 						var idx = this.parent.children.indexOf(this._sprite);
+
 						var next = this.parent.children[idx+1];
 						if (next){
-							if (next.position.y<this._sprite.position.y){
+							if (next.position.y>this._sprite.position.y){
 								this.parent.swapChildren(this._sprite, next);
 							}
 						}
@@ -66,13 +66,20 @@ define([
 						var idx = this.parent.children.indexOf(this._sprite);
 						var next = this.parent.children[idx-1];
 						if (next){
-							if (next.position.y>this._sprite.position.y){
+							if (next.position.y<this._sprite.position.y){
+								console.log('SWAP', idx)
 								this.parent.swapChildren(this._sprite, next);
 							}
 						}
 					}
 					//*/
 				}
+			},
+
+			render: function(){
+				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
+				this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
+				
 				this._sprite.setTexture(PIXI.TextureCache[this.get('sprite.src') + '-' + this.get('sprite.frame')])
 			}
 		});

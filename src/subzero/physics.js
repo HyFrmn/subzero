@@ -41,9 +41,9 @@ define([
 					
 				}
 				if (tx!=ptx||ty!=pty){
+					entity.trigger('entity.moved', entity, ptx, pty, ptx-tx, pty-ty);
 					entity.set('xform.tx', ptx);
 					entity.set('xform.ty', pty);
-					entity.trigger('entity.moved', entity, ptx, pty);
 				}
 			},
 			setMap: function(map){

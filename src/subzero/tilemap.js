@@ -92,8 +92,8 @@ define([
 			preRenderChunk: function(cx, cy){
 				var startX = cx * this._chunkSize;
 				var startY = cy * this._chunkSize;
-				var endX = (cx + 1) * (this._chunkSize);
-				var endY = (cy + 1) * (this._chunkSize);
+				var endX = Math.min((cx + 1) * (this._chunkSize), this.width * this.tileSize);
+				var endY = Math.min((cy + 1) * (this._chunkSize), this.height * this.tileSize);
 
 				var chunkStartX = Math.floor(startX / this.tileSize);
 				var chunkStartY = Math.floor(startY / this.tileSize);
@@ -113,10 +113,6 @@ define([
 									var sprite = new PIXI.Sprite(this._tileTextures[tile.layers[name]]);
 									sprite.position.x = (x*this.tileSize) - startX;
 									sprite.position.y = (y*this.tileSize) - startY;
-									//sprite.anchor.x = 0.5;
-									//sprite.anchor.y = 0.5;
-									//sprite.scale.x = tile.data.socialValue;
-									//sprite.scale.y = tile.data.socialValue;
 									chunk.addChild(sprite);
 								}
 							}
@@ -125,7 +121,7 @@ define([
 				}
 
 				// render the tilemap to a render texture
-				var texture = new PIXI.RenderTexture(this._chunkSize, this._chunkSize);
+				var texture = new PIXI.RenderTexture(endX-startX, endY-startY);
 				texture.render(chunk);
 
 				// create a single background sprite with the texture

@@ -3442,8 +3442,8 @@ define('subzero/tilemap',[
 			preRenderChunk: function(cx, cy){
 				var startX = cx * this._chunkSize;
 				var startY = cy * this._chunkSize;
-				var endX = (cx + 1) * (this._chunkSize);
-				var endY = (cy + 1) * (this._chunkSize);
+				var endX = Math.min((cx + 1) * (this._chunkSize), this.width * this.tileSize);
+				var endY = Math.min((cy + 1) * (this._chunkSize), this.height * this.tileSize);
 
 				var chunkStartX = Math.floor(startX / this.tileSize);
 				var chunkStartY = Math.floor(startY / this.tileSize);
@@ -3463,10 +3463,6 @@ define('subzero/tilemap',[
 									var sprite = new PIXI.Sprite(this._tileTextures[tile.layers[name]]);
 									sprite.position.x = (x*this.tileSize) - startX;
 									sprite.position.y = (y*this.tileSize) - startY;
-									//sprite.anchor.x = 0.5;
-									//sprite.anchor.y = 0.5;
-									//sprite.scale.x = tile.data.socialValue;
-									//sprite.scale.y = tile.data.socialValue;
 									chunk.addChild(sprite);
 								}
 							}
@@ -3475,7 +3471,7 @@ define('subzero/tilemap',[
 				}
 
 				// render the tilemap to a render texture
-				var texture = new PIXI.RenderTexture(this._chunkSize, this._chunkSize);
+				var texture = new PIXI.RenderTexture(endX-startX, endY-startY);
 				texture.render(chunk);
 
 				// create a single background sprite with the texture
@@ -4195,9 +4191,9 @@ define('subzero/physics',[
 					
 				}
 				if (tx!=ptx||ty!=pty){
+					entity.trigger('entity.moved', entity, ptx, pty, ptx-tx, pty-ty);
 					entity.set('xform.tx', ptx);
 					entity.set('xform.ty', pty);
-					entity.trigger('entity.moved', entity, ptx, pty);
 				}
 			},
 			setMap: function(map){
@@ -4235,6 +4231,7 @@ define('subzero/components/sprite',[
 				this._super(state);
 				this.parent = state.containers[this.get('sprite.container')];
 				this.parent.addChild(this._sprite);
+				console.log('SPRITES:', this.parent.children.length)
 				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
 					this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
 				this._test_a = this.get('xform.ty');
@@ -4253,22 +4250,21 @@ define('subzero/components/sprite',[
 						next = this.parent.children[idx-1];
 					}
 				}
+				this.on('entity.moved', this.updateSort);
 			},
 
-
-			render: function(){
-				
-				var dx = this.get('xform.tx') - (this._sprite.position.x - this.get('sprite.offsetx'));
-				var dy = this.get('xform.ty') - (this._sprite.position.y - this.get('sprite.offsety'));
+			updateSort: function(entity, tx, ty, dx, dy){
 				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
 				this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
+				//console.log('sort', dx, dy)
 				if (dx != 0 || dy != 0){
 					//*
 					if (dy>0){
 						var idx = this.parent.children.indexOf(this._sprite);
+
 						var next = this.parent.children[idx+1];
 						if (next){
-							if (next.position.y<this._sprite.position.y){
+							if (next.position.y>this._sprite.position.y){
 								this.parent.swapChildren(this._sprite, next);
 							}
 						}
@@ -4276,13 +4272,20 @@ define('subzero/components/sprite',[
 						var idx = this.parent.children.indexOf(this._sprite);
 						var next = this.parent.children[idx-1];
 						if (next){
-							if (next.position.y>this._sprite.position.y){
+							if (next.position.y<this._sprite.position.y){
+								console.log('SWAP', idx)
 								this.parent.swapChildren(this._sprite, next);
 							}
 						}
 					}
 					//*/
 				}
+			},
+
+			render: function(){
+				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
+				this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
+				
 				this._sprite.setTexture(PIXI.TextureCache[this.get('sprite.src') + '-' + this.get('sprite.frame')])
 			}
 		});
