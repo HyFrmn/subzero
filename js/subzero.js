@@ -2131,7 +2131,7 @@ define('sge/observable',[
          */
         var Observable = Class.extend({
             init: function(){
-
+                this._lisenters = {};
             },
             /**
              * Register a `callback` with this observable, for the given `eventName`. The option 'once'
@@ -2143,7 +2143,13 @@ define('sge/observable',[
              * @return {Function}
              * 
              */
-            on: function(eventName, callback, options){},
+            on: function(eventName, callback, options){
+                options = options || {};
+                if (this._lisenters[eventName]==undefined){
+                    this._lisenters[eventName]=[];
+                }
+                this._lisenters[eventName].push([callback, options]);
+            },
 
             /**
              * Removed a registered callback and returns the callback.
@@ -2152,14 +2158,35 @@ define('sge/observable',[
              * @param  {Object}   options
              * @return {Function}
              */
-            off: function(eventName, callback, options){},
+            off: function(eventName, callback, options){
+                if (this._lisenters[eventName]==undefined){
+                    this._lisenters[eventName]=[];
+                }
+                this._lisenters[eventName] = this._lisenters.filter(function(data){
+                    return data[0]!=callback;
+                });
+            },
 
             /**
              * Trigger the named event.
              * @param  {String} eventName
              * 
              */
-            trigger: function(eventName){}
+            trigger: function(){
+                var args = Array.prototype.slice.call(arguments);
+                var eventName = args.shift();
+                if (this._lisenters[eventName]==undefined){
+                    return;
+                }
+                var callbacks = this._lisenters[eventName];
+                this._lisenters[eventName] = this._lisenters[eventName].filter(function(data){
+                    data[0].apply(this, args);
+                    if (data[1].once){
+                        return false;
+                    }
+                    return true;
+                })
+            }
         });
 
         return Observable;
@@ -3244,6 +3271,8 @@ define('sge/loader',[
 			}
 		}
 
+
+
 		var Loader = Class.extend({
 			init: function(){},
 			loadJSON: function(url){
@@ -3263,11 +3292,11 @@ define('sge/loader',[
 				loader.load();
 				return defered.promise;
 			},
-			loadTexture: function(url){
+			loadTexture: function(url, textureName){
 				var defered = new when.defer();
 				var tex = new PIXI.ImageLoader(url);
 				tex.addEventListener("loaded", function(event){
-					console.log('Loading', tex)
+					PIXI.TextureCache[textureName] = new PIXI.Texture(tex.texture.baseTexture);
 					defered.resolve(tex);
 				});
 				tex.load();
@@ -3481,7 +3510,6 @@ define('subzero/tiledlevel',[
 			var defered = new sge.When.defer();
 			var tileset = new PIXI.ImageLoader('content/tiles/base_tiles.png', false);
 			tileset.addEventListener("loaded", function(event){
-				console.log("Loading Map:", levelData.url);
 
 				var layerData = {};
 
@@ -3580,7 +3608,8 @@ define('subzero/component',[
 	], function(sge){
 		var Component = sge.Class.extend({
 			init: function(entity){
-				this.entity = entity
+				this.entity = entity;
+				this._callbacks = [];
 			},
 			get: function(attr){
 				return this.entity.get(attr)
@@ -3593,6 +3622,15 @@ define('subzero/component',[
 			},
 			deregister: function(){
 
+			},
+			on: function(evt, cb){
+				if (this._callbacks[cb]===undefined){
+					this._callbacks[cb] = cb.bind(this);
+				}
+				this.entity.on(evt, this._callbacks[cb]);
+			},
+			off: function(evt, cb){
+				this.entity.off(evt, this._callbacks[cb]);
 			}
 		})
 
@@ -3703,8 +3741,9 @@ define('subzero/entity',[
 		'sge',
 		'./component',
 	], function(sge, Component){
-		var Entity = sge.Class.extend({
+		var Entity = sge.Observable.extend({
 			init: function(){
+				this._super();
 				this.id = null
 				this.data = {};
 				this.components = {};
@@ -4153,14 +4192,13 @@ define('subzero/physics',[
 						    }
 					    }
 					}
-				} else {
-					if (pty<0){
-						pty=0;
-					}
+					
 				}
-
-				entity.set('xform.tx', ptx);
-				entity.set('xform.ty', pty);
+				if (tx!=ptx||ty!=pty){
+					entity.set('xform.tx', ptx);
+					entity.set('xform.ty', pty);
+					entity.trigger('entity.moved', entity, ptx, pty);
+				}
 			},
 			setMap: function(map){
 				this.map = map;
@@ -4342,29 +4380,230 @@ define('subzero/components/chara',[
 		});
 	}
 );
+define('subzero/behaviour',[
+		'sge'
+	], function(sge){
+		var Behaviour = sge.Class.extend({
+			init: function(entity, data){
+				data = data || {};
+				this.entity = entity;
+				this.state = entity.state;
+				this.importance = data.importance;
+				this._running = false;
+			},
+			isSatisfied: function(){
+				return false;
+			},
+			run : function(state){
+				this.state = state;
+				this._running = true;
+				this.start();
+			},
+			start: function(){
+
+			},
+			stop: function(){
+				this._running = false;
+			}
+		});
+
+		Behaviour._classMap = {};
+
+		Behaviour.add = function(type, data){
+			klass = Behaviour.extend(data);
+			Behaviour._classMap[type] = klass;
+			return klass;
+		}
+
+		Behaviour.Create = function(type, entity, data){
+			if (Behaviour._classMap[type]==undefined){
+				console.error('Missing Behaviour:', type);
+				return null;
+			}
+			comp = new Behaviour._classMap[type](entity, data);
+			return comp;
+		}
+
+		Behaviour.add('idle', {
+			start: function(){
+				this._timeout = 0;
+			},
+			tick: function(delta){
+				if (this.state.getTime()>this._timeout){
+					this._timeout = this.state.getTime()+1+Math.random();
+					this.entity.set('movement.vx', Math.random() * 2 - 1);
+					this.entity.set('movement.vy', Math.random() * 2 - 1);
+				}
+			}
+		})
+
+		Behaviour.add('wait', {
+			start: function(){
+				this._timeout = 0;
+
+			},
+			isSatisfied: function(){
+				return false;
+			},
+			tick: function(delta){
+				this.entity.set('movement.vx', 0);
+				this.entity.set('movement.vy', 0);
+				return true;
+			}
+		})
+
+		Behaviour.add('goto', {
+			start: function(){
+				this._timeout = 0;
+
+			},
+			isSatisfied: function(){
+				return false;
+			},
+			tick: function(delta){
+				var tx = this.entity.get('xform.tx');
+				var ty = this.entity.get('xform.ty');
+
+				var targetx = this.target.get('xform.tx');
+				var targety = this.target.get('xform.ty');
+
+				var dx = tx - targetx;
+				var dy = ty - targety;
+				var dist = (dx*dx+dy*dy);
+				this.entity.set('movement.vx', dx/dist);
+				this.entity.set('movement.vy', dy/dist);
+				return true;
+			}
+		})
+
+		Behaviour.add('wait', {
+			start: function(){
+				this._timeout = 0;
+
+			},
+			isSatisfied: function(){
+				return false;
+			},
+			tick: function(delta){
+				this.entity.set('movement.vx', 0);
+				this.entity.set('movement.vy', 0);
+				return true;
+			}
+		})
+
+		Behaviour.add('social', {
+			start: function(){
+				this._timeout = 0;
+			},
+			isSatisfied: function(){
+				var tile = this.entity.get('map.tile');
+				if (!tile){
+					return true;
+				}
+				return (tile.data.socialValue>=0.9)
+			},
+			tick: function(delta){
+				var tile = this.entity.get('map.tile');
+				if (tile){
+					if (tile.data.socialValue<1){
+						this.entity.set('movement.vx', tile.data.socialVector[0]);
+						this.entity.set('movement.vy', tile.data.socialVector[1]);
+					}
+				}
+			}
+		});
+
+		Behaviour.add('sell', {
+			start: function(){
+				this._timeout = 0;
+				this._selling = false;
+			},
+			isSatisfied: function(){
+				if (this._selling){
+					this.entity.set('movement.vx', 0);
+					this.entity.set('movement.vy', 0);
+				}
+				return (this._selling)
+			},
+			tick: function(delta){
+				if (this.state.getTime()>this._timeout){
+					this._timeout = this.state.getTime()+1+Math.random();
+					this.entity.trigger('sound.emit', "HOW DO YOU ENCODE A SHIT TON OF DATA HERE.")
+					//console.log('emit')
+				}
+
+			}
+		});
+
+		return Behaviour;
+	}
+);
+define('subzero/ai',[
+	'sge',
+	'./behaviour'
+	], function(sge, Behaviour){
+		var AI = {blueprints: {}};
+		AI.load = function(allData){
+			var data = allData.ai;
+			for (var prop in data) {
+		      // important check that this is objects own property 
+		      // not from prototype prop inherited
+		      if(data.hasOwnProperty(prop)){
+		        AI.blueprints[prop] = data[prop];
+		      }
+		   }
+
+		}
+		AI.has = function(typ){
+			return (AI.blueprints[typ]!==undefined);
+		}
+		AI.Create = function(type, entity){
+			var behaviourData = AI.blueprints[type];
+			if (behaviourData==undefined){
+				console.error('No Behavour Data for ' + type);
+				return;
+			}
+			var behavoiurs = [];
+			for (var i=0; i<behaviourData.objectives.length;i++){
+				var bd = behaviourData.objectives[i];
+				var n = Behaviour.Create(bd.behaviour, entity, bd);
+				behavoiurs.push(n);
+			}
+			return behavoiurs;
+		}
+
+		return AI;
+	}
+);
 define('subzero/components/ai',[
 	'sge',
-	'../component'
-	], function(sge, Component){
+	'../component',
+	'../ai'
+	], function(sge, Component, AI){
 		Component.add('ai', {
 			init: function(entity, data){
 				this._super(entity, data);
-			    //this.set('movement.vx', Math.random() * 2 - 1);
-			    //this.set('movement.vy', Math.random() * 2 - 1);
+			    this.set('ai.behaviour', data.behaviour || 'citizen')
 			    this._timeout = 0;
+			    this._behaviours = AI.Create(this.get('ai.behaviour'), this.entity)
 			},
-			tick: function(){
-				var tx = this.get('xform.tx');
-				var ty = this.get('xform.ty');
-				var tile = this.state.map.getTileAtPos(tx, ty);
-				if (tile){
-					if (tile.data.socialValue<0.9){
-						var vec = tile.data.socialVector;
-						//console.log(vec)
-					    if (vec[0]!=0||vec[1]!=0){
-					    	this.set('movement.vx', vec[0]);
-						    this.set('movement.vy', vec[1]);
-					    }
+			register: function(state){
+				this._super(state);
+				this._behaviours.sort(function(a,b){
+					return b.importance - a.importace;
+				});
+				for (var i=0; i<this._behaviours.length; i++){
+						this._behaviours[i].run(state);
+					
+				}
+			},
+			tick: function(delta){
+				for (var i=0; i<this._behaviours.length; i++){
+					behaviour = this._behaviours[i];
+					if (!behaviour.isSatisfied()){
+						if (behaviour.tick(delta)){
+							break;
+						}
 					}
 				}
 			}
@@ -4385,6 +4624,33 @@ define('subzero/components/physics',[
 		});		
 	}
 );
+define('subzero/components/sound',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		Component.add('sound', {
+			init: function(entity, data){
+				this._super(entity, data);
+			},
+			register: function(state){
+				this._super(state);
+				this.on('sound.emit', this.emit);
+			},
+			emit: function(){
+				var tx = this.get('xform.tx');
+				var ty = this.get('xform.tx');
+				var found = this.state.findEntities(
+						tx, 
+						ty,
+						128
+					)
+				for (var i = found.length - 1; i >= 0; i--) {
+					found[i].trigger('sound.hear', tx, ty)
+				};
+			}
+		});		
+	}
+);
 define('subzero/factory',[
 	'sge',
 	'./entity',
@@ -4392,7 +4658,8 @@ define('subzero/factory',[
 	'./components/rpgcontrols',
 	'./components/chara',
 	'./components/ai',
-	'./components/physics'
+	'./components/physics',
+	'./components/sound'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {
@@ -4579,17 +4846,21 @@ define('subzero/subzerostate',[
 		'./input',
 		'./physics',
 		'./factory',
-		'./social'
-	], function(sge, TileMap, TiledLevel, Entity, Input, Physics, Factory, Social){
+		'./social',
+		'./ai'
+	], function(sge, TileMap, TiledLevel, Entity, Input, Physics, Factory, Social, AI){
 		var SubzeroState = sge.GameState.extend({
 			init: function(game){
 				this._super(game);
 				this._entities = {};
 				this._entity_ids = [];
+
+				this._entity_spatial_hash = {}
+
+
 				this.stage = new PIXI.Stage(0x66FF99);
 				this.container = new PIXI.DisplayObjectContainer();
 				this._scale = 1;
-				console.log(window.innerWidth, game.width)
 				//if (navigator.isCocoonJS){
 					this.container.scale.x= window.innerWidth / game.width;
 					this.container.scale.y= window.innerHeight / game.height;
@@ -4601,33 +4872,56 @@ define('subzero/subzerostate',[
 				this.containers.map = new PIXI.DisplayObjectContainer();
 				this.container.addChild(this.containers.map);
 				this.containers.map.addChild(this.containers.entities);
-				this.stage.addChild(this.container);
+				
 				this.input = new Input(game.renderer.view);
 				this.physics = new Physics();
 				this.factory = new Factory();
 				this.social = new Social();
-				this.loadManifest();
-				
+				var loader = new sge.Loader();
+				loader.loadJSON('content/manifest.json').then(this.loadManifest.bind(this));
 			},
-			loadManifest: function(){
+			loadManifest: function(manifest){
 				var loader = new sge.Loader();
 				var promises = [];
-
-				promises.push(loader.loadSpriteFrames('content/sprites/man_a.png','man_a', 64,64));
-				promises.push(loader.loadSpriteFrames('content/sprites/man_b.png','man_b', 64,64));
-				promises.push(loader.loadSpriteFrames('content/sprites/man_c.png','man_c', 64,64));
-				promises.push(loader.loadSpriteFrames('content/sprites/man_d.png','man_d', 64,64));
-				promises.push(loader.loadJSON('content/entities/standard.json').then(this.factory.load.bind(this.factory)));
+				if (manifest.sprites){
+					manifest.sprites.forEach(function(data){
+						promises.push(loader.loadSpriteFrames('content/sprites/' + data[0] +'.png',data[0], data[1][0],data[1][1]));
+					})
+				}
+				if (manifest.fonts){
+					manifest.fonts.forEach(function(data){
+						promises.push(loader.loadFont('content/font/' + data + '.fnt'));
+					}.bind(this))
+				}
+				if (manifest.images){
+					manifest.images.forEach(function(data){
+						promises.push(loader.loadTexture('content/' + data + '.png', data));
+					}.bind(this))
+				}
+				if (manifest.entities){
+					manifest.entities.forEach(function(data){
+						promises.push(loader.loadJSON('content/entities/' + data +'.json').then(this.factory.load.bind(this.factory)));
+					}.bind(this))
+				}
+				if (manifest.ai){
+					manifest.ai.forEach(function(data){
+						promises.push(loader.loadJSON('content/ai/' + data +'.json').then(AI.load.bind(this.factory)));
+					}.bind(this))
+				}
 
 				sge.When.all(promises).then(function(){
-					console.log('Load Sprites!');
+					console.log('Loaded Assets');
 					loader.loadJSON('content/levels/' + this.game.data.map + '.json').then(function(data){
 						this.loadLevel(data);
 					}.bind(this))
 				}.bind(this));
 			},
 			loadLevel : function(levelData){
-				console.log('Loaded', levelData);
+				this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
+				this.stage.addChild(this.background);
+				this.stage.addChild(this.container);
+				var text = new PIXI.BitmapText('Subzero', {font:'64px 8bit'});
+				this.stage.addChild(text);
 				this.map = new TileMap(levelData.width, levelData.height, this.game.renderer);
 				TiledLevel(this, this.map, levelData).then(function(){
 					this.social.setMap(this.map);
@@ -4649,16 +4943,6 @@ define('subzero/subzerostate',[
 
 				this.containers.map.position.x = this.pc.get('xform.tx');
 
-				/*
-				for (var i = 30; i >= 0; i--) {
-					e = Entity.Factory({
-						xform: { tx: 100 + (Math.random() * 500), ty: 100 + (Math.random() * 300)},
-						sprite: { src: 'man_a', frame: Math.round(Math.random() * 35)}
-					});
-					this.addEntity(e);
-				};
-				*/
-
 				this.game.changeState('game');
 
 			},
@@ -4673,6 +4957,8 @@ define('subzero/subzerostate',[
 
 				this.containers.map.position.x = -this.pc.get('xform.tx')+this.game.width/(2*this._scale);
 				this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
+				this.background.position.x = (this.containers.map.position.x/10) - 128;
+				this.background.position.y = (this.containers.map.position.y/10) - 128;
 			},
 
 			render: function(){
@@ -4694,7 +4980,60 @@ define('subzero/subzerostate',[
 				this._entity_ids.push(e.id);
 				this._entities[e.id] = e;
 				e.register(this);
+
+				tx = e.get('xform.tx');
+				ty = e.get('xform.ty');
+				e.on('entity.moved', this._updateHash.bind(this));
+				this._updateHash(e, tx, ty);
 				return e;
+			},
+			_updateHash: function(e, tx, ty){
+				if (!e){
+					return;
+				}
+				var hx = Math.floor(tx/32);
+				var hy = Math.floor(ty/32);
+				var hash = e.get('map.hash');
+				var tile = null;
+				
+				if (hash != hx + '.' + hy){
+					
+					tile = e.get('map.tile');
+					if (tile){
+						idx = tile.data.entities.indexOf(e);
+						tile.data.entities.splice(idx, 1);
+					}
+					e.set('map.hash', hx + '.' + hy)
+					tile = this.map.getTile(hx, hy)
+					e.set('map.tile', tile);
+					if (tile.data.entities==undefined){
+						tile.data.entities=[];
+					}
+					tile.data.entities.push(e);
+					//console.log('Moved:', tile.data.entities, hash, hx + '.' + hy)
+					
+				}
+				
+
+			},
+			findEntities: function(tx, ty, radius){
+				var hx = Math.floor(tx/32);
+				var hy = Math.floor(ty/32);
+				var tileRad = Math.ceil(radius/32);
+				var tile = null
+				var entities = []
+				for (var j=hx-tileRad;j<tileRad+1+hx;j++){
+					for(var k=hy-tileRad;k<tileRad+1+hy;k++){
+						tile = this.map.getTile(j,k);
+						if (tile){
+							var es = tile.data.entities;
+							if (es){
+								entities = entities.concat(es);
+							}
+						}
+					}
+				}
+				return entities;
 			},
 			removeEntity: function(e){
 

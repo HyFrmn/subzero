@@ -18,7 +18,6 @@ define([
 			var defered = new sge.When.defer();
 			var tileset = new PIXI.ImageLoader('content/tiles/base_tiles.png', false);
 			tileset.addEventListener("loaded", function(event){
-				console.log("Loading Map:", levelData.url);
 
 				var layerData = {};
 

@@ -1,19 +1,21 @@
 {
     "sprites" : [
-        ["prof_walkcycle", [64,64]],
-        ["fbi_walkcycle", [64,64]],
-        ["shelves", [32, 64]],
         ["man_a", [64,64]],
         ["man_b", [64,64]],
         ["man_c", [64,64]],
         ["man_d", [64,64]],
         ["man_e", [64,64]],
         ["man_f", [64,64]],
-        "laser_hit",
-        "man_1",
-        "man_2",
-        "man_3",
         ["door", [32,64]]
+    ],
+    "images" : [
+        "backgrounds/space_a",
+        "backgrounds/space_b",
+        "backgrounds/space_c"
+    ],
+    "fonts" : [
+        "standard_white",
+        "standard_black"
     ],
     "tiles" : [
         "base_tiles"

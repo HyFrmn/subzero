@@ -70,6 +70,45 @@ define([
 			}
 		})
 
+		Behaviour.add('goto', {
+			start: function(){
+				this._timeout = 0;
+
+			},
+			isSatisfied: function(){
+				return false;
+			},
+			tick: function(delta){
+				var tx = this.entity.get('xform.tx');
+				var ty = this.entity.get('xform.ty');
+
+				var targetx = this.target.get('xform.tx');
+				var targety = this.target.get('xform.ty');
+
+				var dx = tx - targetx;
+				var dy = ty - targety;
+				var dist = (dx*dx+dy*dy);
+				this.entity.set('movement.vx', dx/dist);
+				this.entity.set('movement.vy', dy/dist);
+				return true;
+			}
+		})
+
+		Behaviour.add('wait', {
+			start: function(){
+				this._timeout = 0;
+
+			},
+			isSatisfied: function(){
+				return false;
+			},
+			tick: function(delta){
+				this.entity.set('movement.vx', 0);
+				this.entity.set('movement.vy', 0);
+				return true;
+			}
+		})
+
 		Behaviour.add('social', {
 			start: function(){
 				this._timeout = 0;

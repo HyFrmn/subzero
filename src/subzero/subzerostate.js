@@ -21,7 +21,6 @@ define([
 				this.stage = new PIXI.Stage(0x66FF99);
 				this.container = new PIXI.DisplayObjectContainer();
 				this._scale = 1;
-				console.log(window.innerWidth, game.width)
 				//if (navigator.isCocoonJS){
 					this.container.scale.x= window.innerWidth / game.width;
 					this.container.scale.y= window.innerHeight / game.height;
@@ -33,34 +32,56 @@ define([
 				this.containers.map = new PIXI.DisplayObjectContainer();
 				this.container.addChild(this.containers.map);
 				this.containers.map.addChild(this.containers.entities);
-				this.stage.addChild(this.container);
+				
 				this.input = new Input(game.renderer.view);
 				this.physics = new Physics();
 				this.factory = new Factory();
 				this.social = new Social();
-				this.loadManifest();
-				
+				var loader = new sge.Loader();
+				loader.loadJSON('content/manifest.json').then(this.loadManifest.bind(this));
 			},
-			loadManifest: function(){
+			loadManifest: function(manifest){
 				var loader = new sge.Loader();
 				var promises = [];
-
-				promises.push(loader.loadSpriteFrames('content/sprites/man_a.png','man_a', 64,64));
-				promises.push(loader.loadSpriteFrames('content/sprites/man_b.png','man_b', 64,64));
-				promises.push(loader.loadSpriteFrames('content/sprites/man_c.png','man_c', 64,64));
-				promises.push(loader.loadSpriteFrames('content/sprites/man_d.png','man_d', 64,64));
-				promises.push(loader.loadJSON('content/entities/standard.json').then(this.factory.load.bind(this.factory)));
-				promises.push(loader.loadJSON('content/ai/standard.json').then(AI.load.bind(this.factory)));
+				if (manifest.sprites){
+					manifest.sprites.forEach(function(data){
+						promises.push(loader.loadSpriteFrames('content/sprites/' + data[0] +'.png',data[0], data[1][0],data[1][1]));
+					})
+				}
+				if (manifest.fonts){
+					manifest.fonts.forEach(function(data){
+						promises.push(loader.loadFont('content/font/' + data + '.fnt'));
+					}.bind(this))
+				}
+				if (manifest.images){
+					manifest.images.forEach(function(data){
+						promises.push(loader.loadTexture('content/' + data + '.png', data));
+					}.bind(this))
+				}
+				if (manifest.entities){
+					manifest.entities.forEach(function(data){
+						promises.push(loader.loadJSON('content/entities/' + data +'.json').then(this.factory.load.bind(this.factory)));
+					}.bind(this))
+				}
+				if (manifest.ai){
+					manifest.ai.forEach(function(data){
+						promises.push(loader.loadJSON('content/ai/' + data +'.json').then(AI.load.bind(this.factory)));
+					}.bind(this))
+				}
 
 				sge.When.all(promises).then(function(){
-					console.log('Load Sprites!');
+					console.log('Loaded Assets');
 					loader.loadJSON('content/levels/' + this.game.data.map + '.json').then(function(data){
 						this.loadLevel(data);
 					}.bind(this))
 				}.bind(this));
 			},
 			loadLevel : function(levelData){
-				console.log('Loaded', levelData);
+				this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
+				this.stage.addChild(this.background);
+				this.stage.addChild(this.container);
+				var text = new PIXI.BitmapText('Subzero', {font:'64px 8bit'});
+				this.stage.addChild(text);
 				this.map = new TileMap(levelData.width, levelData.height, this.game.renderer);
 				TiledLevel(this, this.map, levelData).then(function(){
 					this.social.setMap(this.map);
@@ -96,6 +117,8 @@ define([
 
 				this.containers.map.position.x = -this.pc.get('xform.tx')+this.game.width/(2*this._scale);
 				this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
+				this.background.position.x = (this.containers.map.position.x/10) - 128;
+				this.background.position.y = (this.containers.map.position.y/10) - 128;
 			},
 
 			render: function(){

@@ -10147,89 +10147,102 @@ PIXI.BitmapFontLoader.prototype.constructor = PIXI.BitmapFontLoader;
  */
 PIXI.BitmapFontLoader.prototype.load = function()
 {
-    this.ajaxRequest = new XMLHttpRequest();
+    this.ajaxRequest = new AjaxRequest();
     var scope = this;
-    this.ajaxRequest.onreadystatechange = function()
-    {
-        scope.onXMLLoaded();
+    this.ajaxRequest.onreadystatechange = function () {
+            scope.onJSONLoaded();
     };
 
+
     this.ajaxRequest.open("GET", this.url, true);
-    if (this.ajaxRequest.overrideMimeType) this.ajaxRequest.overrideMimeType("application/xml");
-    this.ajaxRequest.send(null)
+    if (this.ajaxRequest.overrideMimeType) this.ajaxRequest.overrideMimeType("application/json");
+    this.ajaxRequest.send(null);
 };
+
 
 /**
  * Invoked when XML file is loaded, parses the data
  *
+ * Modified method to use json instead for CocoonJS
+ * with json conversion seen here:
+ * http://www.freeformatter.com/xml-to-json-converter.htm
+ *
  * @method onXMLLoaded
  * @private
  */
-PIXI.BitmapFontLoader.prototype.onXMLLoaded = function()
+PIXI.BitmapFontLoader.prototype.onJSONLoaded = function()
 {
-    if (this.ajaxRequest.readyState == 4)
-    {
-        if (this.ajaxRequest.status == 200 || window.location.protocol.indexOf("http") == -1)
-        {
-            var textureUrl = this.baseUrl + this.ajaxRequest.responseXML.getElementsByTagName("page")[0].attributes.getNamedItem("file").nodeValue;
+    if (this.ajaxRequest.readyState == 4) {
+        if (this.ajaxRequest.status == 200 || window.location.href.indexOf("http") == -1) {
+            
+            this.json = JSON.parse(this.ajaxRequest.responseText);
+            
+            var textureUrl = "content/font/" + this.json.pages[0]['@file'];
             var image = new PIXI.ImageLoader(textureUrl, this.crossorigin);
             this.texture = image.texture.baseTexture;
-
+            
             var data = {};
-            var info = this.ajaxRequest.responseXML.getElementsByTagName("info")[0];
-            var common = this.ajaxRequest.responseXML.getElementsByTagName("common")[0];
-            data.font = info.attributes.getNamedItem("face").nodeValue;
-            data.size = parseInt(info.attributes.getNamedItem("size").nodeValue, 10);
-            data.lineHeight = parseInt(common.attributes.getNamedItem("lineHeight").nodeValue, 10);
+            data.font = this.json.info[ '@face' ];
+            data.size = parseInt( this.json.info[ '@size' ], 10 );
+            data.lineHeight = parseInt( this.json.common[ '@lineHeight' ], 10 );
             data.chars = {};
 
-            //parse letters
-            var letters = this.ajaxRequest.responseXML.getElementsByTagName("char");
+
+            var letters = this.json.chars.char;
+
 
             for (var i = 0; i < letters.length; i++)
             {
-                var charCode = parseInt(letters[i].attributes.getNamedItem("id").nodeValue, 10);
-
+                var charCode = parseInt(letters[i]["@id"], 10);
                 var textureRect = {
-                    x: parseInt(letters[i].attributes.getNamedItem("x").nodeValue, 10),
-                    y: parseInt(letters[i].attributes.getNamedItem("y").nodeValue, 10),
-                    width: parseInt(letters[i].attributes.getNamedItem("width").nodeValue, 10),
-                    height: parseInt(letters[i].attributes.getNamedItem("height").nodeValue, 10)
+                    x: parseInt(letters[i]["@x"], 10),
+                    y: parseInt(letters[i]["@y"], 10),
+                    width: parseInt(letters[i]["@width"], 10),
+                    height: parseInt(letters[i]["@height"], 10)
                 };
                 PIXI.TextureCache[charCode] = new PIXI.Texture(this.texture, textureRect);
-
+                
                 data.chars[charCode] = {
-                    xOffset: parseInt(letters[i].attributes.getNamedItem("xoffset").nodeValue, 10),
-                    yOffset: parseInt(letters[i].attributes.getNamedItem("yoffset").nodeValue, 10),
-                    xAdvance: parseInt(letters[i].attributes.getNamedItem("xadvance").nodeValue, 10),
+                    xOffset: parseInt(letters[i]["@xoffset"], 10), 
+                    yOffset: parseInt(letters[i]["@yoffset"], 10), 
+                    xAdvance: parseInt(letters[i]["@xadvance"], 10), 
                     kerning: {},
                     texture:new PIXI.Texture(this.texture, textureRect)
-
-                };
+                };                
+                
             }
+            
+            if ( this.json.kernings && this.json.kernings.kerning ) {
+                var kernings = this.json.kernings.kerning;
+                for (i = 0; i < kernings.length; i++)
+                {
+                   var first = parseInt(kernings[i]["@first"], 10);
+                   var second = parseInt(kernings[i]["@second"], 10);
+                   var amount = parseInt(kernings[i]["@amount"], 10);
 
-            //parse kernings
-            var kernings = this.ajaxRequest.responseXML.getElementsByTagName("kerning");
-            for (i = 0; i < kernings.length; i++)
-            {
-               var first = parseInt(kernings[i].attributes.getNamedItem("first").nodeValue, 10);
-               var second = parseInt(kernings[i].attributes.getNamedItem("second").nodeValue, 10);
-               var amount = parseInt(kernings[i].attributes.getNamedItem("amount").nodeValue, 10);
 
-                data.chars[second].kerning[first] = amount;
-
+                   data.chars[second].kerning[first] = amount;
+                }                            
             }
-
+            
+            
             PIXI.BitmapText.fonts[data.font] = data;
+
 
             var scope = this;
             image.addEventListener("loaded", function() {
                 scope.onLoaded();
             });
-            image.load();
+            image.load();                 
         }
-    }
+        else
+        {
+            this.onError();
+        }
+    }    
+    
 };
+
 
 /**
  * Invoked when all files are loaded (xml/fnt and texture)
@@ -10241,6 +10254,7 @@ PIXI.BitmapFontLoader.prototype.onLoaded = function()
 {
     this.dispatchEvent({type: "loaded", content: this});
 };
+
 
 /**
  * @author Mat Groves http://matgroves.com/ @Doormat23

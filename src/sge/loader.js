@@ -19,6 +19,8 @@ define([
 			}
 		}
 
+
+
 		var Loader = Class.extend({
 			init: function(){},
 			loadJSON: function(url){
@@ -38,11 +40,11 @@ define([
 				loader.load();
 				return defered.promise;
 			},
-			loadTexture: function(url){
+			loadTexture: function(url, textureName){
 				var defered = new when.defer();
 				var tex = new PIXI.ImageLoader(url);
 				tex.addEventListener("loaded", function(event){
-					console.log('Loading', tex)
+					PIXI.TextureCache[textureName] = new PIXI.Texture(tex.texture.baseTexture);
 					defered.resolve(tex);
 				});
 				tex.load();
