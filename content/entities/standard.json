@@ -53,7 +53,7 @@
          "targets" : [[0,0]]
         },
         "ai" : {
-            "behaviour" : "citizen",
+            "planner" : "citizen",
             "initBehaviour" : "idle"
         }
 
@@ -73,7 +73,7 @@
             "src" : "man_d"
         },
         "ai" : {
-            "behaviour" : "merchant",
+            "planner" : "merchant",
             "initBehaviour" : "wait"
         }
     },
@@ -110,6 +110,21 @@
         "physics" : {
             "type" : 2
         }
+    },
+    "bomb" : {
+        "meta" : { "inherit" : "trigger" },
+        "bomb" : {},
+        "sound": {}
+    },
+    "explosion" : {
+        "xform" : {},
+        "sprite" : {
+            "src" : "explosion",
+            "container": "entities",
+            "offsetx" : -32,
+            "offsety" : -32
+        },
+        "explosion" : {}
     },
     "door" : {
         "meta" : { "inherit" : "trigger" },

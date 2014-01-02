@@ -11,6 +11,9 @@ define([
 				this.set('sprite.offsetx', data.offsetx || 0);
 				this.set('sprite.offsety', data.offsety || 0);
 
+				this.set('sprite.scalex', data.scalex || 1);
+				this.set('sprite.scaley', data.scaley || 1);
+
 				
 				this.set('sprite.src', data.src || 'man_a');
 				this.set('sprite.frame', data.frame || 1);
@@ -21,11 +24,14 @@ define([
 
 			},
 
+			deregister: function(state){
+				this.parent.removeChild(this._sprite);
+			},
+
 			register: function(state){
 				this._super(state);
 				this.parent = state.containers[this.get('sprite.container')];
 				this.parent.addChild(this._sprite);
-				console.log('SPRITES:', this.parent.children.length)
 				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
 					this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
 				this._test_a = this.get('xform.ty');
@@ -44,41 +50,12 @@ define([
 						next = this.parent.children[idx-1];
 					}
 				}
-				this.on('entity.moved', this.update);
 			},
-
-			
-			updateSort: function(entity, tx, ty, dx, dy){
+			render: function(){
 				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
 				this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
-				//console.log('sort', dx, dy)
-				if (dx != 0 || dy != 0){
-					//*
-					if (dy>0){
-						var idx = this.parent.children.indexOf(this._sprite);
-
-						var next = this.parent.children[idx+1];
-						if (next){
-							if (next.position.y>this._sprite.position.y){
-								this.parent.swapChildren(this._sprite, next);
-							}
-						}
-					} else if(dy<0){
-						var idx = this.parent.children.indexOf(this._sprite);
-						var next = this.parent.children[idx-1];
-						if (next){
-							if (next.position.y<this._sprite.position.y){
-								console.log('SWAP', idx)
-								this.parent.swapChildren(this._sprite, next);
-							}
-						}
-					}
-					//*
-				}
-			},
-			update: function(){
-				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
-				this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
+				this._sprite.scale.x = this.get('sprite.scalex');
+				this._sprite.scale.y = this.get('sprite.scaley');
 				
 				this._sprite.setTexture(PIXI.TextureCache[this.get('sprite.src') + '-' + this.get('sprite.frame')])
 			}

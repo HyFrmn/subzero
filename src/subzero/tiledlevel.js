@@ -43,18 +43,12 @@ define([
 						};
 					}
 				}.bind(this));
-
+				//*
 				var entityLayer = layerData['entities']
 				if (entityLayer){
 					for (var i = entityLayer.objects.length - 1; i >= 0; i--) {
 						var entityData = entityLayer.objects[i];
-						if (entityData.name=='pc'){
-							this._entityMap[entityData.name] = {xform:{tx: entityData.x+16, ty: entityData.y+16-32}}; //-32 For tiled hack.
-							continue;
-						}
-
 						if (state.factory.has(entityData.type)){
-
 							var eData = {};
 							var decorators = []
 							var keys = Object.keys(entityData.properties);
@@ -92,15 +86,15 @@ define([
 							if (spawn){
 								state.addEntity(entity);	
 							} else {
-								this._unspawnedEntities[entity.name] = entity;
+								state._unspawnedEntities[entity.name] = entity;
 							}
 						} else {
-							console.log('Missing:', entityData.type);
+							console.error('Missing:', entityData.type);
 						}
 					}
 
 				}
-
+				//*/
 
 				defered.resolve();
 			})

@@ -2,26 +2,20 @@ define([
 		'sge'
 	], function(sge){
 		var Behaviour = sge.Class.extend({
-			init: function(entity, data){
+			init: function(ai, data){
 				data = data || {};
-				this.entity = entity;
-				this.state = entity.state;
-				this.importance = data.importance;
-				this._running = false;
-			},
-			isSatisfied: function(){
-				return false;
-			},
-			run : function(state){
-				this.state = state;
-				this._running = true;
-				this.start();
+				this.comp = ai;
+				this.entity = ai.entity;
+				this.state = ai.state;
+				this.running = false;
+				this.importance = data.importance || 3;
 			},
 			start: function(){
-
+				this.running = true;
 			},
 			stop: function(){
-				this._running = false;
+				this.running = false;
+				this.comp.next();
 			}
 		});
 
@@ -33,44 +27,33 @@ define([
 			return klass;
 		}
 
-		Behaviour.Create = function(type, entity, data){
-			if (Behaviour._classMap[type]==undefined){
-				console.error('Missing Behaviour:', type);
+		Behaviour.Create = function(entity, data){
+			if (Behaviour._classMap[data.xtype]==undefined){
+				console.error('Missing Behaviour:', data.xtype);
 				return null;
 			}
-			comp = new Behaviour._classMap[type](entity, data);
+			comp = new Behaviour._classMap[data.xtype](entity, data);
 			return comp;
 		}
 
 		Behaviour.add('idle', {
 			start: function(){
-				this._timeout = 0;
+				this._timeout = this.state.getTime() + Math.random() + 0.5;
+				this.entity.set('movement.vx', Math.random() * 2 - 1);
+				this.entity.set('movement.vy', Math.random() * 2 - 1);
 			},
 			tick: function(delta){
 				if (this.state.getTime()>this._timeout){
-					this._timeout = this.state.getTime()+1+Math.random();
-					this.entity.set('movement.vx', Math.random() * 2 - 1);
-					this.entity.set('movement.vy', Math.random() * 2 - 1);
+					this.stop();
 				}
 			}
 		})
 
-		Behaviour.add('wait', {
-			start: function(){
-				this._timeout = 0;
-
-			},
-			isSatisfied: function(){
-				return false;
-			},
-			tick: function(delta){
-				this.entity.set('movement.vx', 0);
-				this.entity.set('movement.vy', 0);
-				return true;
-			}
-		})
-
 		Behaviour.add('goto', {
+			init: function(comp, data){
+				this._super(comp, data);
+				this.target = data.target;
+			},
 			start: function(){
 				this._timeout = 0;
 
@@ -87,24 +70,74 @@ define([
 
 				var dx = tx - targetx;
 				var dy = ty - targety;
-				var dist = (dx*dx+dy*dy);
-				this.entity.set('movement.vx', dx/dist);
-				this.entity.set('movement.vy', dy/dist);
-				return true;
+				var dist = Math.sqrt(dx*dx+dy*dy);
+				if (dist<64){
+					this.stop();
+				}
+				this.entity.set('movement.vx', -dx/dist);
+				this.entity.set('movement.vy', -dy/dist);
+
 			}
 		})
 
-		Behaviour.add('wait', {
+		Behaviour.add('goaway', {
+			init: function(comp, data){
+				this._super(comp, data);
+				this.target = data.target;
+				this._timeout = data.timeout || 0;
+			},
 			start: function(){
-				this._timeout = 0;
-
+				if (this._timeout>0){
+					this._timeout = this.state.getTime() + this._timeout;
+				}
 			},
 			isSatisfied: function(){
 				return false;
 			},
 			tick: function(delta){
+				if (this._timeout>0 && this._timeout<this.state.getTime()){
+					this.stop();
+				}
+				var tx = this.entity.get('xform.tx');
+				var ty = this.entity.get('xform.ty');
+
+				var targetx = this.target.get('xform.tx');
+				var targety = this.target.get('xform.ty');
+
+				var dx = tx - targetx;
+				var dy = ty - targety;
+				var dist = Math.sqrt(dx*dx+dy*dy);
+				if (dist>1024){
+					this.stop();
+				}
+				this.entity.set('movement.vx', dx/dist * 2);
+				this.entity.set('movement.vy', dy/dist * 2);
+
+			}
+		})
+
+		Behaviour.add('wait', {
+			init: function(comp, data){
+				this._super(comp);
+				this._timeout = data.timeout || -1;
+			},
+			start: function(){
+				if (this._timeout>0){
+					this._timeout += this.state.getTime();
+				}
 				this.entity.set('movement.vx', 0);
 				this.entity.set('movement.vy', 0);
+			},
+			isSatisfied: function(){
+				return false;
+			},
+			tick: function(delta){
+				if (this._timeout>0 && this.state.getTime()>this._timeout){
+					this.stop()
+				} else {
+					this.entity.set('movement.vx', 0);
+					this.entity.set('movement.vy', 0);
+				}
 				return true;
 			}
 		})
@@ -134,7 +167,11 @@ define([
 		Behaviour.add('sell', {
 			start: function(){
 				this._timeout = 0;
+				this._moveTimeout = this.state.getTime() + 5;
 				this._selling = false;
+				this.entity.on('merchant.sell', this.startSell.bind(this));
+				this.entity.set('movement.vx', 0);
+				this.entity.set('movement.vy', 0);
 			},
 			isSatisfied: function(){
 				if (this._selling){
@@ -144,15 +181,65 @@ define([
 				return (this._selling)
 			},
 			tick: function(delta){
+				if (this.state.getTime()>this._moveTimeout){
+					var tx = this.entity.get('xform.tx');
+					var ty = this.entity.get('xform.ty');
+					var entities = this.state.findEntities(tx, ty, 512);
+					var avg = [0,0];
+					var count = 0;
+					entities.forEach(function(e){
+						avg = [avg[0]+e.get('xform.tx'),avg[1]+e.get('xform.ty')];
+						count++;
+					});
+					var targetx = avg[0]/count;
+					var targety = avg[0]/count;
+					var dx = tx - targetx;
+					var dy = ty - targety;
+					var dist = Math.sqrt(dx*dx+dy*dy);
+					if (dist<64){
+						this.stop();
+					}
+					this.entity.set('movement.vx', -dx/dist);
+					this.entity.set('movement.vy', -dy/dist);
+					this._moveTimeout += 3
+					return
+				}
 				if (this.state.getTime()>this._timeout){
 					this._timeout = this.state.getTime()+1+Math.random();
-					this.entity.trigger('sound.emit', "HOW DO YOU ENCODE A SHIT TON OF DATA HERE.")
-					//console.log('emit')
+					this.entity.trigger('sound.emit', {
+						type: 0,
+						instructions: [{
+							xtype: "goto",
+							target: this.entity
+						},{
+							xtype: "event.trigger",
+							event: "merchant.sell",
+							entity: this.entity
+						},{
+							xtype: "wait",
+							timeout: 2
+						}]
+					})
 				}
 
-			}
+			},
+			startSell: function(){
+				this.entity.set('movement.vx', 0);
+				this.entity.set('movement.vy', 0);
+				this._moveTimeout = this.state.getTime() + 3;
+			},
 		});
-
+		Behaviour.add('event.trigger', {
+			init: function(comp, data){
+				this._super(comp, data);
+				this._eventName = data.event;
+				this._entity = data.entity;
+			},
+			tick: function(){
+				this._entity.trigger(this._eventName);
+				this.stop();
+			}
+		})
 		return Behaviour;
 	}
 )

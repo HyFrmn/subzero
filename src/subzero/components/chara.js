@@ -10,6 +10,7 @@ define([
 				this.set('movement.vx', 0);
 				this.set('movement.vy', 0);
 				this._anim = null;
+				this._animTimeout = 0;
 				this._walkcycleFrames = {
 	                "walk_down" : [19,20,21,22,23,24,25,26],
 	                "walk_up" : [1,2,3,4,5,6,7,8],
@@ -20,6 +21,7 @@ define([
 	                "stand_right" : [27],
 	                "stand_left" : [9]
 	            }
+	            this.setAnim('stand_' + this.get('chara.dir'));
 			},
 			setAnim: function(anim){
 				if (this._anim!=anim){
@@ -33,7 +35,7 @@ define([
 					this.set('chara.dir', dir)
 				}
 			},
-			tick: function(){
+			tick: function(delta){
 				if (this.get('movement.vx')<0){
 					this.setDirection('left');
 				}
@@ -55,15 +57,16 @@ define([
 				} else {
 					this.setAnim('stand_' + this.get('chara.dir'));
 				}
-				this._frame++;
-				if (this._frame>=this._frames.length){
-					this._frame=0;
+				if (this._animTimeout<=0){
+					this._animTimeout = (1/30);
+					this._frame++;
+					if (this._frame>=this._frames.length){
+						this._frame=0;
+					}
+				} else {
+					this._animTimeout -= delta;
 				}
 				this.set('sprite.frame', this._frames[this._frame]);
-			},
-			register: function(state){
-				this._super(state);
-				this.input = state.input.createProxy();
 			}
 		});
 	}

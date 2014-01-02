@@ -19,9 +19,9 @@ define([
 				this.data[attr] = value;
 				return value
 			},
-			tick: function(){
-			for (var i = this._tick_funcs.length - 1; i >= 0; i--) {
-					this._tick_funcs[i]();
+			tick: function(delta){
+				for (var i = this._tick_funcs.length - 1; i >= 0; i--) {
+					this._tick_funcs[i](delta);
 				};
 			},
 			render: function(delta){
@@ -39,6 +39,12 @@ define([
 					if (this.components[key].tick){
 						this._tick_funcs.push(this.components[key].tick.bind(this.components[key]))
 					}
+				}.bind(this));
+			},
+			deregister: function(state){
+				var keys = Object.keys(this.components);
+				keys.forEach(function(key){
+					this.components[key].deregister(state);
 				}.bind(this));
 			}
 		})

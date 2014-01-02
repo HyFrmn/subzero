@@ -25,7 +25,7 @@ define([
 
 				for (var i = (width * height) -1; i >= 0; i--) {
 					var tile = new Tile();
-					tile.layers.base = {srcX: 0, srcY: 0};
+					tile.layers.base = 0;
 					this.tiles.push(tile);
 				};
 			},
@@ -52,6 +52,10 @@ define([
 				if (!this._ready){
 					return
 				}
+
+				var pixelWidth = this.width * this.tileSize;
+				var pixelHeight = this.height * this.tileSize;
+				var chunks = [Math.ceil(pixelWidth/this._chunkSize),Math.ceil(pixelHeight/this._chunkSize)];
 				var startX = -this.container.position.x;
 				var startY = -this.container.position.y;
 				var endX = startX + this.renderer.width;
@@ -59,15 +63,13 @@ define([
 				var scx = Math.floor(startX/this._chunkSize);
 				var sex = Math.ceil(endX/this._chunkSize);
 				var scy = Math.floor(startY/this._chunkSize);
-				var sey = Math.ceil(endY/this._chunkSize);
-				//console.log(scx, scy, sex, sey, (sex-scy)*(sey-scy))
-				for (var x=0; x<(this.width*32)/this._chunkSize; x++){
-					for (var y=0; y<((this.height*32)/this._chunkSize); y++){
+				var sey = Math.ceil(endY/this._chunkSize);	
+				for (var x=0; x<chunks[0]; x++){
+					for (var y=0; y<chunks[1]; y++){
 						if ((x>=scx) && (x<= sex) &&  y>= scy && y<=sey){
 							if (this.container.children.indexOf(this.chunk[x+'.'+y])<0){
 								this.container.addChild(this.chunk[x+'.'+y])
 							}
-						//console.log('vis', x, y)
 						} else {
 							if (this.container.children.indexOf(this.chunk[x+'.'+y])>=0){
 								this.container.removeChild(this.chunk[x+'.'+y])
@@ -79,17 +81,20 @@ define([
 			preRender : function(){
 				var pixelWidth = this.width * this.tileSize;
 				var pixelHeight = this.height * this.tileSize;
-				var chunks = [Math.ceil(pixelWidth/this._chunkSize),Math.ceil(pixelWidth/this._chunkSize)];
+				var chunks = [Math.ceil(pixelWidth/this._chunkSize),Math.ceil(pixelHeight/this._chunkSize)];
 				
 				for (var x=0; x<chunks[0]; x++){
 					for (var y=0; y<chunks[1]; y++){
 						this.preRenderChunk(x, y);
 					}
 				}
+
 				this._ready = true;
 				this.render();
+
 			},
 			preRenderChunk: function(cx, cy){
+
 				var startX = cx * this._chunkSize;
 				var startY = cy * this._chunkSize;
 				var endX = Math.min((cx + 1) * (this._chunkSize), this.width * this.tileSize);
@@ -111,11 +116,24 @@ define([
 								var name = ['base', 'layer0'][idx];
 								if (tile.layers[name]!==undefined){
 									var sprite = new PIXI.Sprite(this._tileTextures[tile.layers[name]]);
+
 									sprite.position.x = (x*this.tileSize) - startX;
 									sprite.position.y = (y*this.tileSize) - startY;
 									chunk.addChild(sprite);
 								}
 							}
+							/*
+							var graphic = new PIXI.Graphics()
+							// begin a green fill..
+							
+							graphic.beginFill(0xFFFFFF);
+							graphic.drawRect(0,0,32,32);
+							graphic.endFill();
+							graphic.position.x = (x*this.tileSize) - startX;
+							graphic.position.y = (y*this.tileSize) - startY;
+							graphic.alpha = tile.data.socialValue;
+							chunk.addChild(graphic)
+							//*/
 						}
 					}
 				}
@@ -123,7 +141,6 @@ define([
 				// render the tilemap to a render texture
 				var texture = new PIXI.RenderTexture(endX-startX, endY-startY);
 				texture.render(chunk);
-
 				// create a single background sprite with the texture
 				var background = new PIXI.Sprite(texture, {x: 0, y: 0, width: this._chunkSize, heigh:this._chunkSize});
 				background.position.x = cx * this._chunkSize;

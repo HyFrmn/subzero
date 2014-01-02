@@ -10,16 +10,17 @@ define([
 				this._super(state);
 				this.on('sound.emit', this.emit);
 			},
-			emit: function(){
+			emit: function(sound){
 				var tx = this.get('xform.tx');
-				var ty = this.get('xform.tx');
+				var ty = this.get('xform.ty');
+				sound.entity = this.entity;
 				var found = this.state.findEntities(
 						tx, 
 						ty,
-						128
+						sound.volume || 128
 					)
 				for (var i = found.length - 1; i >= 0; i--) {
-					found[i].trigger('sound.hear', tx, ty)
+					found[i].trigger('sound.hear', tx, ty, sound)
 				};
 			}
 		});		

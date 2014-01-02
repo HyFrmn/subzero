@@ -8,9 +8,13 @@ define([
 			setMap : function(map){
 				this.map = map;
 				this.map.getTiles().forEach(function(t){
-						return t.data.socialValue = t.layers.base==0 ? 1 : 0;
+						return t.data.socialValue = t.layers.base==16 ? 1 : 0;
 				});
-				for (var i=0; i<this.map.width;i++){
+				for (var i = this.map.width - 1; i >= 0; i--) {
+					this.map.getTile(i,0).data.socialValue=-1;
+					this.map.getTile(i,this.map.height-1).data.socialValue=-1;
+				};
+				for (var i=0; i<2;i++){
 					this.diffuseMap();
 				}
 				this.calcGradient();
@@ -57,8 +61,12 @@ define([
 						
 						var dy = (amtBy - amtAy) / 2;
 
-						var dist = Math.sqrt((dx*dx)+(dy*dy))
-						this.map.getTile(x,y).data.socialVector=[dx/dist,dy/dist];
+						var dist = Math.sqrt((dx*dx)+(dy*dy));
+						if (dist==0){
+							this.map.getTile(x,y).data.socialVector=[0,0];
+						} else {
+							this.map.getTile(x,y).data.socialVector=[dx/dist,dy/dist];
+						}
 					}
 				}
 			},

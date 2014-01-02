@@ -3,12 +3,11 @@ define([
 		'./tilemap',
 		'./tiledlevel',
 		'./entity',
-		'./input',
 		'./physics',
 		'./factory',
 		'./social',
 		'./ai'
-	], function(sge, TileMap, TiledLevel, Entity, Input, Physics, Factory, Social, AI){
+	], function(sge, TileMap, TiledLevel, Entity, Physics, Factory, Social, AI){
 		var SubzeroState = sge.GameState.extend({
 			init: function(game){
 				this._super(game);
@@ -16,6 +15,7 @@ define([
 				this._entity_ids = [];
 
 				this._entity_spatial_hash = {}
+				this._unspawnedEntities={}
 
 
 				this.stage = new PIXI.Stage(0x66FF99);
@@ -30,17 +30,17 @@ define([
 				this.containers={};
 				this.containers.entities = new PIXI.DisplayObjectContainer();
 				this.containers.map = new PIXI.DisplayObjectContainer();
+				this.containers.overhead = new PIXI.DisplayObjectContainer();
 				this.container.addChild(this.containers.map);
-				this.containers.map.addChild(this.containers.entities);
 				
-				this.input = new Input(game.renderer.view);
 				this.physics = new Physics();
-				this.factory = new Factory();
+				this.factory = Factory;
 				this.social = new Social();
 				var loader = new sge.Loader();
 				loader.loadJSON('content/manifest.json').then(this.loadManifest.bind(this));
 			},
 			loadManifest: function(manifest){
+				console.log('Loaded Manifest')
 				var loader = new sge.Loader();
 				var promises = [];
 				if (manifest.sprites){
@@ -60,12 +60,12 @@ define([
 				}
 				if (manifest.entities){
 					manifest.entities.forEach(function(data){
-						promises.push(loader.loadJSON('content/entities/' + data +'.json').then(this.factory.load.bind(this.factory)));
+						promises.push(loader.loadJSON('content/entities/' + data +'.json').then(Factory.load.bind(Factory)));
 					}.bind(this))
 				}
 				if (manifest.ai){
 					manifest.ai.forEach(function(data){
-						promises.push(loader.loadJSON('content/ai/' + data +'.json').then(AI.load.bind(this.factory)));
+						promises.push(loader.loadJSON('content/ai/' + data +'.json').then(AI.load.bind(AI)));
 					}.bind(this))
 				}
 
@@ -78,14 +78,19 @@ define([
 			},
 			loadLevel : function(levelData){
 				this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
+				//var blurFilter = new PIXI.BlurFilter();
+				//this.background.filters = [blurFilter]
 				this.stage.addChild(this.background);
 				this.stage.addChild(this.container);
 				var text = new PIXI.BitmapText('Subzero', {font:'64px 8bit'});
 				this.stage.addChild(text);
 				this.map = new TileMap(levelData.width, levelData.height, this.game.renderer);
 				TiledLevel(this, this.map, levelData).then(function(){
+
 					this.social.setMap(this.map);
 					this.map.preRender();
+					console.log('Created Level')
+
 					this.physics.setMap(this.map);
 					this.initGame();
 				}.bind(this), 500)
@@ -93,30 +98,23 @@ define([
 			initGame: function(){
 				this.containers.map.addChild(this.map.container);
 				this.containers.map.addChild(this.containers.entities);
-				console.log('Making PC')
-				this.pc = this.factory.create('pc', {
-					xform: { tx: 200, ty: 200}
-				});
-				console.log('PC:', this.pc)
-				this.addEntity(this.pc);
-				this.physics.entities.push(this.pc);
-
-				this.containers.map.position.x = this.pc.get('xform.tx');
-
+				this.containers.map.addChild(this.containers.overhead);
+				this.containers.map.position.x = this.game.width/(2*this._scale)-(this.map.width*this.map.tileSize*0.5);
+				this.containers.map.position.y = this.game.height/(2*this._scale)-(this.map.height*this.map.tileSize*0.5);
 				this.game.changeState('game');
 
 			},
 			tick: function(delta){
 			    this._super(delta);
-				this.input.tick(delta);
+				
 				for (var i = this._entity_ids.length - 1; i >= 0; i--) {
 					var e = this._entities[this._entity_ids[i]];
 					e.tick(delta);
 				};
 				this.physics.tick(delta);
 
-				this.containers.map.position.x = -this.pc.get('xform.tx')+this.game.width/(2*this._scale);
-				this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
+				//this.containers.map.position.x = -this.pc.get('xform.tx')+this.game.width/(2*this._scale);
+				//this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
 				this.background.position.x = (this.containers.map.position.x/10) - 128;
 				this.background.position.y = (this.containers.map.position.y/10) - 128;
 			},
@@ -159,6 +157,18 @@ define([
 				this._updateHash(e, tx, ty);
 				return e;
 			},
+			removeEntity: function(e){
+				e.deregister(this);
+				var id = e.id;
+				var idx = this._entity_ids.indexOf(e.id);
+				this._entity_ids.splice(idx,1);
+				tile = e.get('map.tile');
+				if (tile){
+					idx = tile.data.entities.indexOf(e);
+					tile.data.entities.splice(idx, 1);
+				}
+				delete this._entities[id];
+			},
 			_updateHash: function(e, tx, ty){
 				if (!e){
 					return;
@@ -176,14 +186,14 @@ define([
 						tile.data.entities.splice(idx, 1);
 					}
 					e.set('map.hash', hx + '.' + hy)
-					tile = this.map.getTile(hx, hy)
-					e.set('map.tile', tile);
-					if (tile.data.entities==undefined){
-						tile.data.entities=[];
-					}
-					tile.data.entities.push(e);
-					//console.log('Moved:', tile.data.entities, hash, hx + '.' + hy)
-					
+					tile = this.map.getTile(hx, hy);
+					if (tile){
+						e.set('map.tile', tile);
+						if (tile.data.entities==undefined){
+							tile.data.entities=[];
+						}
+						tile.data.entities.push(e);
+					}	
 				}
 				
 
@@ -207,9 +217,7 @@ define([
 				}
 				return entities;
 			},
-			removeEntity: function(e){
-
-			},
+			
 			getEntities: function(query){
 
 			}

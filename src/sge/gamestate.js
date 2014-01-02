@@ -7,6 +7,7 @@ define([
 			init: function(game, options){
 				this.game = game;
 				this._time = 0;
+				this.input = game.input.createProxy();
 			},
 			startState: function(){},
 			endState: function(){},

@@ -6,7 +6,9 @@ define([
 	'./components/chara',
 	'./components/ai',
 	'./components/physics',
-	'./components/sound'
+	'./components/sound',
+	'./components/bomb',
+	'./components/emote'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {
@@ -21,7 +23,7 @@ define([
           return destination;
         };
 
-		var Factory = sge.Class.extend({
+		var _Factory = sge.Class.extend({
 			init: function(){
 				this.blueprints = {}
 			},
@@ -38,7 +40,6 @@ define([
 				return (this.blueprints[typ]!==undefined);
 			},
 			create: function(typ, data){
-				
 				var tags = [];
 				if (data===undefined){
 					data = {}
@@ -97,6 +98,6 @@ define([
 				return entity;
 			}
 		})
-
+		Factory = new _Factory();
 		return Factory;
 })

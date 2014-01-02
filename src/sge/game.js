@@ -1,7 +1,8 @@
 define([
-		'./class'
+		'./class',
+		'./input'
 	], 
-	function(Class){
+	function(Class, Input){
 
 		var Game =  Class.extend({
 			init: function(options){
@@ -31,6 +32,7 @@ define([
 				this._stateClassMap = {};
 				this._currentState = null;
 				this.renderer = PIXI.autoDetectRenderer(this.width, this.height, canvas);
+				this.input = new Input(canvas);
 			},
 			start: function(data){
 				this.data = data || {};
@@ -56,6 +58,7 @@ define([
 				var now = Date.now();
 				var delta = now - this._lastTick;
 				this._lastTick = now;
+				this.input.tick(delta);
 				this.tick(delta/1000);
 			},
 

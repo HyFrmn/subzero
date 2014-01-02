@@ -2192,10 +2192,441 @@ define('sge/observable',[
         return Observable;
     }
 );
+define('sge/Observable',[
+    './class'
+    ],
+    function(Class){
+        /**
+         * Base class for all observable objects utilizing event system.
+         *
+         */
+        var Observable = Class.extend({
+            init: function(){
+                this._lisenters = {};
+            },
+            /**
+             * Register a `callback` with this observable, for the given `eventName`. The option 'once'
+             * be set to true, for the callback to be removed automatically after the event is fired the first time.
+             * 
+             * @param  {String}   eventName
+             * @param  {Function} callback
+             * @param  {Object}   options
+             * @return {Function}
+             * 
+             */
+            on: function(eventName, callback, options){
+                options = options || {};
+                if (this._lisenters[eventName]==undefined){
+                    this._lisenters[eventName]=[];
+                }
+                this._lisenters[eventName].push([callback, options]);
+            },
+
+            /**
+             * Removed a registered callback and returns the callback.
+             * @param  {String}   eventName
+             * @param  {Function} callback
+             * @param  {Object}   options
+             * @return {Function}
+             */
+            off: function(eventName, callback, options){
+                if (this._lisenters[eventName]==undefined){
+                    this._lisenters[eventName]=[];
+                }
+                this._lisenters[eventName] = this._lisenters.filter(function(data){
+                    return data[0]!=callback;
+                });
+            },
+
+            /**
+             * Trigger the named event.
+             * @param  {String} eventName
+             * 
+             */
+            trigger: function(){
+                var args = Array.prototype.slice.call(arguments);
+                var eventName = args.shift();
+                if (this._lisenters[eventName]==undefined){
+                    return;
+                }
+                var callbacks = this._lisenters[eventName];
+                this._lisenters[eventName] = this._lisenters[eventName].filter(function(data){
+                    data[0].apply(this, args);
+                    if (data[1].once){
+                        return false;
+                    }
+                    return true;
+                })
+            }
+        });
+
+        return Observable;
+    }
+);
+define(
+    'sge/input',['./Observable'],
+function(Observable){
+    var KEYMAP = {
+        "B1" : "space",
+        "B2" : "enter"
+    }
+    var KEYCODES = {
+        "backspace" : 8,
+        "tab" : 9,
+        "enter" : 13,
+        "shift" : 16,
+        "ctrl" : 17,
+        "alt" : 18,
+        "pause" : 19,
+        "capslock" : 20,
+        "escape" : 27,
+        "space" : 32,
+        "pageup" : 33,
+        "pagedown" : 34,
+        "end" : 35,
+        "home" : 36,
+        "left" : 37,
+        "up" : 38,
+        "right" : 39,
+        "down" : 40,
+        "insert" : 45,
+        "delete" : 46,
+        "0" : 48,
+        "1" : 49,
+        "2" : 50,
+        "3" : 51,
+        "4" : 52,
+        "5" : 53,
+        "6" : 54,
+        "7" : 55,
+        "8" : 56,
+        "9" : 57,
+        "A" : 65,
+        "B" : 66,
+        "C" : 67,
+        "D" : 68,
+        "E" : 69,
+        "F" : 70,
+        "G" : 71,
+        "H" : 72,
+        "I" : 73,
+        "J" : 74,
+        "K" : 75,
+        "L" : 76,
+        "M" : 77,
+        "N" : 78,
+        "O" : 79,
+        "P" : 80,
+        "Q" : 81,
+        "R" : 82,
+        "S" : 83,
+        "T" : 84,
+        "U" : 85,
+        "V" : 86,
+        "W" : 87,
+        "X" : 88,
+        "Y" : 89,
+        "Z" : 90,
+        "left-window-key" : 91,
+        "right-window-key" : 92,
+        "select" : 93,
+        "numpad0" : 96,
+        "numpad1" : 97,
+        "numpad2" : 98,
+        "numpad3" : 99,
+        "numpad4" : 100,
+        "numpad5" : 101,
+        "numpad6" : 102,
+        "numpad7" : 103,
+        "numpad8" : 104,
+        "numpad9" : 105,
+        "multiply" : 106,
+        "add" : 107,
+        "subtract" : 109,
+        "decimal-point" : 110,
+        "divide" : 111,
+        "F1" : 112,
+        "F2" : 113,
+        "F3" : 114,
+        "F4" : 115,
+        "F5" : 116,
+        "F6" : 117,
+        "F7" : 118,
+        "F8" : 119,
+        "F9" : 120,
+        "F10" : 121,
+        "F11" : 122,
+        "F12" : 123,
+        "numlock" : 144,
+        "scrolllock" : 145,
+        "semi-colon" : 186,
+        "equals" : 187,
+        "comma" : 188,
+        "dash" : 189,
+        "period" : 190,
+        "slash" : 191,
+        "accent" : 192,
+        "lbracket" : 219,
+        "backslash" : 220,
+        "rbraket" : 221,
+        "singlequote" : 222
+    };
+
+    var REVERSE_KEYCODES = {};
+    var keys = Object.keys(KEYCODES);
+    for (var i=0; i<keys.length; i++){
+        var key = keys[i];
+        var value = KEYCODES[key];
+        REVERSE_KEYCODES[value] = key;
+    }
+
+    var InputProxy = Observable.extend({
+        init: function(input){
+            this._super();
+            this._input = input
+            this.enable = false;
+            this.joystick = input.joystick;
+            this._dpad = []
+        },
+        trigger: function(){
+            var args = Array.prototype.slice.call(arguments);
+            if (this.enable){
+                this._super.apply(this, args);
+            }
+        },
+        isPressed: function(keyCode){
+            return this._input.isPressed(keyCode);
+        },
+        isDown: function(keyCode){
+            return this._input.isDown(keyCode);
+        },
+        dpad: function(){
+            var xaxis = 0;
+            var yaxis = 0;
+            if (this.joystick){
+                if (this.joystick.down()){
+                    yaxis++;
+                }
+                if (this.joystick.up()){
+                    yaxis--;
+                }
+                if (this.joystick.right()){
+                    xaxis++;
+                }
+                if (this.joystick.left()){
+                    xaxis--;
+                }
+            } else {
+                if (this.isDown('down')){
+                    yaxis++;
+                }
+                if (this.isDown('up')){
+                    yaxis--;
+                }
+                if (this.isDown('right')){
+                    xaxis++;
+                }
+                if (this.isDown('left')){
+                    xaxis--;
+                }
+            }
+            this._dpad[0] = xaxis;
+            this._dpad[1] = yaxis;
+            return this._dpad;
+        }
+    });
+
+    var Input = Observable.extend({
+        init: function(elem){
+            this._elem = document.body
+            this._super()
+            this._isNewKeyDown = {}
+            this._isKeyDown = {};
+            this._proxies = [];
+            this._events = [];
+            this.joystick = null;
+            this._isKeyPress = {};
+
+            if ('ontouchstart' in window){
+                    
+                    var isUp = false;
+                    var isDown = false;
+                    var isLeft = false;
+                    var isRight = false;
+
+                    var joystickStartX, joystickStartY;
+                    var joystickIndex = -1;
+
+                    elem.addEventListener('touchstart', function(evt){
+                        for (var i = 0; i < evt.changedTouches.length; i++) {
+                            var touch = evt.changedTouches[i];
+                            if (touch.pageX < (window.innerWidth/4)){
+                                
+                                joystickIndex = touch.identifier;
+                                joystickStartX = touch.pageX;
+                                joystickStartY = touch.pageY;
+                            } else {
+                                this.tapCallback()
+                            }
+                        }
+                    }.bind(this))
+
+                    elem.addEventListener('touchmove', function(evt){
+                        for (var i = 0; i < evt.changedTouches.length; i++) {
+                            var touch = evt.changedTouches[i];
+                            if (touch.identifier==joystickIndex){
+                                var deltaX = joystickStartX - touch.pageX;
+                                var deltaY = joystickStartY - touch.pageY;
+                                if (deltaY>12){
+                                    if (!isUp){
+                                        this.keyDownCallback({keyCode: KEYCODES['up']});
+                                        isUp = true;
+                                    }
+                                } else {
+                                    if (isUp){
+                                        isUp = false;
+                                        this.keyUpCallback({keyCode: KEYCODES['up']});
+                                    }
+                                    
+                                }
+
+                                if (deltaY<-12){
+                                    if (!isDown){
+                                        this.keyDownCallback({keyCode: KEYCODES['down']});
+                                        isDown = true;
+                                    }
+                                } else {
+                                    if (isDown){
+                                        isDown = false;
+                                        this.keyUpCallback({keyCode: KEYCODES['down']});
+                                    }
+                                    
+                                }
+
+                                if (deltaX<-12){
+                                    if (!isRight){
+                                        this.keyDownCallback({keyCode: KEYCODES['right']});
+                                        isRight = true;
+                                    }
+                                } else {
+                                    if (isRight){
+                                        isRight = false;
+                                        this.keyUpCallback({keyCode: KEYCODES['right']});
+                                    }
+                                    
+                                }
+
+                                if (deltaX>12){
+                                    if (!isLeft){
+                                        this.keyDownCallback({keyCode: KEYCODES['left']});
+                                        isLeft = true;
+                                    }
+                                } else {
+                                    if (isLeft){
+                                        isLeft = false;
+                                        this.keyUpCallback({keyCode: KEYCODES['left']});
+                                    }
+                                    
+                                }
+                            }
+                        }
+                    }.bind(this))
+
+                    elem.addEventListener('touchend', function(evt){
+                        for (var i = evt.changedTouches.length - 1; i >= 0; i--) {
+                            var touch = evt.changedTouches[i];
+                            if (touch.identifier==joystickIndex){
+
+                                if (isUp){
+                                    isUp=false;
+                                    this.keyUpCallback({keyCode: KEYCODES['up']});
+                                }
+                                if (isDown){
+                                    isDown=false;
+                                    this.keyUpCallback({keyCode: KEYCODES['down']});
+                                }
+                                if (isRight){
+                                    isRight=false;
+                                    this.keyUpCallback({keyCode: KEYCODES['right']});
+                                }
+                                if (isLeft){
+                                    isLeft=false;
+                                    this.keyUpCallback({keyCode: KEYCODES['left']});
+                                }
+                                joystickIndex=-1;
+                            
+                            }
+                        }
+                    }.bind(this))
+                        
+                        
+            } 
+            if ('onkeydown' in window) {
+                window.onkeydown = this.keyDownCallback.bind(this);
+                window.onkeyup = this.keyUpCallback.bind(this);
+            }
+            //
+        },
+        tapCallback : function(e){
+            this._events.push('tap');
+        },
+        keyDownCallback : function(e){
+            //console.log('keydown:' + REVERSE_KEYCODES[e.keyCode]);
+            if (!this._isKeyDown[e.keyCode]){
+                this._isNewKeyDown[e.keyCode] = true;
+            }
+        },
+        keyUpCallback : function(e){
+            //console.log('keyup:' + REVERSE_KEYCODES[e.keyCode]);
+            delete this._isNewKeyDown[e.keyCode];
+            this._isKeyDown[e.keyCode] = undefined;
+        },
+        isPressed : function(keyCode){
+            return (this._isKeyPress[KEYCODES[keyCode]] === true);
+        },
+        isDown : function(keyCode){
+            return (this._isKeyDown[KEYCODES[keyCode]] === true);
+        },
+        tick : function(delta){
+           this._isKeyPress = {};
+           keys = Object.keys(this._isNewKeyDown);
+           
+           for (var i = keys.length - 1; i >= 0; i--) {
+                var keyCode = keys[i];
+                this._isKeyDown[keyCode] = true;
+                this._isKeyPress[keyCode] = true;
+                delete this._isNewKeyDown[keyCode];
+                this.trigger('keydown:' + REVERSE_KEYCODES[keyCode])
+           }
+
+           for (var j = this._events.length - 1; j >= 0; j--) {
+               this.trigger(this._events[j]);
+           }
+           this._events = [];
+        },
+        createProxy: function(){
+            var proxy = new InputProxy(this);
+            this._proxies.push(proxy);
+            return proxy;
+        },
+        trigger: function(){
+            var args = Array.prototype.slice.call(arguments);
+            this._super.apply(this, args);
+            var proxies = this._proxies.filter(function(p){return p.enable});
+            for (var i = proxies.length - 1; i >= 0; i--) {
+                proxies[i].trigger.apply(proxies[i], args);
+            };
+        },
+    });
+
+    return Input
+})
+;
 define('sge/game',[
-		'./class'
+		'./class',
+		'./input'
 	], 
-	function(Class){
+	function(Class, Input){
 
 		var Game =  Class.extend({
 			init: function(options){
@@ -2225,6 +2656,7 @@ define('sge/game',[
 				this._stateClassMap = {};
 				this._currentState = null;
 				this.renderer = PIXI.autoDetectRenderer(this.width, this.height, canvas);
+				this.input = new Input(canvas);
 			},
 			start: function(data){
 				this.data = data || {};
@@ -2250,6 +2682,7 @@ define('sge/game',[
 				var now = Date.now();
 				var delta = now - this._lastTick;
 				this._lastTick = now;
+				this.input.tick(delta);
 				this.tick(delta/1000);
 			},
 
@@ -2311,6 +2744,7 @@ define('sge/gamestate',[
 			init: function(game, options){
 				this.game = game;
 				this._time = 0;
+				this.input = game.input.createProxy();
 			},
 			startState: function(){},
 			endState: function(){},
@@ -3375,7 +3809,7 @@ define('subzero/tilemap',[
 
 				for (var i = (width * height) -1; i >= 0; i--) {
 					var tile = new Tile();
-					tile.layers.base = {srcX: 0, srcY: 0};
+					tile.layers.base = 0;
 					this.tiles.push(tile);
 				};
 			},
@@ -3402,6 +3836,10 @@ define('subzero/tilemap',[
 				if (!this._ready){
 					return
 				}
+
+				var pixelWidth = this.width * this.tileSize;
+				var pixelHeight = this.height * this.tileSize;
+				var chunks = [Math.ceil(pixelWidth/this._chunkSize),Math.ceil(pixelHeight/this._chunkSize)];
 				var startX = -this.container.position.x;
 				var startY = -this.container.position.y;
 				var endX = startX + this.renderer.width;
@@ -3409,15 +3847,13 @@ define('subzero/tilemap',[
 				var scx = Math.floor(startX/this._chunkSize);
 				var sex = Math.ceil(endX/this._chunkSize);
 				var scy = Math.floor(startY/this._chunkSize);
-				var sey = Math.ceil(endY/this._chunkSize);
-				//console.log(scx, scy, sex, sey, (sex-scy)*(sey-scy))
-				for (var x=0; x<(this.width*32)/this._chunkSize; x++){
-					for (var y=0; y<((this.height*32)/this._chunkSize); y++){
+				var sey = Math.ceil(endY/this._chunkSize);	
+				for (var x=0; x<chunks[0]; x++){
+					for (var y=0; y<chunks[1]; y++){
 						if ((x>=scx) && (x<= sex) &&  y>= scy && y<=sey){
 							if (this.container.children.indexOf(this.chunk[x+'.'+y])<0){
 								this.container.addChild(this.chunk[x+'.'+y])
 							}
-						//console.log('vis', x, y)
 						} else {
 							if (this.container.children.indexOf(this.chunk[x+'.'+y])>=0){
 								this.container.removeChild(this.chunk[x+'.'+y])
@@ -3429,17 +3865,20 @@ define('subzero/tilemap',[
 			preRender : function(){
 				var pixelWidth = this.width * this.tileSize;
 				var pixelHeight = this.height * this.tileSize;
-				var chunks = [Math.ceil(pixelWidth/this._chunkSize),Math.ceil(pixelWidth/this._chunkSize)];
+				var chunks = [Math.ceil(pixelWidth/this._chunkSize),Math.ceil(pixelHeight/this._chunkSize)];
 				
 				for (var x=0; x<chunks[0]; x++){
 					for (var y=0; y<chunks[1]; y++){
 						this.preRenderChunk(x, y);
 					}
 				}
+
 				this._ready = true;
 				this.render();
+
 			},
 			preRenderChunk: function(cx, cy){
+
 				var startX = cx * this._chunkSize;
 				var startY = cy * this._chunkSize;
 				var endX = Math.min((cx + 1) * (this._chunkSize), this.width * this.tileSize);
@@ -3461,11 +3900,24 @@ define('subzero/tilemap',[
 								var name = ['base', 'layer0'][idx];
 								if (tile.layers[name]!==undefined){
 									var sprite = new PIXI.Sprite(this._tileTextures[tile.layers[name]]);
+
 									sprite.position.x = (x*this.tileSize) - startX;
 									sprite.position.y = (y*this.tileSize) - startY;
 									chunk.addChild(sprite);
 								}
 							}
+							/*
+							var graphic = new PIXI.Graphics()
+							// begin a green fill..
+							
+							graphic.beginFill(0xFFFFFF);
+							graphic.drawRect(0,0,32,32);
+							graphic.endFill();
+							graphic.position.x = (x*this.tileSize) - startX;
+							graphic.position.y = (y*this.tileSize) - startY;
+							graphic.alpha = tile.data.socialValue;
+							chunk.addChild(graphic)
+							//*/
 						}
 					}
 				}
@@ -3473,7 +3925,6 @@ define('subzero/tilemap',[
 				// render the tilemap to a render texture
 				var texture = new PIXI.RenderTexture(endX-startX, endY-startY);
 				texture.render(chunk);
-
 				// create a single background sprite with the texture
 				var background = new PIXI.Sprite(texture, {x: 0, y: 0, width: this._chunkSize, heigh:this._chunkSize});
 				background.position.x = cx * this._chunkSize;
@@ -3531,18 +3982,12 @@ define('subzero/tiledlevel',[
 						};
 					}
 				}.bind(this));
-
+				//*
 				var entityLayer = layerData['entities']
 				if (entityLayer){
 					for (var i = entityLayer.objects.length - 1; i >= 0; i--) {
 						var entityData = entityLayer.objects[i];
-						if (entityData.name=='pc'){
-							this._entityMap[entityData.name] = {xform:{tx: entityData.x+16, ty: entityData.y+16-32}}; //-32 For tiled hack.
-							continue;
-						}
-
 						if (state.factory.has(entityData.type)){
-
 							var eData = {};
 							var decorators = []
 							var keys = Object.keys(entityData.properties);
@@ -3580,15 +4025,15 @@ define('subzero/tiledlevel',[
 							if (spawn){
 								state.addEntity(entity);	
 							} else {
-								this._unspawnedEntities[entity.name] = entity;
+								state._unspawnedEntities[entity.name] = entity;
 							}
 						} else {
-							console.log('Missing:', entityData.type);
+							console.error('Missing:', entityData.type);
 						}
 					}
 
 				}
-
+				//*/
 
 				defered.resolve();
 			})
@@ -3754,9 +4199,9 @@ define('subzero/entity',[
 				this.data[attr] = value;
 				return value
 			},
-			tick: function(){
-			for (var i = this._tick_funcs.length - 1; i >= 0; i--) {
-					this._tick_funcs[i]();
+			tick: function(delta){
+				for (var i = this._tick_funcs.length - 1; i >= 0; i--) {
+					this._tick_funcs[i](delta);
 				};
 			},
 			render: function(delta){
@@ -3774,6 +4219,12 @@ define('subzero/entity',[
 					if (this.components[key].tick){
 						this._tick_funcs.push(this.components[key].tick.bind(this.components[key]))
 					}
+				}.bind(this));
+			},
+			deregister: function(state){
+				var keys = Object.keys(this.components);
+				keys.forEach(function(key){
+					this.components[key].deregister(state);
 				}.bind(this));
 			}
 		})
@@ -3793,361 +4244,6 @@ define('subzero/entity',[
 		return Entity;
 	}
 );
-define(
-    'subzero/input',['sge'],
-function(sge){
-    var KEYCODES = {
-        "backspace" : 8,
-        "tab" : 9,
-        "enter" : 13,
-        "shift" : 16,
-        "ctrl" : 17,
-        "alt" : 18,
-        "pause" : 19,
-        "capslock" : 20,
-        "escape" : 27,
-        "space" : 32,
-        "pageup" : 33,
-        "pagedown" : 34,
-        "end" : 35,
-        "home" : 36,
-        "left" : 37,
-        "up" : 38,
-        "right" : 39,
-        "down" : 40,
-        "insert" : 45,
-        "delete" : 46,
-        "0" : 48,
-        "1" : 49,
-        "2" : 50,
-        "3" : 51,
-        "4" : 52,
-        "5" : 53,
-        "6" : 54,
-        "7" : 55,
-        "8" : 56,
-        "9" : 57,
-        "A" : 65,
-        "B" : 66,
-        "C" : 67,
-        "D" : 68,
-        "E" : 69,
-        "F" : 70,
-        "G" : 71,
-        "H" : 72,
-        "I" : 73,
-        "J" : 74,
-        "K" : 75,
-        "L" : 76,
-        "M" : 77,
-        "N" : 78,
-        "O" : 79,
-        "P" : 80,
-        "Q" : 81,
-        "R" : 82,
-        "S" : 83,
-        "T" : 84,
-        "U" : 85,
-        "V" : 86,
-        "W" : 87,
-        "X" : 88,
-        "Y" : 89,
-        "Z" : 90,
-        "left-window-key" : 91,
-        "right-window-key" : 92,
-        "select" : 93,
-        "numpad0" : 96,
-        "numpad1" : 97,
-        "numpad2" : 98,
-        "numpad3" : 99,
-        "numpad4" : 100,
-        "numpad5" : 101,
-        "numpad6" : 102,
-        "numpad7" : 103,
-        "numpad8" : 104,
-        "numpad9" : 105,
-        "multiply" : 106,
-        "add" : 107,
-        "subtract" : 109,
-        "decimal-point" : 110,
-        "divide" : 111,
-        "F1" : 112,
-        "F2" : 113,
-        "F3" : 114,
-        "F4" : 115,
-        "F5" : 116,
-        "F6" : 117,
-        "F7" : 118,
-        "F8" : 119,
-        "F9" : 120,
-        "F10" : 121,
-        "F11" : 122,
-        "F12" : 123,
-        "numlock" : 144,
-        "scrolllock" : 145,
-        "semi-colon" : 186,
-        "equals" : 187,
-        "comma" : 188,
-        "dash" : 189,
-        "period" : 190,
-        "slash" : 191,
-        "accent" : 192,
-        "lbracket" : 219,
-        "backslash" : 220,
-        "rbraket" : 221,
-        "singlequote" : 222
-    };
-
-    var REVERSE_KEYCODES = {};
-    var keys = Object.keys(KEYCODES);
-    for (var i=0; i<keys.length; i++){
-        var key = keys[i];
-        var value = KEYCODES[key];
-        REVERSE_KEYCODES[value] = key;
-    }
-
-    var InputProxy = sge.Observable.extend({
-        init: function(input){
-            this._super();
-            this._input = input
-            this.enable = false;
-            this.joystick = input.joystick;
-            this._dpad = []
-        },
-        trigger: function(){
-            var args = Array.prototype.slice.call(arguments);
-            if (this.enable){
-                this._super.apply(this, args);
-            }
-        },
-        isPressed: function(keyCode){
-            return this._input.isPressed(keyCode);
-        },
-        isDown: function(keyCode){
-            return this._input.isDown(keyCode);
-        },
-        dpad: function(){
-            var xaxis = 0;
-            var yaxis = 0;
-            if (this.joystick){
-                if (this.joystick.down()){
-                    yaxis++;
-                }
-                if (this.joystick.up()){
-                    yaxis--;
-                }
-                if (this.joystick.right()){
-                    xaxis++;
-                }
-                if (this.joystick.left()){
-                    xaxis--;
-                }
-            } else {
-                if (this.isDown('down')){
-                    yaxis++;
-                }
-                if (this.isDown('up')){
-                    yaxis--;
-                }
-                if (this.isDown('right')){
-                    xaxis++;
-                }
-                if (this.isDown('left')){
-                    xaxis--;
-                }
-            }
-            this._dpad[0] = xaxis;
-            this._dpad[1] = yaxis;
-            return this._dpad;
-        }
-    });
-
-    var Input = sge.Observable.extend({
-        init: function(elem){
-            this._elem = document.body
-            this._super()
-            this._isNewKeyDown = {}
-            this._isKeyDown = {};
-            this._proxies = [];
-            this._events = [];
-            this.joystick = null;
-            this._isKeyPress = {};
-
-            if ('ontouchstart' in window){
-                    
-                    var isUp = false;
-                    var isDown = false;
-                    var isLeft = false;
-                    var isRight = false;
-
-                    var joystickStartX, joystickStartY;
-                    var joystickIndex = -1;
-
-                    elem.addEventListener('touchstart', function(evt){
-                        for (var i = 0; i < evt.changedTouches.length; i++) {
-                            var touch = evt.changedTouches[i];
-                            if (touch.pageX < (window.innerWidth/4)){
-                                
-                                joystickIndex = touch.identifier;
-                                joystickStartX = touch.pageX;
-                                joystickStartY = touch.pageY;
-                            } else {
-                                this.tapCallback()
-                            }
-                        }
-                    }.bind(this))
-
-                    elem.addEventListener('touchmove', function(evt){
-                        for (var i = 0; i < evt.changedTouches.length; i++) {
-                            var touch = evt.changedTouches[i];
-                            if (touch.identifier==joystickIndex){
-                                var deltaX = joystickStartX - touch.pageX;
-                                var deltaY = joystickStartY - touch.pageY;
-                                if (deltaY>12){
-                                    if (!isUp){
-                                        this.keyDownCallback({keyCode: KEYCODES['up']});
-                                        isUp = true;
-                                    }
-                                } else {
-                                    if (isUp){
-                                        isUp = false;
-                                        this.keyUpCallback({keyCode: KEYCODES['up']});
-                                    }
-                                    
-                                }
-
-                                if (deltaY<-12){
-                                    if (!isDown){
-                                        this.keyDownCallback({keyCode: KEYCODES['down']});
-                                        isDown = true;
-                                    }
-                                } else {
-                                    if (isDown){
-                                        isDown = false;
-                                        this.keyUpCallback({keyCode: KEYCODES['down']});
-                                    }
-                                    
-                                }
-
-                                if (deltaX<-12){
-                                    if (!isRight){
-                                        this.keyDownCallback({keyCode: KEYCODES['right']});
-                                        isRight = true;
-                                    }
-                                } else {
-                                    if (isRight){
-                                        isRight = false;
-                                        this.keyUpCallback({keyCode: KEYCODES['right']});
-                                    }
-                                    
-                                }
-
-                                if (deltaX>12){
-                                    if (!isLeft){
-                                        this.keyDownCallback({keyCode: KEYCODES['left']});
-                                        isLeft = true;
-                                    }
-                                } else {
-                                    if (isLeft){
-                                        isLeft = false;
-                                        this.keyUpCallback({keyCode: KEYCODES['left']});
-                                    }
-                                    
-                                }
-                            }
-                        }
-                    }.bind(this))
-
-                    elem.addEventListener('touchend', function(evt){
-                        for (var i = evt.changedTouches.length - 1; i >= 0; i--) {
-                            var touch = evt.changedTouches[i];
-                            if (touch.identifier==joystickIndex){
-
-                                if (isUp){
-                                    isUp=false;
-                                    this.keyUpCallback({keyCode: KEYCODES['up']});
-                                }
-                                if (isDown){
-                                    isDown=false;
-                                    this.keyUpCallback({keyCode: KEYCODES['down']});
-                                }
-                                if (isRight){
-                                    isRight=false;
-                                    this.keyUpCallback({keyCode: KEYCODES['right']});
-                                }
-                                if (isLeft){
-                                    isLeft=false;
-                                    this.keyUpCallback({keyCode: KEYCODES['left']});
-                                }
-                                joystickIndex=-1;
-                            
-                            }
-                        }
-                    }.bind(this))
-                        
-                        
-            } 
-            if ('onkeydown' in window) {
-                window.onkeydown = this.keyDownCallback.bind(this);
-                window.onkeyup = this.keyUpCallback.bind(this);
-            }
-            //
-        },
-        tapCallback : function(e){
-            this._events.push('tap');
-        },
-        keyDownCallback : function(e){
-            //console.log('keydown:' + REVERSE_KEYCODES[e.keyCode]);
-            if (!this._isKeyDown[e.keyCode]){
-                this._isNewKeyDown[e.keyCode] = true;
-            }
-        },
-        keyUpCallback : function(e){
-            //console.log('keyup:' + REVERSE_KEYCODES[e.keyCode]);
-            delete this._isNewKeyDown[e.keyCode];
-            this._isKeyDown[e.keyCode] = undefined;
-        },
-        isPressed : function(keyCode){
-            return (this._isKeyPress[KEYCODES[keyCode]] === true);
-        },
-        isDown : function(keyCode){
-            return (this._isKeyDown[KEYCODES[keyCode]] === true);
-        },
-        tick : function(){
-           this._isKeyPress = {};
-           keys = Object.keys(this._isNewKeyDown);
-           
-           for (var i = keys.length - 1; i >= 0; i--) {
-                var keyCode = keys[i];
-                this._isKeyDown[keyCode] = true;
-                this._isKeyPress[keyCode] = true;
-                delete this._isNewKeyDown[keyCode];
-                this.trigger('keydown:' + REVERSE_KEYCODES[keyCode])
-           }
-
-           for (var j = this._events.length - 1; j >= 0; j--) {
-               this.trigger(this._events[j]);
-           }
-           this._events = [];
-        },
-        createProxy: function(){
-            var proxy = new InputProxy(this);
-            this._proxies.push(proxy);
-            return proxy;
-        },
-        trigger: function(){
-            var args = Array.prototype.slice.call(arguments);
-            this._super.apply(this, args);
-            var proxies = this._proxies.filter(function(p){return p.enable});
-            for (var i = proxies.length - 1; i >= 0; i--) {
-                proxies[i].trigger.apply(proxies[i], args);
-            };
-        },
-    });
-
-    return Input
-})
-;
 define('subzero/physics',[
 	'sge'
 	], function(sge){
@@ -4217,6 +4313,9 @@ define('subzero/components/sprite',[
 				this.set('sprite.offsetx', data.offsetx || 0);
 				this.set('sprite.offsety', data.offsety || 0);
 
+				this.set('sprite.scalex', data.scalex || 1);
+				this.set('sprite.scaley', data.scaley || 1);
+
 				
 				this.set('sprite.src', data.src || 'man_a');
 				this.set('sprite.frame', data.frame || 1);
@@ -4227,11 +4326,14 @@ define('subzero/components/sprite',[
 
 			},
 
+			deregister: function(state){
+				this.parent.removeChild(this._sprite);
+			},
+
 			register: function(state){
 				this._super(state);
 				this.parent = state.containers[this.get('sprite.container')];
 				this.parent.addChild(this._sprite);
-				console.log('SPRITES:', this.parent.children.length)
 				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
 					this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
 				this._test_a = this.get('xform.ty');
@@ -4250,41 +4352,12 @@ define('subzero/components/sprite',[
 						next = this.parent.children[idx-1];
 					}
 				}
-				this.on('entity.moved', this.update);
 			},
-
-			
-			updateSort: function(entity, tx, ty, dx, dy){
+			render: function(){
 				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
 				this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
-				//console.log('sort', dx, dy)
-				if (dx != 0 || dy != 0){
-					//*
-					if (dy>0){
-						var idx = this.parent.children.indexOf(this._sprite);
-
-						var next = this.parent.children[idx+1];
-						if (next){
-							if (next.position.y>this._sprite.position.y){
-								this.parent.swapChildren(this._sprite, next);
-							}
-						}
-					} else if(dy<0){
-						var idx = this.parent.children.indexOf(this._sprite);
-						var next = this.parent.children[idx-1];
-						if (next){
-							if (next.position.y<this._sprite.position.y){
-								console.log('SWAP', idx)
-								this.parent.swapChildren(this._sprite, next);
-							}
-						}
-					}
-					//*
-				}
-			},
-			update: function(){
-				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
-				this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
+				this._sprite.scale.x = this.get('sprite.scalex');
+				this._sprite.scale.y = this.get('sprite.scaley');
 				
 				this._sprite.setTexture(PIXI.TextureCache[this.get('sprite.src') + '-' + this.get('sprite.frame')])
 			}
@@ -4298,17 +4371,26 @@ define('subzero/components/rpgcontrols',[
 		var ControlComponent = Component.add('controls', {
 			init: function(entity, data){
 				this._super(entity, data);
-				
-
 			},
 			tick: function(){
 				var dpad = this.input.dpad();
 				this.set('movement.vx', dpad[0]);
 				this.set('movement.vy', dpad[1]);
+
+				if (this.input.isPressed('space')){
+					var bomb = this.state.factory.create('bomb', {
+						xform: {
+							tx: this.get('xform.tx'),
+							ty: this.get('xform.ty')
+						}
+					})
+					this.state.addEntity(bomb);
+					this.entity.trigger('emote.msg', 'Boom!')
+				}
 			},
 			register: function(state){
 				this._super(state);
-				this.input = state.input.createProxy();
+				this.input = state.input;
 			}
 		});
 	}
@@ -4325,6 +4407,7 @@ define('subzero/components/chara',[
 				this.set('movement.vx', 0);
 				this.set('movement.vy', 0);
 				this._anim = null;
+				this._animTimeout = 0;
 				this._walkcycleFrames = {
 	                "walk_down" : [19,20,21,22,23,24,25,26],
 	                "walk_up" : [1,2,3,4,5,6,7,8],
@@ -4335,6 +4418,7 @@ define('subzero/components/chara',[
 	                "stand_right" : [27],
 	                "stand_left" : [9]
 	            }
+	            this.setAnim('stand_' + this.get('chara.dir'));
 			},
 			setAnim: function(anim){
 				if (this._anim!=anim){
@@ -4348,7 +4432,7 @@ define('subzero/components/chara',[
 					this.set('chara.dir', dir)
 				}
 			},
-			tick: function(){
+			tick: function(delta){
 				if (this.get('movement.vx')<0){
 					this.setDirection('left');
 				}
@@ -4370,15 +4454,16 @@ define('subzero/components/chara',[
 				} else {
 					this.setAnim('stand_' + this.get('chara.dir'));
 				}
-				this._frame++;
-				if (this._frame>=this._frames.length){
-					this._frame=0;
+				if (this._animTimeout<=0){
+					this._animTimeout = (1/30);
+					this._frame++;
+					if (this._frame>=this._frames.length){
+						this._frame=0;
+					}
+				} else {
+					this._animTimeout -= delta;
 				}
 				this.set('sprite.frame', this._frames[this._frame]);
-			},
-			register: function(state){
-				this._super(state);
-				this.input = state.input.createProxy();
 			}
 		});
 	}
@@ -4387,26 +4472,20 @@ define('subzero/behaviour',[
 		'sge'
 	], function(sge){
 		var Behaviour = sge.Class.extend({
-			init: function(entity, data){
+			init: function(ai, data){
 				data = data || {};
-				this.entity = entity;
-				this.state = entity.state;
-				this.importance = data.importance;
-				this._running = false;
-			},
-			isSatisfied: function(){
-				return false;
-			},
-			run : function(state){
-				this.state = state;
-				this._running = true;
-				this.start();
+				this.comp = ai;
+				this.entity = ai.entity;
+				this.state = ai.state;
+				this.running = false;
+				this.importance = data.importance || 3;
 			},
 			start: function(){
-
+				this.running = true;
 			},
 			stop: function(){
-				this._running = false;
+				this.running = false;
+				this.comp.next();
 			}
 		});
 
@@ -4418,44 +4497,33 @@ define('subzero/behaviour',[
 			return klass;
 		}
 
-		Behaviour.Create = function(type, entity, data){
-			if (Behaviour._classMap[type]==undefined){
-				console.error('Missing Behaviour:', type);
+		Behaviour.Create = function(entity, data){
+			if (Behaviour._classMap[data.xtype]==undefined){
+				console.error('Missing Behaviour:', data.xtype);
 				return null;
 			}
-			comp = new Behaviour._classMap[type](entity, data);
+			comp = new Behaviour._classMap[data.xtype](entity, data);
 			return comp;
 		}
 
 		Behaviour.add('idle', {
 			start: function(){
-				this._timeout = 0;
+				this._timeout = this.state.getTime() + Math.random() + 0.5;
+				this.entity.set('movement.vx', Math.random() * 2 - 1);
+				this.entity.set('movement.vy', Math.random() * 2 - 1);
 			},
 			tick: function(delta){
 				if (this.state.getTime()>this._timeout){
-					this._timeout = this.state.getTime()+1+Math.random();
-					this.entity.set('movement.vx', Math.random() * 2 - 1);
-					this.entity.set('movement.vy', Math.random() * 2 - 1);
+					this.stop();
 				}
 			}
 		})
 
-		Behaviour.add('wait', {
-			start: function(){
-				this._timeout = 0;
-
-			},
-			isSatisfied: function(){
-				return false;
-			},
-			tick: function(delta){
-				this.entity.set('movement.vx', 0);
-				this.entity.set('movement.vy', 0);
-				return true;
-			}
-		})
-
 		Behaviour.add('goto', {
+			init: function(comp, data){
+				this._super(comp, data);
+				this.target = data.target;
+			},
 			start: function(){
 				this._timeout = 0;
 
@@ -4472,24 +4540,74 @@ define('subzero/behaviour',[
 
 				var dx = tx - targetx;
 				var dy = ty - targety;
-				var dist = (dx*dx+dy*dy);
-				this.entity.set('movement.vx', dx/dist);
-				this.entity.set('movement.vy', dy/dist);
-				return true;
+				var dist = Math.sqrt(dx*dx+dy*dy);
+				if (dist<64){
+					this.stop();
+				}
+				this.entity.set('movement.vx', -dx/dist);
+				this.entity.set('movement.vy', -dy/dist);
+
 			}
 		})
 
-		Behaviour.add('wait', {
+		Behaviour.add('goaway', {
+			init: function(comp, data){
+				this._super(comp, data);
+				this.target = data.target;
+				this._timeout = data.timeout || 0;
+			},
 			start: function(){
-				this._timeout = 0;
-
+				if (this._timeout>0){
+					this._timeout = this.state.getTime() + this._timeout;
+				}
 			},
 			isSatisfied: function(){
 				return false;
 			},
 			tick: function(delta){
+				if (this._timeout>0 && this._timeout<this.state.getTime()){
+					this.stop();
+				}
+				var tx = this.entity.get('xform.tx');
+				var ty = this.entity.get('xform.ty');
+
+				var targetx = this.target.get('xform.tx');
+				var targety = this.target.get('xform.ty');
+
+				var dx = tx - targetx;
+				var dy = ty - targety;
+				var dist = Math.sqrt(dx*dx+dy*dy);
+				if (dist>1024){
+					this.stop();
+				}
+				this.entity.set('movement.vx', dx/dist * 2);
+				this.entity.set('movement.vy', dy/dist * 2);
+
+			}
+		})
+
+		Behaviour.add('wait', {
+			init: function(comp, data){
+				this._super(comp);
+				this._timeout = data.timeout || -1;
+			},
+			start: function(){
+				if (this._timeout>0){
+					this._timeout += this.state.getTime();
+				}
 				this.entity.set('movement.vx', 0);
 				this.entity.set('movement.vy', 0);
+			},
+			isSatisfied: function(){
+				return false;
+			},
+			tick: function(delta){
+				if (this._timeout>0 && this.state.getTime()>this._timeout){
+					this.stop()
+				} else {
+					this.entity.set('movement.vx', 0);
+					this.entity.set('movement.vy', 0);
+				}
 				return true;
 			}
 		})
@@ -4519,7 +4637,11 @@ define('subzero/behaviour',[
 		Behaviour.add('sell', {
 			start: function(){
 				this._timeout = 0;
+				this._moveTimeout = this.state.getTime() + 5;
 				this._selling = false;
+				this.entity.on('merchant.sell', this.startSell.bind(this));
+				this.entity.set('movement.vx', 0);
+				this.entity.set('movement.vy', 0);
 			},
 			isSatisfied: function(){
 				if (this._selling){
@@ -4529,15 +4651,65 @@ define('subzero/behaviour',[
 				return (this._selling)
 			},
 			tick: function(delta){
+				if (this.state.getTime()>this._moveTimeout){
+					var tx = this.entity.get('xform.tx');
+					var ty = this.entity.get('xform.ty');
+					var entities = this.state.findEntities(tx, ty, 512);
+					var avg = [0,0];
+					var count = 0;
+					entities.forEach(function(e){
+						avg = [avg[0]+e.get('xform.tx'),avg[1]+e.get('xform.ty')];
+						count++;
+					});
+					var targetx = avg[0]/count;
+					var targety = avg[0]/count;
+					var dx = tx - targetx;
+					var dy = ty - targety;
+					var dist = Math.sqrt(dx*dx+dy*dy);
+					if (dist<64){
+						this.stop();
+					}
+					this.entity.set('movement.vx', -dx/dist);
+					this.entity.set('movement.vy', -dy/dist);
+					this._moveTimeout += 3
+					return
+				}
 				if (this.state.getTime()>this._timeout){
 					this._timeout = this.state.getTime()+1+Math.random();
-					this.entity.trigger('sound.emit', "HOW DO YOU ENCODE A SHIT TON OF DATA HERE.")
-					//console.log('emit')
+					this.entity.trigger('sound.emit', {
+						type: 0,
+						instructions: [{
+							xtype: "goto",
+							target: this.entity
+						},{
+							xtype: "event.trigger",
+							event: "merchant.sell",
+							entity: this.entity
+						},{
+							xtype: "wait",
+							timeout: 2
+						}]
+					})
 				}
 
-			}
+			},
+			startSell: function(){
+				this.entity.set('movement.vx', 0);
+				this.entity.set('movement.vy', 0);
+				this._moveTimeout = this.state.getTime() + 3;
+			},
 		});
-
+		Behaviour.add('event.trigger', {
+			init: function(comp, data){
+				this._super(comp, data);
+				this._eventName = data.event;
+				this._entity = data.entity;
+			},
+			tick: function(){
+				this._entity.trigger(this._eventName);
+				this.stop();
+			}
+		})
 		return Behaviour;
 	}
 );
@@ -4581,34 +4753,189 @@ define('subzero/ai',[
 define('subzero/components/ai',[
 	'sge',
 	'../component',
+	'../behaviour',
 	'../ai'
-	], function(sge, Component, AI){
+	], function(sge, Component, Behaviour, AI){
+		var proxyTarget = function(tx, ty){
+			this.data = {
+				'xform.tx': tx,
+				'xform.ty': ty
+			}
+			this.get = function(attr){
+				return this.data[attr];
+			}
+		}
+
+		var Planner = sge.Observable.extend({
+			init: function(comp){
+				this.comp = comp;
+				this.entity = comp.entity;
+				this.state = comp.state;
+				this._interupt = false;
+				this._instructions=[];
+				this._ignoreList=[];
+			},
+			interupt: function(){
+				if (this._interupt){
+					this._interupt=false;
+					this.comp.next();
+					return true;
+				}
+				return false;
+			},
+			next: function(){
+				return {xtype: 'idle'}
+			}
+		});
+
+		var CitizenPlanner = Planner.extend({
+			init: function(comp){
+				this._super(comp);
+				this.entity.on('sound.hear', this.soundCallback.bind(this));
+				this._instructions = [];
+				this._ignoreList = [];
+				this._interupt=false;
+			},
+			soundCallback: function(tx, ty, sound){
+				if (sound.type==0){
+					if (this._ignoreList.indexOf(sound.entity)<0){
+						this._ignoreList.push(sound.entity)
+						this._instructions = sound.instructions;
+						this._interupt=true;
+					}
+				}
+				if (sound.type==1){
+					if (this._ignoreList.indexOf(sound.entity)<0){
+						this._ignoreList.push(sound.entity)
+						this._instructions = [{xtype: 'goaway', target: new proxyTarget(tx, ty), timeout: 3, importance: 8}];
+						this._interupt=true;
+					}
+				}
+			},
+			interupt: function(){
+				if (this._super()){
+					return true;
+				}
+				if (this.comp.behaviour.importance>6){
+					return false;
+				}
+				var tile = this.entity.get('map.tile');
+				if (tile){
+					if (tile.data.socialValue<0.8){
+						this.entity.set('movement.vx', tile.data.socialVector[0]);
+						this.entity.set('movement.vy', tile.data.socialVector[1]);
+						return true;
+					}
+				}
+				if (this._interupt){
+					this._interupt=false;
+					this.comp.next();
+					return true;
+				}
+				return false;
+			},
+			next: function(){
+				if (this._instructions.length){
+					return this._instructions.shift();
+				}
+				return {xtype: 'idle'}
+			}
+		});
+
+		var MerchantPlanner = Planner.extend({
+			interupt: function(){
+				
+					var tile = this.entity.get('map.tile');
+					if (tile){
+						if (tile.data.socialValue<0.8){
+							this.entity.set('movement.vx', tile.data.socialVector[0]);
+							this.entity.set('movement.vy', tile.data.socialVector[1]);
+							return true;
+						}
+					}
+				
+				return false;
+			},
+			next: function(){
+				return {xtype: 'sell'}
+			}
+		});
+
+		var GuardPlanner = Planner.extend({
+			init: function(comp){
+				this._super(comp);
+				this.entity.on('sound.hear', this.soundCallback.bind(this));
+				this._home = new proxyTarget(this.entity.get('xform.tx'),this.entity.get('xform.ty'))
+				
+			},
+			soundCallback: function(tx, ty, sound){
+				if (sound.type==1){
+					if (this._ignoreList.indexOf(sound.entity)<0){
+						this._ignoreList.push(sound.entity)
+						this._instructions = [{xtype: 'goto', target: new proxyTarget(tx, ty)},{xtype:'wait', timeout:5}]
+						this._interupt=true;
+						this.entity.trigger('emote.msg', 'What the hell?')
+					}
+				}
+			},
+			next: function(){
+				if (this._instructions.length>0){
+					return this._instructions.shift();
+				}
+				var tx = this.entity.get('xform.tx');
+				var ty = this.entity.get('xform.ty');
+
+				var targetx = this._home.get('xform.tx');
+				var targety = this._home.get('xform.ty');
+
+				var dx = tx - targetx;
+				var dy = ty - targety;
+				var dist = Math.sqrt(dx*dx+dy*dy);
+				if (dist<16){
+					this.entity.set('chara.dir', 'down')
+					return {xtype: 'wait'}
+				}
+				return {xtype: 'goto', target: this._home};
+			}
+		});
+
+		PLANNER = {
+			'citizen' : CitizenPlanner,
+			'merchant' : MerchantPlanner,
+			'guard' : GuardPlanner
+		}
+
 		Component.add('ai', {
 			init: function(entity, data){
 				this._super(entity, data);
-			    this.set('ai.behaviour', data.behaviour || 'citizen')
+			    this.set('ai.planner', data.planner || 'citizen');
 			    this._timeout = 0;
-			    this._behaviours = AI.Create(this.get('ai.behaviour'), this.entity)
+			    this.behaviour = null;
+
 			},
 			register: function(state){
 				this._super(state);
-				this._behaviours.sort(function(a,b){
-					return b.importance - a.importace;
-				});
-				for (var i=0; i<this._behaviours.length; i++){
-						this._behaviours[i].run(state);
-					
+				this.planner = new PLANNER[this.get('ai.planner')](this)
+				this.next();
+			},
+			next : function(){
+				this.changeBehaviour(this.planner.next());
+			},
+			changeBehaviour: function(data){
+				if (this.behaviour && this.behaviour.running){
+					this.behaviour.stop();
 				}
+				this.behaviour = Behaviour.Create(this, data);
+				this.behaviour.start()
 			},
 			tick: function(delta){
-				for (var i=0; i<this._behaviours.length; i++){
-					behaviour = this._behaviours[i];
-					if (!behaviour.isSatisfied()){
-						if (behaviour.tick(delta)){
-							break;
-						}
-					}
+				//Check planning for interupt.
+				if (this.planner.interupt()){
+					return;
 				}
+				
+				//Tick current behaviour.
+				this.behaviour.tick(delta);
 			}
 		});		
 	}
@@ -4620,9 +4947,12 @@ define('subzero/components/physics',[
 		Component.add('physics', {
 			init: function(entity, data){
 				this._super(entity, data);
+				this.type = data.type || 0;
 			},
 			register: function(state){
-			    state.physics.entities.push(this.entity);   
+				if (this.type==0){
+				    state.physics.entities.push(this.entity);   
+				}
 			}
 		});		
 	}
@@ -4639,17 +4969,111 @@ define('subzero/components/sound',[
 				this._super(state);
 				this.on('sound.emit', this.emit);
 			},
-			emit: function(){
+			emit: function(sound){
 				var tx = this.get('xform.tx');
-				var ty = this.get('xform.tx');
+				var ty = this.get('xform.ty');
+				sound.entity = this.entity;
 				var found = this.state.findEntities(
 						tx, 
 						ty,
-						128
+						sound.volume || 128
 					)
 				for (var i = found.length - 1; i >= 0; i--) {
-					found[i].trigger('sound.hear', tx, ty)
+					found[i].trigger('sound.hear', tx, ty, sound)
 				};
+			}
+		});		
+	}
+);
+define('subzero/components/bomb',[
+		'sge',
+		'../component'
+	], function(sge, Component){
+		Component.add('explosion', {
+			register: function(state){
+				this._super(state);
+				this._frame= 0;
+				this._anim = 0
+			},
+			tick: function(delta){
+				if (this._anim<=0){
+					this._anim = (1/30);
+					this.set('sprite.frame', this._frame++);
+					if (this._frame>=16){
+						this.state.removeEntity(this.entity);
+					}
+				} else {
+					this._anim -= delta;
+				}
+			}
+		})
+
+		Component.add('bomb', {
+			register: function(state){
+				this._super(state);
+				this._timeout = state.getTime() + 3;
+			},
+			tick: function(delta){
+				if (this.state.getTime()>this._timeout){
+					this.entity.trigger('sound.emit', {
+						type: 1,
+						volume: 1024,
+					})
+					
+					for (var i = 0; i < 3; i++) {
+						var scale = (Math.random()*2-1)*0.5 + 1;
+						var explo = this.state.factory.create('explosion', {
+							xform: {
+								tx: this.get('xform.tx') + (Math.random()*2-1)*32,
+								ty: this.get('xform.ty') + (Math.random()*2-1)*32
+							},
+							sprite: {
+								scalex: scale,
+								scaley: scale
+							}
+						})
+						this.state.addEntity(explo);
+					}
+					this.state.removeEntity(this.entity);
+				}
+			}
+		})
+	}
+);
+define('subzero/components/emote',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		Component.add('emote', {
+			init: function(entity, data){
+				this._super(entity, data);
+			},
+			register: function(state){
+				this._super(state);
+				this.text = new PIXI.BitmapText("", {font: "20px 8bit"});
+				this.state.containers.overhead.addChild(this.text);
+				this.text.position.x = 300;
+				this.text.position.y = 300;
+				this._timeout = -1;
+				this.on('emote.msg', this.emote);
+			},
+			emote: function(msg){
+				this.text.setText(msg);
+				this.state.containers.overhead.addChild(this.text);
+				this._timeout = this.state.getTime() + 1;
+			},
+			clear: function(){
+				this._timeout = -1;
+				this.state.containers.overhead.removeChild(this.text);
+			},
+			tick: function(){
+				if(this._timeout>0 && this._timeout<this.state.getTime()){
+					this.clear()
+				}
+			},
+			render: function(){
+				this.text.position.x = this.get('xform.tx');
+				this.text.position.y = this.get('xform.ty')-64;
 			}
 		});		
 	}
@@ -4662,7 +5086,9 @@ define('subzero/factory',[
 	'./components/chara',
 	'./components/ai',
 	'./components/physics',
-	'./components/sound'
+	'./components/sound',
+	'./components/bomb',
+	'./components/emote'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {
@@ -4677,7 +5103,7 @@ define('subzero/factory',[
           return destination;
         };
 
-		var Factory = sge.Class.extend({
+		var _Factory = sge.Class.extend({
 			init: function(){
 				this.blueprints = {}
 			},
@@ -4694,7 +5120,6 @@ define('subzero/factory',[
 				return (this.blueprints[typ]!==undefined);
 			},
 			create: function(typ, data){
-				
 				var tags = [];
 				if (data===undefined){
 					data = {}
@@ -4753,7 +5178,7 @@ define('subzero/factory',[
 				return entity;
 			}
 		})
-
+		Factory = new _Factory();
 		return Factory;
 });
 define('subzero/social',[
@@ -4766,9 +5191,13 @@ define('subzero/social',[
 			setMap : function(map){
 				this.map = map;
 				this.map.getTiles().forEach(function(t){
-						return t.data.socialValue = t.layers.base==0 ? 1 : 0;
+						return t.data.socialValue = t.layers.base==16 ? 1 : 0;
 				});
-				for (var i=0; i<this.map.width;i++){
+				for (var i = this.map.width - 1; i >= 0; i--) {
+					this.map.getTile(i,0).data.socialValue=-1;
+					this.map.getTile(i,this.map.height-1).data.socialValue=-1;
+				};
+				for (var i=0; i<2;i++){
 					this.diffuseMap();
 				}
 				this.calcGradient();
@@ -4815,8 +5244,12 @@ define('subzero/social',[
 						
 						var dy = (amtBy - amtAy) / 2;
 
-						var dist = Math.sqrt((dx*dx)+(dy*dy))
-						this.map.getTile(x,y).data.socialVector=[dx/dist,dy/dist];
+						var dist = Math.sqrt((dx*dx)+(dy*dy));
+						if (dist==0){
+							this.map.getTile(x,y).data.socialVector=[0,0];
+						} else {
+							this.map.getTile(x,y).data.socialVector=[dx/dist,dy/dist];
+						}
 					}
 				}
 			},
@@ -4846,12 +5279,11 @@ define('subzero/subzerostate',[
 		'./tilemap',
 		'./tiledlevel',
 		'./entity',
-		'./input',
 		'./physics',
 		'./factory',
 		'./social',
 		'./ai'
-	], function(sge, TileMap, TiledLevel, Entity, Input, Physics, Factory, Social, AI){
+	], function(sge, TileMap, TiledLevel, Entity, Physics, Factory, Social, AI){
 		var SubzeroState = sge.GameState.extend({
 			init: function(game){
 				this._super(game);
@@ -4859,6 +5291,7 @@ define('subzero/subzerostate',[
 				this._entity_ids = [];
 
 				this._entity_spatial_hash = {}
+				this._unspawnedEntities={}
 
 
 				this.stage = new PIXI.Stage(0x66FF99);
@@ -4873,17 +5306,17 @@ define('subzero/subzerostate',[
 				this.containers={};
 				this.containers.entities = new PIXI.DisplayObjectContainer();
 				this.containers.map = new PIXI.DisplayObjectContainer();
+				this.containers.overhead = new PIXI.DisplayObjectContainer();
 				this.container.addChild(this.containers.map);
-				this.containers.map.addChild(this.containers.entities);
 				
-				this.input = new Input(game.renderer.view);
 				this.physics = new Physics();
-				this.factory = new Factory();
+				this.factory = Factory;
 				this.social = new Social();
 				var loader = new sge.Loader();
 				loader.loadJSON('content/manifest.json').then(this.loadManifest.bind(this));
 			},
 			loadManifest: function(manifest){
+				console.log('Loaded Manifest')
 				var loader = new sge.Loader();
 				var promises = [];
 				if (manifest.sprites){
@@ -4903,12 +5336,12 @@ define('subzero/subzerostate',[
 				}
 				if (manifest.entities){
 					manifest.entities.forEach(function(data){
-						promises.push(loader.loadJSON('content/entities/' + data +'.json').then(this.factory.load.bind(this.factory)));
+						promises.push(loader.loadJSON('content/entities/' + data +'.json').then(Factory.load.bind(Factory)));
 					}.bind(this))
 				}
 				if (manifest.ai){
 					manifest.ai.forEach(function(data){
-						promises.push(loader.loadJSON('content/ai/' + data +'.json').then(AI.load.bind(this.factory)));
+						promises.push(loader.loadJSON('content/ai/' + data +'.json').then(AI.load.bind(AI)));
 					}.bind(this))
 				}
 
@@ -4921,14 +5354,19 @@ define('subzero/subzerostate',[
 			},
 			loadLevel : function(levelData){
 				this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
+				//var blurFilter = new PIXI.BlurFilter();
+				//this.background.filters = [blurFilter]
 				this.stage.addChild(this.background);
 				this.stage.addChild(this.container);
 				var text = new PIXI.BitmapText('Subzero', {font:'64px 8bit'});
 				this.stage.addChild(text);
 				this.map = new TileMap(levelData.width, levelData.height, this.game.renderer);
 				TiledLevel(this, this.map, levelData).then(function(){
+
 					this.social.setMap(this.map);
 					this.map.preRender();
+					console.log('Created Level')
+
 					this.physics.setMap(this.map);
 					this.initGame();
 				}.bind(this), 500)
@@ -4936,30 +5374,23 @@ define('subzero/subzerostate',[
 			initGame: function(){
 				this.containers.map.addChild(this.map.container);
 				this.containers.map.addChild(this.containers.entities);
-				console.log('Making PC')
-				this.pc = this.factory.create('pc', {
-					xform: { tx: 200, ty: 200}
-				});
-				console.log('PC:', this.pc)
-				this.addEntity(this.pc);
-				this.physics.entities.push(this.pc);
-
-				this.containers.map.position.x = this.pc.get('xform.tx');
-
+				this.containers.map.addChild(this.containers.overhead);
+				this.containers.map.position.x = this.game.width/(2*this._scale)-(this.map.width*this.map.tileSize*0.5);
+				this.containers.map.position.y = this.game.height/(2*this._scale)-(this.map.height*this.map.tileSize*0.5);
 				this.game.changeState('game');
 
 			},
 			tick: function(delta){
 			    this._super(delta);
-				this.input.tick(delta);
+				
 				for (var i = this._entity_ids.length - 1; i >= 0; i--) {
 					var e = this._entities[this._entity_ids[i]];
 					e.tick(delta);
 				};
 				this.physics.tick(delta);
 
-				this.containers.map.position.x = -this.pc.get('xform.tx')+this.game.width/(2*this._scale);
-				this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
+				//this.containers.map.position.x = -this.pc.get('xform.tx')+this.game.width/(2*this._scale);
+				//this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
 				this.background.position.x = (this.containers.map.position.x/10) - 128;
 				this.background.position.y = (this.containers.map.position.y/10) - 128;
 			},
@@ -5002,6 +5433,18 @@ define('subzero/subzerostate',[
 				this._updateHash(e, tx, ty);
 				return e;
 			},
+			removeEntity: function(e){
+				e.deregister(this);
+				var id = e.id;
+				var idx = this._entity_ids.indexOf(e.id);
+				this._entity_ids.splice(idx,1);
+				tile = e.get('map.tile');
+				if (tile){
+					idx = tile.data.entities.indexOf(e);
+					tile.data.entities.splice(idx, 1);
+				}
+				delete this._entities[id];
+			},
 			_updateHash: function(e, tx, ty){
 				if (!e){
 					return;
@@ -5019,14 +5462,14 @@ define('subzero/subzerostate',[
 						tile.data.entities.splice(idx, 1);
 					}
 					e.set('map.hash', hx + '.' + hy)
-					tile = this.map.getTile(hx, hy)
-					e.set('map.tile', tile);
-					if (tile.data.entities==undefined){
-						tile.data.entities=[];
-					}
-					tile.data.entities.push(e);
-					//console.log('Moved:', tile.data.entities, hash, hx + '.' + hy)
-					
+					tile = this.map.getTile(hx, hy);
+					if (tile){
+						e.set('map.tile', tile);
+						if (tile.data.entities==undefined){
+							tile.data.entities=[];
+						}
+						tile.data.entities.push(e);
+					}	
 				}
 				
 
@@ -5050,9 +5493,7 @@ define('subzero/subzerostate',[
 				}
 				return entities;
 			},
-			removeEntity: function(e){
-
-			},
+			
 			getEntities: function(query){
 
 			}

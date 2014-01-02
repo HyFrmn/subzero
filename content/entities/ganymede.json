@@ -8,7 +8,7 @@
             "src" : "man_c"
         },
         "ai" : {
-            "behaviour" : "wait"
+            "planner" : "guard"
         }
     }
 }
