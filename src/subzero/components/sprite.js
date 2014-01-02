@@ -44,9 +44,10 @@ define([
 						next = this.parent.children[idx-1];
 					}
 				}
-				this.on('entity.moved', this.updateSort);
+				this.on('entity.moved', this.update);
 			},
 
+			
 			updateSort: function(entity, tx, ty, dx, dy){
 				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
 				this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
@@ -72,11 +73,10 @@ define([
 							}
 						}
 					}
-					//*/
+					//*
 				}
 			},
-
-			render: function(){
+			update: function(){
 				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
 				this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
 				

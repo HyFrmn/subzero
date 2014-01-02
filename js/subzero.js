@@ -4250,9 +4250,10 @@ define('subzero/components/sprite',[
 						next = this.parent.children[idx-1];
 					}
 				}
-				this.on('entity.moved', this.updateSort);
+				this.on('entity.moved', this.update);
 			},
 
+			
 			updateSort: function(entity, tx, ty, dx, dy){
 				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
 				this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
@@ -4278,11 +4279,10 @@ define('subzero/components/sprite',[
 							}
 						}
 					}
-					//*/
+					//*
 				}
 			},
-
-			render: function(){
+			update: function(){
 				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
 				this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
 				
@@ -4964,12 +4964,24 @@ define('subzero/subzerostate',[
 				this.background.position.y = (this.containers.map.position.y/10) - 128;
 			},
 
+			spriteSort: function(parent) {
+				var sortMe = parent.children;
+			    for (var i = 0, j, tmp; i < sortMe.length; ++i) {
+			      tmp = sortMe[i];
+			      for (j = i - 1; j >= 0 && sortMe[j].position.y > tmp.position.y; --j)
+			         parent.swapChildren(sortMe[j + 1], sortMe[j]);
+
+			      sortMe[j + 1] = tmp;
+			   }
+			},
+
 			render: function(){
 				this.map.render();
 				for (var i = this._entity_ids.length - 1; i >= 0; i--) {
 					var e = this._entities[this._entity_ids[i]];
 					e.render();
 				};
+				this.spriteSort(this.containers.entities)
 				this.game.renderer.render(this.stage);
 			},
 
