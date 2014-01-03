@@ -11,6 +11,11 @@ define([
 				this.set('movement.vx', dpad[0]);
 				this.set('movement.vy', dpad[1]);
 
+				if (this.input.isDown('X')){
+					this.set('movement.vx', dpad[0]*2);
+					this.set('movement.vy', dpad[1]*2);
+				}
+
 				if (this.input.isPressed('space')){
 					var bomb = this.state.factory.create('bomb', {
 						xform: {

@@ -55,7 +55,7 @@ define([
 				if (sound.type==1){
 					if (this._ignoreList.indexOf(sound.entity)<0){
 						this._ignoreList.push(sound.entity)
-						this._instructions = [{xtype: 'goaway', target: new proxyTarget(tx, ty), timeout: 3, importance: 8}];
+						this._instructions = [{xtype: 'goaway', importance: sound.importance, target: new proxyTarget(tx, ty), timeout: 3, importance: 8}];
 						this._interupt=true;
 					}
 				}
@@ -64,7 +64,7 @@ define([
 				if (this._super()){
 					return true;
 				}
-				if (this.comp.behaviour.importance>6){
+				if (this.comp.behaviour.importance>=6){
 					return false;
 				}
 				var tile = this.entity.get('map.tile');
@@ -118,12 +118,15 @@ define([
 			},
 			soundCallback: function(tx, ty, sound){
 				if (sound.type==1){
-					if (this._ignoreList.indexOf(sound.entity)<0){
-						this._ignoreList.push(sound.entity)
-						this._instructions = [{xtype: 'goto', target: new proxyTarget(tx, ty)},{xtype:'wait', timeout:5}]
-						this._interupt=true;
-						this.entity.trigger('emote.msg', 'What the hell?')
-					}
+						this._ignoreList.push(sound.entity);
+						var instructions = [{xtype: 'goto', importance: sound.importance, target: new proxyTarget(tx, ty)},{xtype:'wait', timeout:5, importance: sound.importance}];
+						if (sound.importance>=this.comp.behaviour.importance){
+							this._instructions = instructions;
+							this._interupt=true;
+						} else {
+							this._instructions = this._instructions.concat(instructions);
+						}
+						this.entity.trigger('emote.msg', 'What the hell?');
 				}
 			},
 			next: function(){

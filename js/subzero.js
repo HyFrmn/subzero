@@ -4027,6 +4027,7 @@ define('subzero/tiledlevel',[
 							} else {
 								state._unspawnedEntities[entity.name] = entity;
 							}
+							state._entity_name[entityData.name] = entity;
 						} else {
 							console.error('Missing:', entityData.type);
 						}
@@ -4377,6 +4378,11 @@ define('subzero/components/rpgcontrols',[
 				this.set('movement.vx', dpad[0]);
 				this.set('movement.vy', dpad[1]);
 
+				if (this.input.isDown('X')){
+					this.set('movement.vx', dpad[0]*2);
+					this.set('movement.vy', dpad[1]*2);
+				}
+
 				if (this.input.isPressed('space')){
 					var bomb = this.state.factory.create('bomb', {
 						xform: {
@@ -4532,6 +4538,7 @@ define('subzero/behaviour',[
 				return false;
 			},
 			tick: function(delta){
+				var speed = this.importance >= 7 ? 1.35 : 1;
 				var tx = this.entity.get('xform.tx');
 				var ty = this.entity.get('xform.ty');
 
@@ -4544,8 +4551,8 @@ define('subzero/behaviour',[
 				if (dist<64){
 					this.stop();
 				}
-				this.entity.set('movement.vx', -dx/dist);
-				this.entity.set('movement.vy', -dy/dist);
+				this.entity.set('movement.vx', -dx/dist * speed);
+				this.entity.set('movement.vy', -dy/dist * speed);
 
 			}
 		})
@@ -4565,6 +4572,7 @@ define('subzero/behaviour',[
 				return false;
 			},
 			tick: function(delta){
+				var speed = this.importance >= 7 ? 2 : 1;
 				if (this._timeout>0 && this._timeout<this.state.getTime()){
 					this.stop();
 				}
@@ -4580,15 +4588,15 @@ define('subzero/behaviour',[
 				if (dist>1024){
 					this.stop();
 				}
-				this.entity.set('movement.vx', dx/dist * 2);
-				this.entity.set('movement.vy', dy/dist * 2);
+				this.entity.set('movement.vx', dx/dist * speed);
+				this.entity.set('movement.vy', dy/dist * speed);
 
 			}
 		})
 
 		Behaviour.add('wait', {
 			init: function(comp, data){
-				this._super(comp);
+				this._super(comp, data);
 				this._timeout = data.timeout || -1;
 			},
 			start: function(){
@@ -4807,7 +4815,7 @@ define('subzero/components/ai',[
 				if (sound.type==1){
 					if (this._ignoreList.indexOf(sound.entity)<0){
 						this._ignoreList.push(sound.entity)
-						this._instructions = [{xtype: 'goaway', target: new proxyTarget(tx, ty), timeout: 3, importance: 8}];
+						this._instructions = [{xtype: 'goaway', importance: sound.importance, target: new proxyTarget(tx, ty), timeout: 3, importance: 8}];
 						this._interupt=true;
 					}
 				}
@@ -4816,7 +4824,7 @@ define('subzero/components/ai',[
 				if (this._super()){
 					return true;
 				}
-				if (this.comp.behaviour.importance>6){
+				if (this.comp.behaviour.importance>=6){
 					return false;
 				}
 				var tile = this.entity.get('map.tile');
@@ -4870,12 +4878,15 @@ define('subzero/components/ai',[
 			},
 			soundCallback: function(tx, ty, sound){
 				if (sound.type==1){
-					if (this._ignoreList.indexOf(sound.entity)<0){
-						this._ignoreList.push(sound.entity)
-						this._instructions = [{xtype: 'goto', target: new proxyTarget(tx, ty)},{xtype:'wait', timeout:5}]
-						this._interupt=true;
-						this.entity.trigger('emote.msg', 'What the hell?')
-					}
+						this._ignoreList.push(sound.entity);
+						var instructions = [{xtype: 'goto', importance: sound.importance, target: new proxyTarget(tx, ty)},{xtype:'wait', timeout:5, importance: sound.importance}];
+						if (sound.importance>=this.comp.behaviour.importance){
+							this._instructions = instructions;
+							this._interupt=true;
+						} else {
+							this._instructions = this._instructions.concat(instructions);
+						}
+						this.entity.trigger('emote.msg', 'What the hell?');
 				}
 			},
 			next: function(){
@@ -4961,6 +4972,19 @@ define('subzero/components/sound',[
 	'sge',
 	'../component'
 	], function(sge, Component){
+		var extend = function(destination, source)
+        {
+            for (var property in source)
+            {
+                if (destination[property] && (typeof(destination[property]) == 'object')
+                        && (destination[property].toString() == '[object Object]') && source[property])
+                    extend(destination[property], source[property]);
+                else
+                    destination[property] = source[property];
+            }
+            return destination;
+        }
+
 		Component.add('sound', {
 			init: function(entity, data){
 				this._super(entity, data);
@@ -4970,6 +4994,10 @@ define('subzero/components/sound',[
 				this.on('sound.emit', this.emit);
 			},
 			emit: function(sound){
+				sound = extend({
+					importance: 3,
+					entity: this.entity
+				}, sound)
 				var tx = this.get('xform.tx');
 				var ty = this.get('xform.ty');
 				sound.entity = this.entity;
@@ -5018,6 +5046,7 @@ define('subzero/components/bomb',[
 					this.entity.trigger('sound.emit', {
 						type: 1,
 						volume: 1024,
+						importance: 6
 					})
 					
 					for (var i = 0; i < 3; i++) {
@@ -5078,6 +5107,68 @@ define('subzero/components/emote',[
 		});		
 	}
 );
+define('subzero/components/guardpost',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		Component.add('guardpost', {
+			init: function(entity, data){
+				this._super(entity, data);
+				this.indicater = new PIXI.Graphics();
+				this.indicater.alpha = 0.65;
+				this.active = null;
+				this._alarm = false;
+			},
+			update: function(active){
+				this.active = active;
+				this.indicater.clear();
+				if (this._alarm){
+					var radius = 16 + (8 * Math.sin(this.state.getTime()*4))
+					this.indicater.beginFill('0xFF0000');
+					this.indicater.drawCircle(0,0,radius);
+				} else  if (active){
+					this.indicater.beginFill('0x00FF00');
+					this.indicater.drawCircle(0,0,24);
+				} else {
+					this.indicater.beginFill('0xFFFF00');
+					this.indicater.drawCircle(0,0,24);
+				}
+			},
+			tick: function(delta){
+				var nearby = this.state.findEntities(this.get('xform.tx'),
+														this.get('xform.ty'),
+														64);
+				var guards = nearby.filter(function(e){return e.tags.indexOf('guard')>=0});
+				var pcs = nearby.filter(function(e){return e.tags.indexOf('pc')>=0});
+				
+				if (pcs.length>0 && this.active){
+					if (!this._alarm){
+						this.alarm();
+					}
+				} else {
+					this._alarm = false;
+				}
+				this.update(guards.length>0);
+			},
+			register: function(state){
+				this._super(state);
+				this.state.containers.entities.addChild(this.indicater)
+			},
+			render: function(){
+				this.indicater.position.x = this.get('xform.tx');
+				this.indicater.position.y = this.get('xform.ty');
+			},
+			alarm: function(){
+				this._alarm = true;
+				this.entity.trigger('sound.emit', {
+					type: 1,
+					volume: 1024,
+					importance: 9
+				});
+			}
+		});		
+	}
+);
 define('subzero/factory',[
 	'sge',
 	'./entity',
@@ -5088,7 +5179,8 @@ define('subzero/factory',[
 	'./components/physics',
 	'./components/sound',
 	'./components/bomb',
-	'./components/emote'
+	'./components/emote',
+	'./components/guardpost'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {
@@ -5289,6 +5381,7 @@ define('subzero/subzerostate',[
 				this._super(game);
 				this._entities = {};
 				this._entity_ids = [];
+				this._entity_name = {};
 
 				this._entity_spatial_hash = {}
 				this._unspawnedEntities={}
@@ -5372,6 +5465,10 @@ define('subzero/subzerostate',[
 				}.bind(this), 500)
 			},
 			initGame: function(){
+
+				var pc = this.getEntity('pc');
+				this.pc = pc;
+
 				this.containers.map.addChild(this.map.container);
 				this.containers.map.addChild(this.containers.entities);
 				this.containers.map.addChild(this.containers.overhead);
@@ -5389,10 +5486,14 @@ define('subzero/subzerostate',[
 				};
 				this.physics.tick(delta);
 
-				//this.containers.map.position.x = -this.pc.get('xform.tx')+this.game.width/(2*this._scale);
-				//this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
+				if (this.pc){
+					this.containers.map.position.x = -this.pc.get('xform.tx')+this.game.width/(2*this._scale);
+					this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
+				}
+				
 				this.background.position.x = (this.containers.map.position.x/10) - 128;
 				this.background.position.y = (this.containers.map.position.y/10) - 128;
+				
 			},
 
 			spriteSort: function(parent) {
@@ -5471,8 +5572,6 @@ define('subzero/subzerostate',[
 						tile.data.entities.push(e);
 					}	
 				}
-				
-
 			},
 			findEntities: function(tx, ty, radius){
 				var hx = Math.floor(tx/32);
@@ -5493,7 +5592,9 @@ define('subzero/subzerostate',[
 				}
 				return entities;
 			},
-			
+			getEntity: function(name){
+				return this._entity_name[name];
+			},
 			getEntities: function(query){
 
 			}

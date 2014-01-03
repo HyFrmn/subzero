@@ -13,6 +13,7 @@ define([
 				this._super(game);
 				this._entities = {};
 				this._entity_ids = [];
+				this._entity_name = {};
 
 				this._entity_spatial_hash = {}
 				this._unspawnedEntities={}
@@ -96,6 +97,10 @@ define([
 				}.bind(this), 500)
 			},
 			initGame: function(){
+
+				var pc = this.getEntity('pc');
+				this.pc = pc;
+
 				this.containers.map.addChild(this.map.container);
 				this.containers.map.addChild(this.containers.entities);
 				this.containers.map.addChild(this.containers.overhead);
@@ -113,10 +118,14 @@ define([
 				};
 				this.physics.tick(delta);
 
-				//this.containers.map.position.x = -this.pc.get('xform.tx')+this.game.width/(2*this._scale);
-				//this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
+				if (this.pc){
+					this.containers.map.position.x = -this.pc.get('xform.tx')+this.game.width/(2*this._scale);
+					this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
+				}
+				
 				this.background.position.x = (this.containers.map.position.x/10) - 128;
 				this.background.position.y = (this.containers.map.position.y/10) - 128;
+				
 			},
 
 			spriteSort: function(parent) {
@@ -195,8 +204,6 @@ define([
 						tile.data.entities.push(e);
 					}	
 				}
-				
-
 			},
 			findEntities: function(tx, ty, radius){
 				var hx = Math.floor(tx/32);
@@ -217,7 +224,9 @@ define([
 				}
 				return entities;
 			},
-			
+			getEntity: function(name){
+				return this._entity_name[name];
+			},
 			getEntities: function(query){
 
 			}

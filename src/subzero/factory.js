@@ -8,7 +8,8 @@ define([
 	'./components/physics',
 	'./components/sound',
 	'./components/bomb',
-	'./components/emote'
+	'./components/emote',
+	'./components/guardpost'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {

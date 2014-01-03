@@ -31,6 +31,7 @@ define([
 					this.entity.trigger('sound.emit', {
 						type: 1,
 						volume: 1024,
+						importance: 6
 					})
 					
 					for (var i = 0; i < 3; i++) {

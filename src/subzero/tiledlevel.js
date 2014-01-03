@@ -88,6 +88,7 @@ define([
 							} else {
 								state._unspawnedEntities[entity.name] = entity;
 							}
+							state._entity_name[entityData.name] = entity;
 						} else {
 							console.error('Missing:', entityData.type);
 						}

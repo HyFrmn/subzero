@@ -34,7 +34,8 @@
     },
     "pc" : {
         "meta" : {
-            "inherit" : "chara"
+            "inherit" : "chara",
+            "tagsBase" : ["pc"]
         },
         "controls" : {},
         "equipable" : {},
@@ -114,6 +115,11 @@
     "bomb" : {
         "meta" : { "inherit" : "trigger" },
         "bomb" : {},
+        "sound": {}
+    },
+    "guardpost" : {
+        "meta" : { "inherit" : "trigger" },
+        "guardpost" : {},
         "sound": {}
     },
     "explosion" : {

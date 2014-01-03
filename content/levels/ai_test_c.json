@@ -58,7 +58,49 @@
         {
          "height":21,
          "name":"entities",
-         "objects":[],
+         "objects":[
+                {
+                 "gid":68,
+                 "height":0,
+                 "name":"guard",
+                 "properties":
+                    {
+
+                    },
+                 "type":"ganymede_guard",
+                 "visible":true,
+                 "width":0,
+                 "x":576,
+                 "y":128
+                }, 
+                {
+                 "gid":65,
+                 "height":0,
+                 "name":"pc",
+                 "properties":
+                    {
+
+                    },
+                 "type":"pc",
+                 "visible":true,
+                 "width":0,
+                 "x":448,
+                 "y":352
+                }, 
+                {
+                 "gid":70,
+                 "height":0,
+                 "name":"post.test",
+                 "properties":
+                    {
+
+                    },
+                 "type":"guardpost",
+                 "visible":true,
+                 "width":0,
+                 "x":544,
+                 "y":128
+                }],
          "opacity":1,
          "type":"objectgroup",
          "visible":true,
@@ -72,7 +114,7 @@
          "name":"terrain",
          "opacity":1,
          "type":"tilelayer",
-         "visible":true,
+         "visible":false,
          "width":27,
          "x":0,
          "y":0

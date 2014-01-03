@@ -62,6 +62,7 @@ define([
 				return false;
 			},
 			tick: function(delta){
+				var speed = this.importance >= 7 ? 1.35 : 1;
 				var tx = this.entity.get('xform.tx');
 				var ty = this.entity.get('xform.ty');
 
@@ -74,8 +75,8 @@ define([
 				if (dist<64){
 					this.stop();
 				}
-				this.entity.set('movement.vx', -dx/dist);
-				this.entity.set('movement.vy', -dy/dist);
+				this.entity.set('movement.vx', -dx/dist * speed);
+				this.entity.set('movement.vy', -dy/dist * speed);
 
 			}
 		})
@@ -95,6 +96,7 @@ define([
 				return false;
 			},
 			tick: function(delta){
+				var speed = this.importance >= 7 ? 2 : 1;
 				if (this._timeout>0 && this._timeout<this.state.getTime()){
 					this.stop();
 				}
@@ -110,15 +112,15 @@ define([
 				if (dist>1024){
 					this.stop();
 				}
-				this.entity.set('movement.vx', dx/dist * 2);
-				this.entity.set('movement.vy', dy/dist * 2);
+				this.entity.set('movement.vx', dx/dist * speed);
+				this.entity.set('movement.vy', dy/dist * speed);
 
 			}
 		})
 
 		Behaviour.add('wait', {
 			init: function(comp, data){
-				this._super(comp);
+				this._super(comp, data);
 				this._timeout = data.timeout || -1;
 			},
 			start: function(){
