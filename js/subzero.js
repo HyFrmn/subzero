@@ -3982,7 +3982,31 @@ define('subzero/tiledlevel',[
 						};
 					}
 				}.bind(this));
-				//*
+				
+				var regionLayer = layerData['regions'];
+				if (regionLayer){
+					for (var i = regionLayer.objects.length - 1; i >= 0; i--) {
+						var regionData = regionLayer.objects[i];
+						var tx = regionData.x;
+						var ty = regionData.y;
+						var width = regionData.width;
+						var height = regionData.height;
+
+						//Create Region
+						
+						if (regionData.properties.spawn){
+							spawnData = regionData.properties.spawn.split(':');
+							var count = parseInt(spawnData[1])
+							for (var j=0;j<count;j++){
+								var spawnX = tx + (Math.random()*width);
+								var spawnY = ty + (Math.random()*height);
+								var e= state.factory.create(spawnData[0], {xform: {tx: spawnX, ty: spawnY}});
+								state.addEntity(e);
+							}
+						}
+					};
+				}
+
 				var entityLayer = layerData['entities']
 				if (entityLayer){
 					for (var i = entityLayer.objects.length - 1; i >= 0; i--) {

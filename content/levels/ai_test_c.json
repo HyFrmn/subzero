@@ -122,10 +122,23 @@
         {
          "height":21,
          "name":"regions",
-         "objects":[],
+         "objects":[
+                {
+                 "height":384,
+                 "name":"test",
+                 "properties":
+                    {
+                     "spawn":"citizen:12"
+                    },
+                 "type":"region",
+                 "visible":true,
+                 "width":608,
+                 "x":128,
+                 "y":160
+                }],
          "opacity":1,
          "type":"objectgroup",
-         "visible":false,
+         "visible":true,
          "width":27,
          "x":0,
          "y":0
