@@ -21,28 +21,52 @@ define([
 				var tx = entity.get('xform.tx');
 				var ty = entity.get('xform.ty');
 
+				
+
 				var ptx = tx + vx;
 				var pty = ty + vy;
 
+				
 				if (this.map){
-					var newTile = this.map.getTileAtPos(ptx, pty);
-					if (newTile){
-					    if (!newTile.data.passable){
-						    horzTile = this.map.getTileAtPos(ptx, ty);
-							if (horzTile){
-							    if (!horzTile.data.passable){
-								    ptx = tx;
+					var testPoints = [
+							[entity.get('physics.width')/2, entity.get('physics.height')/2],
+							[entity.get('physics.width')/2, -entity.get('physics.height')/2],
+							[-entity.get('physics.width')/2, entity.get('physics.height')/2],
+							[-entity.get('physics.width')/2, -entity.get('physics.height')/2]
+						]
+						var horzMove = true;
+						var vertMove = true;
+						for (var i = testPoints.length - 1; i >= 0; i--) {
+							testPoints[i];
+							var newTile = this.map.getTileAtPos(testPoints[i][0]+vx+tx, testPoints[i][1]+vy+ty);
+							if (newTile){
+							    if (!newTile.data.passable){
+									if (horzMove){
+									    horzTile = this.map.getTileAtPos(testPoints[i][0]+vx+tx, testPoints[i][1]+ty);
+										if (horzTile){
+										    if (!horzTile.data.passable){
+											    horzMove=false;
+										    }
+										}
+									}
+									if (vertMove){
+									    vertTile = this.map.getTileAtPos(testPoints[i][0]+tx, testPoints[i][1]+vy+ty);
+										if (vertTile){
+										    if (!vertTile.data.passable){
+											    vertMove=false;
+										    }
+										}
+									}
 							    }
 							}
-						    vertTile = this.map.getTileAtPos(tx, pty);
-							if (vertTile){
-							    if (!vertTile.data.passable){
-								    pty = ty;
-							    }
+							if (!horzMove){
+								ptx=tx;
 							}
-					    }
-					}
-					
+							if (!vertMove){
+								pty=ty;
+							}
+						};
+						
 				}
 				if (tx!=ptx||ty!=pty){
 					entity.trigger('entity.moved', entity, ptx, pty, ptx-tx, pty-ty);

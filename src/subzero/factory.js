@@ -12,7 +12,8 @@ define([
 	'./components/guardpost',
 	'./components/goalpost',
 	'./components/door',
-	'./components/interact'
+	'./components/interact',
+	'./components/highlight'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {

@@ -39,7 +39,7 @@ define([
                 if (this._lisenters[eventName]==undefined){
                     this._lisenters[eventName]=[];
                 }
-                this._lisenters[eventName] = this._lisenters.filter(function(data){
+                this._lisenters[eventName] = this._lisenters[eventName].filter(function(data){
                     return data[0]!=callback;
                 });
             },

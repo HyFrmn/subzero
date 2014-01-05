@@ -16,6 +16,11 @@ define([
 					this.set('movement.vy', dpad[1]*2);
 				}
 
+				if (this.input.isPressed('enter')){
+					this.entity.trigger('interact')
+					console.log('interact')
+				}
+				
 				if (this.input.isPressed('space')){
 					var bomb = this.state.factory.create('bomb', {
 						xform: {

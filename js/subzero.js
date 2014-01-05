@@ -2162,7 +2162,7 @@ define('sge/observable',[
                 if (this._lisenters[eventName]==undefined){
                     this._lisenters[eventName]=[];
                 }
-                this._lisenters[eventName] = this._lisenters.filter(function(data){
+                this._lisenters[eventName] = this._lisenters[eventName].filter(function(data){
                     return data[0]!=callback;
                 });
             },
@@ -2233,7 +2233,7 @@ define('sge/Observable',[
                 if (this._lisenters[eventName]==undefined){
                     this._lisenters[eventName]=[];
                 }
-                this._lisenters[eventName] = this._lisenters.filter(function(data){
+                this._lisenters[eventName] = this._lisenters[eventName].filter(function(data){
                     return data[0]!=callback;
                 });
             },
@@ -4298,28 +4298,52 @@ define('subzero/physics',[
 				var tx = entity.get('xform.tx');
 				var ty = entity.get('xform.ty');
 
+				
+
 				var ptx = tx + vx;
 				var pty = ty + vy;
 
+				
 				if (this.map){
-					var newTile = this.map.getTileAtPos(ptx, pty);
-					if (newTile){
-					    if (!newTile.data.passable){
-						    horzTile = this.map.getTileAtPos(ptx, ty);
-							if (horzTile){
-							    if (!horzTile.data.passable){
-								    ptx = tx;
+					var testPoints = [
+							[entity.get('physics.width')/2, entity.get('physics.height')/2],
+							[entity.get('physics.width')/2, -entity.get('physics.height')/2],
+							[-entity.get('physics.width')/2, entity.get('physics.height')/2],
+							[-entity.get('physics.width')/2, -entity.get('physics.height')/2]
+						]
+						var horzMove = true;
+						var vertMove = true;
+						for (var i = testPoints.length - 1; i >= 0; i--) {
+							testPoints[i];
+							var newTile = this.map.getTileAtPos(testPoints[i][0]+vx+tx, testPoints[i][1]+vy+ty);
+							if (newTile){
+							    if (!newTile.data.passable){
+									if (horzMove){
+									    horzTile = this.map.getTileAtPos(testPoints[i][0]+vx+tx, testPoints[i][1]+ty);
+										if (horzTile){
+										    if (!horzTile.data.passable){
+											    horzMove=false;
+										    }
+										}
+									}
+									if (vertMove){
+									    vertTile = this.map.getTileAtPos(testPoints[i][0]+tx, testPoints[i][1]+vy+ty);
+										if (vertTile){
+										    if (!vertTile.data.passable){
+											    vertMove=false;
+										    }
+										}
+									}
 							    }
 							}
-						    vertTile = this.map.getTileAtPos(tx, pty);
-							if (vertTile){
-							    if (!vertTile.data.passable){
-								    pty = ty;
-							    }
+							if (!horzMove){
+								ptx=tx;
 							}
-					    }
-					}
-					
+							if (!vertMove){
+								pty=ty;
+							}
+						};
+						
 				}
 				if (tx!=ptx||ty!=pty){
 					entity.trigger('entity.moved', entity, ptx, pty, ptx-tx, pty-ty);
@@ -4353,7 +4377,9 @@ define('subzero/components/sprite',[
 
 				
 				this.set('sprite.src', data.src || 'man_a');
-				this.set('sprite.frame', data.frame || 1);
+				this.set('sprite.frame', data.frame== undefined ? 0 : data.frame);
+
+				this.set('sprite.visible', true);
 
 				this.set('sprite.container', data.container || 'stage');
 				this._sprite = new PIXI.Sprite.fromFrame(this.get('sprite.src') + '-' + this.get('sprite.frame'));
@@ -4361,14 +4387,29 @@ define('subzero/components/sprite',[
 
 			},
 
+			show: function(){
+				this.set('sprite.visible', true);
+				this.parent.addChild(this._sprite);
+			},
+
+			hide: function(){
+				this.set('sprite.visible', false);
+				if (this.parent.children.indexOf(this._sprite)>=0){
+					this.parent.removeChild(this._sprite);
+				}
+			},
+
 			deregister: function(state){
-				this.parent.removeChild(this._sprite);
+				this.hide();
+				this.off('sprite.show', this.show);
+				this.off('sprite.hide', this.hide);
+				this._super(state);
 			},
 
 			register: function(state){
 				this._super(state);
 				this.parent = state.containers[this.get('sprite.container')];
-				this.parent.addChild(this._sprite);
+				
 				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
 					this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
 				this._test_a = this.get('xform.ty');
@@ -4387,14 +4428,20 @@ define('subzero/components/sprite',[
 						next = this.parent.children[idx-1];
 					}
 				}
+				this.on('sprite.show', this.show);
+				this.on('sprite.hide', this.hide);
+				if (this.get('sprite.visible')){
+					this.show();
+				}
 			},
 			render: function(){
-				this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
-				this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
-				this._sprite.scale.x = this.get('sprite.scalex');
-				this._sprite.scale.y = this.get('sprite.scaley');
-				
-				this._sprite.setTexture(PIXI.TextureCache[this.get('sprite.src') + '-' + this.get('sprite.frame')])
+				if (this.get('sprite.visible')){
+					this._sprite.position.x = this.get('xform.tx') + this.get('sprite.offsetx');
+					this._sprite.position.y = this.get('xform.ty') + this.get('sprite.offsety');
+					this._sprite.scale.x = this.get('sprite.scalex');
+					this._sprite.scale.y = this.get('sprite.scaley');
+					this._sprite.setTexture(PIXI.TextureCache[this.get('sprite.src') + '-' + this.get('sprite.frame')])
+				}
 			}
 		});
 	}
@@ -4417,6 +4464,11 @@ define('subzero/components/rpgcontrols',[
 					this.set('movement.vy', dpad[1]*2);
 				}
 
+				if (this.input.isPressed('enter')){
+					this.entity.trigger('interact')
+					console.log('interact')
+				}
+				
 				if (this.input.isPressed('space')){
 					var bomb = this.state.factory.create('bomb', {
 						xform: {
@@ -4993,11 +5045,28 @@ define('subzero/components/physics',[
 			init: function(entity, data){
 				this._super(entity, data);
 				this.type = data.type || 0;
+				this.set('physics.width', data.width || 24);
+				this.set('physics.height', data.height || 24);
+				this.indicater = new PIXI.Graphics();
+				this.indicater.alpha = 0.65;
+				this.indicater.beginFill('0xAA0000');
+				this.indicater.drawRect(0, 0, this.get('physics.width'), this.get('physics.height'));
+				this.indicater.endFill();
 			},
 			register: function(state){
+				this._super(state);
 				if (this.type==0){
 				    state.physics.entities.push(this.entity);   
 				}
+				this.state.containers.underfoot.addChild(this.indicater);
+			},
+			deregister: function(state){
+				this.state.containers.underfoot.removeChild(this.indicater);
+			},
+			render: function(){
+				this.indicater.position.x = this.get('xform.tx')-12;
+				this.indicater.position.y = this.get('xform.ty')-8;
+			
 			}
 		});		
 	}
@@ -5240,16 +5309,35 @@ define('subzero/components/door',[
 		Component.add('door', {
 			init: function(entity, data){
 				this._super(entity, data);
+				this._open = false;
 			},
 			register: function(state){
 				this._super(state);
-				var map = state.map;
-				var tile = map.getTileAtPos(this.get('xform.tx'),this.get('xform.ty'));
-				tile.data.passable = true;
-				var tile = map.getTileAtPos(this.get('xform.tx'),this.get('xform.ty')-32);
-				tile.data.passable = true;
-				var tile = map.getTileAtPos(this.get('xform.tx'),this.get('xform.ty')-64);
-				tile.data.passable = true;
+				this.map = state.map;
+				this.update();
+				this.on('interact', this.toggle);
+			},
+			deregister: function(state){
+				this.off('interact', this.toggle);
+				this._super(state);
+			},
+			update: function(){
+				var tile = this.map.getTileAtPos(this.get('xform.tx'),this.get('xform.ty'));
+				tile.data.passable = this._open;
+				var tile = this.map.getTileAtPos(this.get('xform.tx'),this.get('xform.ty')-32);
+				tile.data.passable = this._open;
+				var tile = this.map.getTileAtPos(this.get('xform.tx'),this.get('xform.ty')-64);
+				tile.data.passable = this._open;
+			},
+			toggle: function(){
+				if (this._open){
+					this._open = false;
+					this.entity.trigger('sprite.show');
+				} else {
+					this._open = true;
+					this.entity.trigger('sprite.hide');
+				}
+				this.update();
 			}
 		});		
 	}
@@ -5267,6 +5355,19 @@ define('subzero/components/interact',[
 				this._super(entity, data);
 				this._current = null;
 			},
+			register: function(state){
+				this._super(state);
+				this.on('interact', this.interact);
+			},
+			deregister: function(state){
+				this._super(state);
+				this.off('interact', this.interact);
+			},
+			interact: function(){
+				if (this._current){
+					this._current.trigger('interact');
+				}
+			},
 			tick: function(delta){
 				var tx = this.get('xform.tx');
 				var ty = this.get('xform.ty');
@@ -5275,10 +5376,57 @@ define('subzero/components/interact',[
 				});
 				targets.sort(function(a,b){return b._findDist-a._findDist});
 				if (this._current!=targets[0]){
+					if (this._current){
+						this._current.trigger('highlight.off');
+						this._current = null;
+					}
 					this._current=targets[0];
 					if (this._current){
-						this._current.trigger('focus.gain');
+						this._current.trigger('highlight.on');
 					}
+				}
+			}
+		});
+	}
+);
+define('subzero/components/highlight',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+
+		var HighlightComponent = Component.add('highlight', {
+			init: function(entity, data){
+				this._super(entity, data);
+				this._radius = data.radius || 16;
+				this.indicater = new PIXI.Graphics();
+				this.indicater.alpha = 0.65;
+				this.indicater.beginFill('0x00FFF0');
+				this.indicater.drawCircle(0,0, this._radius);
+				this.indicater.endFill();
+				this._active = false;
+			},
+			register: function(state){
+				this._super(state);
+				this.on('highlight.on', this.turnOn);
+				this.on('highlight.off', this.turnOff);
+			},
+			deregister: function(state){
+				this._super(state);
+				this.off('highlight.on', this.turnOn);
+				this.off('highlight.off', this.turnOff);
+			},
+			turnOn: function(){
+				this._active = true;
+				this.state.containers.underfoot.addChild(this.indicater);
+			},
+			turnOff: function(){
+				this._active = false;
+				this.state.containers.underfoot.removeChild(this.indicater);
+			},
+			render: function(){
+				if (this._active){
+					this.indicater.position.x = this.get('xform.tx');
+					this.indicater.position.y = this.get('xform.ty');
 				}
 			}
 		});
@@ -5298,7 +5446,8 @@ define('subzero/factory',[
 	'./components/guardpost',
 	'./components/goalpost',
 	'./components/door',
-	'./components/interact'
+	'./components/interact',
+	'./components/highlight'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {
@@ -5573,10 +5722,10 @@ define('subzero/subzerostate',[
 				}.bind(this));
 			},
 			loadLevel : function(levelData){
-				//this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
-				//var blurFilter = new PIXI.BlurFilter();
-				//this.background.filters = [blurFilter]
-				//this.stage.addChild(this.background);
+				this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
+				var blurFilter = new PIXI.GreyFilter();
+				this.background.filters = [blurFilter]
+				this.stage.addChild(this.background);
 				this.stage.addChild(this.container);
 				var text = new PIXI.BitmapText('Subzero', {font:'64px 8bit'});
 				this.stage.addChild(text);
@@ -5657,7 +5806,7 @@ define('subzero/subzerostate',[
 					var e = this._entities[this._entity_ids[i]];
 					e.render();
 				};
-				//this.spriteSort(this.containers.entities);
+				this.spriteSort(this.containers.entities);
 				this.game.renderer.render(this.stage);
 			},
 

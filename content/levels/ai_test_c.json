@@ -128,6 +128,20 @@
                  "width":0,
                  "x":544,
                  "y":64
+                }, 
+                {
+                 "gid":69,
+                 "height":0,
+                 "name":"shelf.a",
+                 "properties":
+                    {
+
+                    },
+                 "type":"container",
+                 "visible":true,
+                 "width":0,
+                 "x":800,
+                 "y":128
                 }],
          "opacity":1,
          "type":"objectgroup",

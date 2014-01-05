@@ -13,8 +13,8 @@
             "offsety" : -58
         },
         "physics" : {
-            "offsetX" : -6,
-            "offsetY" : -6
+            "width" : 24,
+            "height": 16
         },
         "chara" : {
             "frames": {
@@ -131,10 +131,17 @@
         "meta" : { "inherit" : "trigger" },
         "door" : {},
         "interact" : {
-             "targets" : [[0,-2],[0,0]]
-            },
+            "targets" : [[0,-2],[0,0]]
+        },
         "highlight" : {
             "radius" : 32
+        },
+        "sprite" : {
+            "src" : "door",
+            "frame" : 0,
+            "container" : "entities",
+            "offsetx" : -16,
+            "offsety" : -48
         }
     },
     "container" : {
@@ -143,9 +150,12 @@
         "sprite" : {
             "src" : "shelves",
             "frame" : 1,
-            "offsetY" : -64,
-            "offsetX" : -16
-        }
+            "offsety" : -64,
+            "offsetx" : -16,
+            "container" : "entities"
+        },
+        "interact" : {},
+        "highlight" : {}
     },
     "shelf" : {
         "meta" : { "inherit" : "container" }
