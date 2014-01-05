@@ -19,9 +19,9 @@ define([
 				this._unspawnedEntities={}
 
 
-				this.stage = new PIXI.Stage(0x66FF99);
+				this.stage = new PIXI.Stage(0x000000);
 				this.container = new PIXI.DisplayObjectContainer();
-				this._scale = 1;
+				this._scale = 2;
 				//if (navigator.isCocoonJS){
 					this.container.scale.x= window.innerWidth / game.width;
 					this.container.scale.y= window.innerHeight / game.height;
@@ -32,6 +32,7 @@ define([
 				this.containers.entities = new PIXI.DisplayObjectContainer();
 				this.containers.map = new PIXI.DisplayObjectContainer();
 				this.containers.overhead = new PIXI.DisplayObjectContainer();
+				this.containers.underfoot = new PIXI.DisplayObjectContainer();
 				this.container.addChild(this.containers.map);
 				
 				this.physics = new Physics();
@@ -39,6 +40,12 @@ define([
 				this.social = new Social();
 				var loader = new sge.Loader();
 				loader.loadJSON('content/manifest.json').then(this.loadManifest.bind(this));
+			},
+			winGame: function(){
+				this.game.changeState('win');
+			},
+			loseGame: function(){
+				this.game.changeState('lose');
 			},
 			loadManifest: function(manifest){
 				console.log('Loaded Manifest')
@@ -78,10 +85,10 @@ define([
 				}.bind(this));
 			},
 			loadLevel : function(levelData){
-				this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
+				//this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
 				//var blurFilter = new PIXI.BlurFilter();
 				//this.background.filters = [blurFilter]
-				this.stage.addChild(this.background);
+				//this.stage.addChild(this.background);
 				this.stage.addChild(this.container);
 				var text = new PIXI.BitmapText('Subzero', {font:'64px 8bit'});
 				this.stage.addChild(text);
@@ -101,9 +108,28 @@ define([
 				var pc = this.getEntity('pc');
 				this.pc = pc;
 
+				//this.containers.map.addChild(this.map.containerBase);
+				var mask = new PIXI.Graphics();
+				mask.beginFill()
+				mask.drawRect(32, 96, 800, 480);
+				mask.endFill();
+
+				this.containers.underfoot.mask = mask;
+				this.containers.map.addChild(mask);
+
+				var mask = new PIXI.Graphics();
+				mask.beginFill()
+				mask.drawRect(32, 32, 800, 480);
+				mask.endFill();
+
+				this.containers.entities.mask = mask;
+				this.containers.map.addChild(mask);
+
 				this.containers.map.addChild(this.map.container);
+				this.containers.map.addChild(this.containers.underfoot);
 				this.containers.map.addChild(this.containers.entities);
-				this.containers.map.addChild(this.containers.overhead);
+				//this.containers.map.addChild(this.containers.overhead);
+				//this.containers.map.addChild(this.map.containerCanopy);
 				this.containers.map.position.x = this.game.width/(2*this._scale)-(this.map.width*this.map.tileSize*0.5);
 				this.containers.map.position.y = this.game.height/(2*this._scale)-(this.map.height*this.map.tileSize*0.5);
 				this.game.changeState('game');
@@ -123,8 +149,8 @@ define([
 					this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
 				}
 				
-				this.background.position.x = (this.containers.map.position.x/10) - 128;
-				this.background.position.y = (this.containers.map.position.y/10) - 128;
+				//this.background.position.x = (this.containers.map.position.x/10) - 128;
+				//this.background.position.y = (this.containers.map.position.y/10) - 128;
 				
 			},
 
@@ -145,7 +171,7 @@ define([
 					var e = this._entities[this._entity_ids[i]];
 					e.render();
 				};
-				this.spriteSort(this.containers.entities)
+				this.spriteSort(this.containers.entities);
 				this.game.renderer.render(this.stage);
 			},
 
@@ -208,14 +234,21 @@ define([
 			findEntities: function(tx, ty, radius){
 				var hx = Math.floor(tx/32);
 				var hy = Math.floor(ty/32);
-				var tileRad = Math.ceil(radius/32);
-				var tile = null
-				var entities = []
+				var tileRad = Math.max(Math.ceil(radius/32),1);
+				var sqrRad = (radius*radius);
+				var tile = null;
+				var entities = [];
+				var dx, dy, es;
 				for (var j=hx-tileRad;j<tileRad+1+hx;j++){
 					for(var k=hy-tileRad;k<tileRad+1+hy;k++){
 						tile = this.map.getTile(j,k);
 						if (tile){
-							var es = tile.data.entities;
+							es = (tile.data.entities || []).filter(function(e){
+								dx = (e.get('xform.tx')-tx);
+								dy = (e.get('xform.ty')-ty);
+								e._findDist = (dx*dx)+(dy*dy);
+								return ((dx*dx)+(dy*dy)<=sqrRad);
+							});
 							if (es){
 								entities = entities.concat(es);
 							}

@@ -11,6 +11,9 @@ define([
 		promises.push(loader.loadFont('content/font/standard_white.fnt'))
 		promises.push(loader.loadTexture('content/backgrounds/space_a.png', 'backgrounds/space_a'))
 		promises.push(loader.loadTexture('content/backgrounds/space_b.png', 'backgrounds/space_b'))
+		promises.push(loader.loadTexture('content/backgrounds/space_c.png', 'backgrounds/space_c'))
+		promises.push(loader.loadTexture('content/backgrounds/space_d.png', 'backgrounds/space_d'))
+		promises.push(loader.loadTexture('content/backgrounds/space_e.png', 'backgrounds/space_e'))
 		sge.When.all(promises).then(function(){
 			function getURLParameter(name) {
 	            return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search)||[,""])[1].replace(/\+/g, '%20'))||null;
@@ -30,8 +33,14 @@ define([
 			game.createState('paused');
 			game.setStateClass('menu', subzero.MenuState);
 			game.createState('menu');
+			game.setStateClass('win', subzero.WinState);
+			game.createState('win');
+			game.setStateClass('lose', subzero.LoseState);
+			game.createState('lose');
+
 			game.setStateClass('game', subzero.SubzeroState);
 			game.start(options);
+			game.changeState('menu')
 			window.onblur = function(){
 				game.changeState('paused')
 			}

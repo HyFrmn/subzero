@@ -2569,6 +2569,10 @@ function(Observable){
         },
         tapCallback : function(e){
             this._events.push('tap');
+            this.keyDownCallback({keyCode: 32});
+            setTimeout(function(){
+                this.keyUpCallback({keyCode: 32});
+            }.bind(this), 100)
         },
         keyDownCallback : function(e){
             //console.log('keydown:' + REVERSE_KEYCODES[e.keyCode]);
@@ -3801,11 +3805,19 @@ define('subzero/tilemap',[
 				this._tileTextures = [];
 
 				this.tiles = [];
-				this._chunkSize = 512;
+				this._chunkSize = 1024;
 				this.chunk = {};
+				this.chunkBase = {};
+				this.chunkCanopy = {};
 				this._ready = false;
 				this.container = new PIXI.DisplayObjectContainer();
 				this.container.position.x=this.container.position.y=0;
+
+				this.containerBase = new PIXI.DisplayObjectContainer();
+				this.containerBase.position.x=this.containerBase.position.y=0;
+
+				this.containerCanopy = new PIXI.DisplayObjectContainer();
+				this.containerCanopy.position.x=this.containerCanopy.position.y=0;
 
 				for (var i = (width * height) -1; i >= 0; i--) {
 					var tile = new Tile();
@@ -3853,10 +3865,14 @@ define('subzero/tilemap',[
 						if ((x>=scx) && (x<= sex) &&  y>= scy && y<=sey){
 							if (this.container.children.indexOf(this.chunk[x+'.'+y])<0){
 								this.container.addChild(this.chunk[x+'.'+y])
+								//this.containerBase.addChild(this.chunkBase[x+'.'+y])
+								//this.containerCanopy.addChild(this.chunkCanopy[x+'.'+y])
 							}
 						} else {
 							if (this.container.children.indexOf(this.chunk[x+'.'+y])>=0){
 								this.container.removeChild(this.chunk[x+'.'+y])
+								//this.containerBase.removeChild(this.chunkBase[x+'.'+y])
+								//this.containerCanopy.removeChild(this.chunkCanopy[x+'.'+y])
 							}
 						}
 					}
@@ -3890,22 +3906,39 @@ define('subzero/tilemap',[
 				var chunkEndX = Math.ceil(endX / this.tileSize);
 				var chunkEndY = Math.ceil(endY / this.tileSize);
 
+				var chunkBase = new PIXI.DisplayObjectContainer();
+				var chunkCanopy = new PIXI.DisplayObjectContainer();
 				var chunk = new PIXI.DisplayObjectContainer();
+
 
 				for (var x=chunkStartX; x<chunkEndX; x++){
 					for (var y=chunkStartY; y<chunkEndY; y++){
 						var tile = this.getTile(x, y);
 						if (tile){
-							for (var idx in ['base', 'layer0']){
-								var name = ['base', 'layer0'][idx];
-								if (tile.layers[name]!==undefined){
-									var sprite = new PIXI.Sprite(this._tileTextures[tile.layers[name]]);
+							if (tile.layers.base!==undefined){
+								var sprite = new PIXI.Sprite(this._tileTextures[tile.layers.base]);
 
-									sprite.position.x = (x*this.tileSize) - startX;
-									sprite.position.y = (y*this.tileSize) - startY;
-									chunk.addChild(sprite);
-								}
+								sprite.position.x = (x*this.tileSize) - startX;
+								sprite.position.y = (y*this.tileSize) - startY;
+								chunk.addChild(sprite);
 							}
+							name='layer0'
+							if (tile.layers[name]!==undefined){
+								var sprite = new PIXI.Sprite(this._tileTextures[tile.layers[name]]);
+
+								sprite.position.x = (x*this.tileSize) - startX;
+								sprite.position.y = (y*this.tileSize) - startY;
+								chunk.addChild(sprite);
+							}
+							name='canopy'
+							if (tile.layers[name]!==undefined){
+								var sprite = new PIXI.Sprite(this._tileTextures[tile.layers[name]]);
+
+								sprite.position.x = (x*this.tileSize) - startX;
+								sprite.position.y = (y*this.tileSize) - startY;
+								chunkCanopy.addChild(sprite);
+							}
+							
 							/*
 							var graphic = new PIXI.Graphics()
 							// begin a green fill..
@@ -3924,12 +3957,32 @@ define('subzero/tilemap',[
 
 				// render the tilemap to a render texture
 				var texture = new PIXI.RenderTexture(endX-startX, endY-startY);
-				texture.render(chunk);
+				texture.render(chunk, null, true);
 				// create a single background sprite with the texture
 				var background = new PIXI.Sprite(texture, {x: 0, y: 0, width: this._chunkSize, heigh:this._chunkSize});
 				background.position.x = cx * this._chunkSize;
 				background.position.y = cy * this._chunkSize;
 				this.chunk[cx+'.'+cy] = background;
+
+				/*
+				// render the tilemap to a render texture
+				texture = new PIXI.RenderTexture(endX-startX, endY-startY);
+				texture.render(chunkBase, null, true);
+				// create a single background sprite with the texture
+				background = new PIXI.Sprite(texture, {x: 0, y: 0, width: this._chunkSize, heigh:this._chunkSize});
+				background.position.x = cx * this._chunkSize;
+				background.position.y = cy * this._chunkSize;
+				this.chunkBase[cx+'.'+cy] = background;
+
+				// render the tilemap to a render texture
+				texture = new PIXI.RenderTexture(endX-startX, endY-startY);
+				texture.render(chunkCanopy, null, true);
+				// create a single background sprite with the texture
+				background = new PIXI.Sprite(texture, {x: 0, y: 0, width: this._chunkSize, heigh:this._chunkSize});
+				background.position.x = cx * this._chunkSize;
+				background.position.y = cy * this._chunkSize;
+				this.chunkCanopy[cx+'.'+cy] = background;
+				*/
 			}
 
 		});
@@ -4300,13 +4353,17 @@ define('subzero/physics',[
 					if (newTile){
 					    if (!newTile.data.passable){
 						    horzTile = this.map.getTileAtPos(ptx, ty);
-						    if (!horzTile.data.passable){
-							    ptx = tx;
-						    }
+							if (horzTile){
+							    if (!horzTile.data.passable){
+								    ptx = tx;
+							    }
+							}
 						    vertTile = this.map.getTileAtPos(tx, pty);
-						    if (!vertTile.data.passable){
-							    pty = ty;
-						    }
+							if (vertTile){
+							    if (!vertTile.data.passable){
+								    pty = ty;
+							    }
+							}
 					    }
 					}
 					
@@ -4839,7 +4896,7 @@ define('subzero/components/ai',[
 				if (sound.type==1){
 					if (this._ignoreList.indexOf(sound.entity)<0){
 						this._ignoreList.push(sound.entity)
-						this._instructions = [{xtype: 'goaway', importance: sound.importance, target: new proxyTarget(tx, ty), timeout: 3, importance: 8}];
+						this._instructions = [{xtype: 'goaway', importance: sound.importance, target: new proxyTarget(tx, ty), timeout: sound.volume/64, importance: 8}];
 						this._interupt=true;
 					}
 				}
@@ -5142,6 +5199,7 @@ define('subzero/components/guardpost',[
 				this.indicater.alpha = 0.65;
 				this.active = null;
 				this._alarm = false;
+				this._timeout  = 0;
 			},
 			update: function(active){
 				this.active = active;
@@ -5169,6 +5227,9 @@ define('subzero/components/guardpost',[
 					if (!this._alarm){
 						this.alarm();
 					}
+					if (this._timeout<this.state.getTime()){
+						this.state.loseGame();
+					}
 				} else {
 					this._alarm = false;
 				}
@@ -5176,7 +5237,7 @@ define('subzero/components/guardpost',[
 			},
 			register: function(state){
 				this._super(state);
-				this.state.containers.entities.addChild(this.indicater)
+				this.state.containers.underfoot.addChild(this.indicater)
 			},
 			render: function(){
 				this.indicater.position.x = this.get('xform.tx');
@@ -5186,11 +5247,81 @@ define('subzero/components/guardpost',[
 				this._alarm = true;
 				this.entity.trigger('sound.emit', {
 					type: 1,
-					volume: 1024,
+					volume: 96,
 					importance: 9
 				});
+				this._timeout = this.state.getTime() + 1.5;
 			}
 		});		
+	}
+);
+define('subzero/components/goalpost',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		Component.add('goalpost', {
+			tick: function(delta){
+				var nearby = this.state.findEntities(this.get('xform.tx'),
+														this.get('xform.ty'),
+														12);
+				var pcs = nearby.filter(function(e){return e.tags.indexOf('pc')>=0});
+				
+				if (pcs.length>0){
+					this.state.winGame();
+				}
+			},
+		});		
+	}
+);
+define('subzero/components/door',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		Component.add('door', {
+			init: function(entity, data){
+				this._super(entity, data);
+			},
+			register: function(state){
+				this._super(state);
+				var map = state.map;
+				var tile = map.getTileAtPos(this.get('xform.tx'),this.get('xform.ty'));
+				tile.data.passable = true;
+				var tile = map.getTileAtPos(this.get('xform.tx'),this.get('xform.ty')-32);
+				tile.data.passable = true;
+				var tile = map.getTileAtPos(this.get('xform.tx'),this.get('xform.ty')-64);
+				tile.data.passable = true;
+			}
+		});		
+	}
+);
+define('subzero/components/interact',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		var InteractComponent = Component.add('interact', {
+			
+		});
+
+		var InteractControlComponent = Component.add('interact.control', {
+			init: function(entity, data){
+				this._super(entity, data);
+				this._current = null;
+			},
+			tick: function(delta){
+				var tx = this.get('xform.tx');
+				var ty = this.get('xform.ty');
+				var targets = this.state.findEntities(tx, ty, 32).filter(function(e){
+					return e.components['interact']!=undefined
+				});
+				targets.sort(function(a,b){return b._findDist-a._findDist});
+				if (this._current!=targets[0]){
+					this._current=targets[0];
+					if (this._current){
+						this._current.trigger('focus.gain');
+					}
+				}
+			}
+		});
 	}
 );
 define('subzero/factory',[
@@ -5204,7 +5335,10 @@ define('subzero/factory',[
 	'./components/sound',
 	'./components/bomb',
 	'./components/emote',
-	'./components/guardpost'
+	'./components/guardpost',
+	'./components/goalpost',
+	'./components/door',
+	'./components/interact'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {
@@ -5311,7 +5445,9 @@ define('subzero/social',[
 				});
 				for (var i = this.map.width - 1; i >= 0; i--) {
 					this.map.getTile(i,0).data.socialValue=-1;
+					this.map.getTile(i,0).data.socialVector = [0, -1];
 					this.map.getTile(i,this.map.height-1).data.socialValue=-1;
+					this.map.getTile(i,0).data.socialVector = [0, 1];
 				};
 				for (var i=0; i<2;i++){
 					this.diffuseMap();
@@ -5411,9 +5547,9 @@ define('subzero/subzerostate',[
 				this._unspawnedEntities={}
 
 
-				this.stage = new PIXI.Stage(0x66FF99);
+				this.stage = new PIXI.Stage(0x000000);
 				this.container = new PIXI.DisplayObjectContainer();
-				this._scale = 1;
+				this._scale = 2;
 				//if (navigator.isCocoonJS){
 					this.container.scale.x= window.innerWidth / game.width;
 					this.container.scale.y= window.innerHeight / game.height;
@@ -5424,6 +5560,7 @@ define('subzero/subzerostate',[
 				this.containers.entities = new PIXI.DisplayObjectContainer();
 				this.containers.map = new PIXI.DisplayObjectContainer();
 				this.containers.overhead = new PIXI.DisplayObjectContainer();
+				this.containers.underfoot = new PIXI.DisplayObjectContainer();
 				this.container.addChild(this.containers.map);
 				
 				this.physics = new Physics();
@@ -5431,6 +5568,12 @@ define('subzero/subzerostate',[
 				this.social = new Social();
 				var loader = new sge.Loader();
 				loader.loadJSON('content/manifest.json').then(this.loadManifest.bind(this));
+			},
+			winGame: function(){
+				this.game.changeState('win');
+			},
+			loseGame: function(){
+				this.game.changeState('lose');
 			},
 			loadManifest: function(manifest){
 				console.log('Loaded Manifest')
@@ -5470,10 +5613,10 @@ define('subzero/subzerostate',[
 				}.bind(this));
 			},
 			loadLevel : function(levelData){
-				this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
+				//this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
 				//var blurFilter = new PIXI.BlurFilter();
 				//this.background.filters = [blurFilter]
-				this.stage.addChild(this.background);
+				//this.stage.addChild(this.background);
 				this.stage.addChild(this.container);
 				var text = new PIXI.BitmapText('Subzero', {font:'64px 8bit'});
 				this.stage.addChild(text);
@@ -5493,9 +5636,28 @@ define('subzero/subzerostate',[
 				var pc = this.getEntity('pc');
 				this.pc = pc;
 
+				//this.containers.map.addChild(this.map.containerBase);
+				var mask = new PIXI.Graphics();
+				mask.beginFill()
+				mask.drawRect(32, 96, 800, 480);
+				mask.endFill();
+
+				this.containers.underfoot.mask = mask;
+				this.containers.map.addChild(mask);
+
+				var mask = new PIXI.Graphics();
+				mask.beginFill()
+				mask.drawRect(32, 32, 800, 480);
+				mask.endFill();
+
+				this.containers.entities.mask = mask;
+				this.containers.map.addChild(mask);
+
 				this.containers.map.addChild(this.map.container);
+				this.containers.map.addChild(this.containers.underfoot);
 				this.containers.map.addChild(this.containers.entities);
-				this.containers.map.addChild(this.containers.overhead);
+				//this.containers.map.addChild(this.containers.overhead);
+				//this.containers.map.addChild(this.map.containerCanopy);
 				this.containers.map.position.x = this.game.width/(2*this._scale)-(this.map.width*this.map.tileSize*0.5);
 				this.containers.map.position.y = this.game.height/(2*this._scale)-(this.map.height*this.map.tileSize*0.5);
 				this.game.changeState('game');
@@ -5515,8 +5677,8 @@ define('subzero/subzerostate',[
 					this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
 				}
 				
-				this.background.position.x = (this.containers.map.position.x/10) - 128;
-				this.background.position.y = (this.containers.map.position.y/10) - 128;
+				//this.background.position.x = (this.containers.map.position.x/10) - 128;
+				//this.background.position.y = (this.containers.map.position.y/10) - 128;
 				
 			},
 
@@ -5539,6 +5701,7 @@ define('subzero/subzerostate',[
 				};
 				this.spriteSort(this.containers.entities)
 				this.game.renderer.render(this.stage);
+				console.log(this.game.renderer.stageRenderGroup.batchs.length)
 			},
 
 
@@ -5600,14 +5763,21 @@ define('subzero/subzerostate',[
 			findEntities: function(tx, ty, radius){
 				var hx = Math.floor(tx/32);
 				var hy = Math.floor(ty/32);
-				var tileRad = Math.ceil(radius/32);
-				var tile = null
-				var entities = []
+				var tileRad = Math.max(Math.ceil(radius/32),1);
+				var sqrRad = (radius*radius);
+				var tile = null;
+				var entities = [];
+				var dx, dy, es;
 				for (var j=hx-tileRad;j<tileRad+1+hx;j++){
 					for(var k=hy-tileRad;k<tileRad+1+hy;k++){
 						tile = this.map.getTile(j,k);
 						if (tile){
-							var es = tile.data.entities;
+							es = (tile.data.entities || []).filter(function(e){
+								dx = (e.get('xform.tx')-tx);
+								dy = (e.get('xform.ty')-ty);
+								e._findDist = (dx*dx)+(dy*dy);
+								return ((dx*dx)+(dy*dy)<=sqrRad);
+							});
 							if (es){
 								entities = entities.concat(es);
 							}
@@ -5628,10 +5798,146 @@ define('subzero/subzerostate',[
 	}
 );
 define('subzero/main',[
+		'sge',
 		'./subzerostate',
-	], function(SubzeroState){
+	], function(sge, SubzeroState){
 		return {
-			SubzeroState: SubzeroState
+			SubzeroState: SubzeroState,
+			PausedState : sge.GameState.extend({
+	        	init: function(game){
+	        		this._super(game);
+	        		this.stage = new PIXI.Stage(0x66FF99);
+					this.container = new PIXI.DisplayObjectContainer();
+					this._scale = 1;
+					this.container.scale.x= window.innerWidth / game.width;
+					this.container.scale.y= window.innerHeight / game.height;
+				
+					
+					var background = new PIXI.Sprite.fromFrame('backgrounds/space_a');
+					this.stage.addChild(background);
+
+					var text = new PIXI.BitmapText('Paused', {font: '96px 8bit'});
+					this.container.addChild(text);
+
+					var text = new PIXI.BitmapText('Press Space to Start Game', {font: '32px 8bit', align:'center'});
+					text.position.y = game.renderer.height - 64;
+					this.container.addChild(text);
+
+					this.stage.addChild(this.container);
+	        	},
+	        	tick: function(){
+	        		if (this.input.isPressed('space')){
+	        			this.game.changeState('game');
+	        		}
+	        	},
+	        	render: function(){
+	        		this.game.renderer.render(this.stage);
+	        	}
+	        }),
+
+		MenuState : sge.GameState.extend({
+	        	init: function(game){
+	        		this._super(game);
+	        		this.stage = new PIXI.Stage(0x66FF99);
+					this.container = new PIXI.DisplayObjectContainer();
+					this._scale = 1;
+					this.container.scale.x= window.innerWidth / game.width;
+					this.container.scale.y= window.innerHeight / game.height;
+				
+					
+					var background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
+					this.stage.addChild(background);
+
+					var text = new PIXI.BitmapText('Subzero', {font: '96px 8bit', align: 'center'});
+					text.position.x = game.renderer.width / 2;
+					text.position.y = game.renderer.height / 2;
+					this.container.addChild(text);
+
+					var text = new PIXI.BitmapText('Press Space to Start Game', {font: '32px 8bit', align:'center'});
+					text.position.y = game.renderer.height - 64;
+					this.container.addChild(text);
+
+					this.stage.addChild(this.container);
+	        	},
+	        	tick: function(){
+	        		if (this.input.isPressed('space')){
+	        			this.game.createState('game');
+	        			this.game.changeState('game');
+	        			return;
+	        		}
+	        	},
+	        	render: function(){
+	        		this.game.renderer.render(this.stage);
+	        	}
+	        }),
+		WinState : sge.GameState.extend({
+	        	init: function(game){
+	        		this._super(game);
+	        		this.stage = new PIXI.Stage(0x66FF99);
+					this.container = new PIXI.DisplayObjectContainer();
+					this._scale = 1;
+					this.container.scale.x= window.innerWidth / game.width;
+					this.container.scale.y= window.innerHeight / game.height;
+				
+					
+					var background = new PIXI.Sprite.fromFrame('backgrounds/space_d');
+					this.stage.addChild(background);
+
+					var text = new PIXI.BitmapText('Win', {font: '96px 8bit', align: 'center'});
+					text.position.x = game.renderer.width / 2;
+					text.position.y = game.renderer.height / 2;
+					this.container.addChild(text);
+
+					var text = new PIXI.BitmapText('Press Space to Start Game', {font: '32px 8bit', align:'center'});
+					text.position.y = game.renderer.height - 64;
+					this.container.addChild(text);
+
+					this.stage.addChild(this.container);
+	        	},
+	        	tick: function(){
+	        		if (this.input.isPressed('space')){
+	        			this.game.changeState('menu');
+	        			return;
+	        		}
+	        	},
+	        	render: function(){
+	        		this.game.renderer.render(this.stage);
+	        	}
+	        }),
+		LoseState : sge.GameState.extend({
+	        	init: function(game){
+	        		this._super(game);
+	        		this.stage = new PIXI.Stage(0x66FF99);
+					this.container = new PIXI.DisplayObjectContainer();
+					this._scale = 1;
+					this.container.scale.x= window.innerWidth / game.width;
+					this.container.scale.y= window.innerHeight / game.height;
+				
+					
+					var background = new PIXI.Sprite.fromFrame('backgrounds/space_e');
+					this.stage.addChild(background);
+
+					var text = new PIXI.BitmapText('Lose', {font: '96px 8bit', align: 'center'});
+					text.position.x = game.renderer.width / 2;
+					text.position.y = game.renderer.height / 2;
+					this.container.addChild(text);
+
+					var text = new PIXI.BitmapText('Press Space to Start Game', {font: '32px 8bit', align:'center'});
+					text.position.y = game.renderer.height - 64;
+					this.container.addChild(text);
+
+					this.stage.addChild(this.container);
+	        	},
+	        	tick: function(){
+	        		if (this.input.isPressed('space')){
+	        			this.game.changeState('menu');
+	        			return;
+	        		}
+	        	},
+	        	render: function(){
+	        		this.game.renderer.render(this.stage);
+	        	}
+	        }),
 		}
 	}
 );

@@ -12,7 +12,9 @@
     "images" : [
         "backgrounds/space_a",
         "backgrounds/space_b",
-        "backgrounds/space_c"
+        "backgrounds/space_c",
+        "backgrounds/space_d",
+        "backgrounds/space_e"
     ],
     "fonts" : [
         "standard_white",

@@ -29,13 +29,17 @@ define([
 					if (newTile){
 					    if (!newTile.data.passable){
 						    horzTile = this.map.getTileAtPos(ptx, ty);
-						    if (!horzTile.data.passable){
-							    ptx = tx;
-						    }
+							if (horzTile){
+							    if (!horzTile.data.passable){
+								    ptx = tx;
+							    }
+							}
 						    vertTile = this.map.getTileAtPos(tx, pty);
-						    if (!vertTile.data.passable){
-							    pty = ty;
-						    }
+							if (vertTile){
+							    if (!vertTile.data.passable){
+								    pty = ty;
+							    }
+							}
 					    }
 					}
 					

@@ -304,6 +304,10 @@ function(Observable){
         },
         tapCallback : function(e){
             this._events.push('tap');
+            this.keyDownCallback({keyCode: 32});
+            setTimeout(function(){
+                this.keyUpCallback({keyCode: 32});
+            }.bind(this), 100)
         },
         keyDownCallback : function(e){
             //console.log('keydown:' + REVERSE_KEYCODES[e.keyCode]);

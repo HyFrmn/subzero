@@ -9,7 +9,10 @@ define([
 	'./components/sound',
 	'./components/bomb',
 	'./components/emote',
-	'./components/guardpost'
+	'./components/guardpost',
+	'./components/goalpost',
+	'./components/door',
+	'./components/interact'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {

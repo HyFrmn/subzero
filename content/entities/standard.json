@@ -39,6 +39,7 @@
         },
         "controls" : {},
         "equipable" : {},
+        "interact.control" : {},
         "sprite" : {
             "src" :  "man_b"
         }
@@ -106,7 +107,7 @@
     },
     "trigger" : {
         "xform" : {
-            "container": "entityContainer"
+            "container": "entities"
         },
         "physics" : {
             "type" : 2

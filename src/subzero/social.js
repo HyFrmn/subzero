@@ -12,7 +12,9 @@ define([
 				});
 				for (var i = this.map.width - 1; i >= 0; i--) {
 					this.map.getTile(i,0).data.socialValue=-1;
+					this.map.getTile(i,0).data.socialVector = [0, -1];
 					this.map.getTile(i,this.map.height-1).data.socialValue=-1;
+					this.map.getTile(i,0).data.socialVector = [0, 1];
 				};
 				for (var i=0; i<2;i++){
 					this.diffuseMap();

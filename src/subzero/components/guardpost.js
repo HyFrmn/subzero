@@ -9,6 +9,7 @@ define([
 				this.indicater.alpha = 0.65;
 				this.active = null;
 				this._alarm = false;
+				this._timeout  = 0;
 			},
 			update: function(active){
 				this.active = active;
@@ -36,6 +37,9 @@ define([
 					if (!this._alarm){
 						this.alarm();
 					}
+					if (this._timeout<this.state.getTime()){
+						this.state.loseGame();
+					}
 				} else {
 					this._alarm = false;
 				}
@@ -43,7 +47,7 @@ define([
 			},
 			register: function(state){
 				this._super(state);
-				this.state.containers.entities.addChild(this.indicater)
+				this.state.containers.underfoot.addChild(this.indicater)
 			},
 			render: function(){
 				this.indicater.position.x = this.get('xform.tx');
@@ -53,9 +57,10 @@ define([
 				this._alarm = true;
 				this.entity.trigger('sound.emit', {
 					type: 1,
-					volume: 1024,
+					volume: 96,
 					importance: 9
 				});
+				this._timeout = this.state.getTime() + 1.5;
 			}
 		});		
 	}

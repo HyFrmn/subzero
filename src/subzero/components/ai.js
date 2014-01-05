@@ -55,7 +55,7 @@ define([
 				if (sound.type==1){
 					if (this._ignoreList.indexOf(sound.entity)<0){
 						this._ignoreList.push(sound.entity)
-						this._instructions = [{xtype: 'goaway', importance: sound.importance, target: new proxyTarget(tx, ty), timeout: 3, importance: 8}];
+						this._instructions = [{xtype: 'goaway', importance: sound.importance, target: new proxyTarget(tx, ty), timeout: sound.volume/64, importance: 8}];
 						this._interupt=true;
 					}
 				}
