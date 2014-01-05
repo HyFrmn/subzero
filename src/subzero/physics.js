@@ -1,6 +1,7 @@
 define([
-	'sge'
-	], function(sge){
+	'sge',
+	'./sat'
+	], function(sge, sat){
 		var Physics = sge.Class.extend({
 			init: function(){
 				this.entities = [];
@@ -9,7 +10,47 @@ define([
 			tick: function(delta){
 				this.entities.forEach(function(entity){
 					this.move(entity, delta);
-				}.bind(this))
+				}.bind(this));
+				this.detectCollision();
+			},
+			_collisionHash: function(a, b){
+				if (a.id>b.id){
+					return b.id + '.' + a.id;
+				} else {
+					return a.id + '.' + b.id;
+				}
+			},
+			detectCollision: function(){
+				var e, ep, aRect, bRect;
+				var response = new sat.Response();
+				var testEntities = this.entities.slice(0);
+				var testHashes = [];
+				var collisionHashes = [];
+				for (var i = testEntities.length - 1; i >= 0; i--) {
+					e = testEntities[i];
+					tx = e.get('xform.tx');
+					ty = e.get('xform.ty');
+					
+					aRect = new sat.Box(new sat.Vector(tx, ty), e.get('physics.width'), e.get('physics.height'));
+					potential = this.state.findEntities(tx,ty, 32).filter(function(q){return q.components.physics!=null && q!=e});
+					for (var k = potential.length - 1; k >= 0; k--) {
+						var hash = this._collisionHash(e, potential[k])
+						if (testHashes.indexOf(hash)<0){
+							testHashes.push(hash);
+							ep = potential[k];
+							bRect = new sat.Box(new sat.Vector(ep.get('xform.tx'),ep.get('xform.ty')), ep.get('physics.width'), ep.get('physics.height'));
+							collided = sat.testPolygonPolygon(aRect.toPolygon(), bRect.toPolygon(), response)
+							if (collided){
+								this.move(ep, 0, response.overlapV.x, response.overlapV.y);
+								response.clear();
+								// @if DEBUG
+								ep.set('physics.color', '0xAA0000');
+								// @endif
+							}
+							
+						}
+					};
+				};
 			},
 			move: function(entity, delta, vx, vy){
 
@@ -74,8 +115,9 @@ define([
 					entity.set('xform.ty', pty);
 				}
 			},
-			setMap: function(map){
-				this.map = map;
+			setMap: function(state){
+				this.state = state;
+				this.map = state.map;
 			}
 		});
 

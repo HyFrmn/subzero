@@ -99,7 +99,7 @@ define([
 					this.map.preRender();
 					console.log('Created Level')
 
-					this.physics.setMap(this.map);
+					this.physics.setMap(this);
 					this.initGame();
 				}.bind(this), 500)
 			},

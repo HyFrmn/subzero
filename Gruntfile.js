@@ -6,6 +6,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-requirejs');
     grunt.loadNpmTasks('grunt-contrib-compress');
+    grunt.loadNpmTasks('grunt-preprocess'); 
     grunt.initConfig({
         // The clean task ensures all files are removed from the dist/ directory so
         // that no files linger from previous builds.
@@ -38,6 +39,9 @@ module.exports = function(grunt) {
                 }
             }
         },
+
+        // This task creates a zip file of the final production assets ready 
+        // to upload to the cloud compile or to test on a device.
         compress: {
             main: {
                 options: {
@@ -45,7 +49,20 @@ module.exports = function(grunt) {
                 },
                 files: [{src: 'content/**'},{src: 'js/*'},{src: 'vendor/*'},{src: 'index.html'}]
             }
-        }
+        },
+
+        // This taks removes debug statements from production builds.
+        preprocess : {
+            options: {
+                inline: true,
+                context : {
+                    DEBUG: false
+                }
+            },
+            js : {
+                src: '.tmp/app.js'
+            }
+        },
     });
-    grunt.registerTask("default", ["requirejs", "concat","compress"]);
+    grunt.registerTask("default", ["requirejs", "preprocess", "concat", "compress"]);
 }
