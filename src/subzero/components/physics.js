@@ -19,10 +19,10 @@ define([
 				if (this.type==0){
 				    state.physics.entities.push(this.entity);   
 				}
-				this.state.containers.underfoot.addChild(this.indicater);
+				//this.state.containers.underfoot.addChild(this.indicater);
 			},
 			deregister: function(state){
-				this.state.containers.underfoot.removeChild(this.indicater);
+				//this.state.containers.underfoot.removeChild(this.indicater);
 			},
 			render: function(){
 				this.indicater.position.x = this.get('xform.tx')-12;

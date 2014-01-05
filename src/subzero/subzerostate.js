@@ -171,6 +171,7 @@ define([
 				};
 				this.spriteSort(this.containers.entities);
 				this.game.renderer.render(this.stage);
+				//console.log(this.game.renderer.batchs.length)
 			},
 
 
