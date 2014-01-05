@@ -3848,7 +3848,6 @@ define('subzero/tilemap',[
 				if (!this._ready){
 					return
 				}
-
 				var pixelWidth = this.width * this.tileSize;
 				var pixelHeight = this.height * this.tileSize;
 				var chunks = [Math.ceil(pixelWidth/this._chunkSize),Math.ceil(pixelHeight/this._chunkSize)];
@@ -3859,20 +3858,17 @@ define('subzero/tilemap',[
 				var scx = Math.floor(startX/this._chunkSize);
 				var sex = Math.ceil(endX/this._chunkSize);
 				var scy = Math.floor(startY/this._chunkSize);
-				var sey = Math.ceil(endY/this._chunkSize);	
+				var sey = Math.ceil(endY/this._chunkSize);
 				for (var x=0; x<chunks[0]; x++){
 					for (var y=0; y<chunks[1]; y++){
 						if ((x>=scx) && (x<= sex) &&  y>= scy && y<=sey){
 							if (this.container.children.indexOf(this.chunk[x+'.'+y])<0){
-								this.container.addChild(this.chunk[x+'.'+y])
-								//this.containerBase.addChild(this.chunkBase[x+'.'+y])
-								//this.containerCanopy.addChild(this.chunkCanopy[x+'.'+y])
+								this.container.addChild(this.chunk[x+'.'+y]);
+								console.log('Add Chunk', x, y)
 							}
 						} else {
 							if (this.container.children.indexOf(this.chunk[x+'.'+y])>=0){
 								this.container.removeChild(this.chunk[x+'.'+y])
-								//this.containerBase.removeChild(this.chunkBase[x+'.'+y])
-								//this.containerCanopy.removeChild(this.chunkCanopy[x+'.'+y])
 							}
 						}
 					}
@@ -3906,8 +3902,6 @@ define('subzero/tilemap',[
 				var chunkEndX = Math.ceil(endX / this.tileSize);
 				var chunkEndY = Math.ceil(endY / this.tileSize);
 
-				var chunkBase = new PIXI.DisplayObjectContainer();
-				var chunkCanopy = new PIXI.DisplayObjectContainer();
 				var chunk = new PIXI.DisplayObjectContainer();
 
 
@@ -3930,59 +3924,18 @@ define('subzero/tilemap',[
 								sprite.position.y = (y*this.tileSize) - startY;
 								chunk.addChild(sprite);
 							}
-							name='canopy'
-							if (tile.layers[name]!==undefined){
-								var sprite = new PIXI.Sprite(this._tileTextures[tile.layers[name]]);
-
-								sprite.position.x = (x*this.tileSize) - startX;
-								sprite.position.y = (y*this.tileSize) - startY;
-								chunkCanopy.addChild(sprite);
-							}
-							
-							/*
-							var graphic = new PIXI.Graphics()
-							// begin a green fill..
-							
-							graphic.beginFill(0xFFFFFF);
-							graphic.drawRect(0,0,32,32);
-							graphic.endFill();
-							graphic.position.x = (x*this.tileSize) - startX;
-							graphic.position.y = (y*this.tileSize) - startY;
-							graphic.alpha = tile.data.socialValue;
-							chunk.addChild(graphic)
-							//*/
 						}
 					}
 				}
 
 				// render the tilemap to a render texture
-				var texture = new PIXI.RenderTexture(endX-startX, endY-startY);
-				texture.render(chunk, null, true);
+				var texture = new PIXI.RenderTexture(endX-startX, endY-startY, this.renderer);
+				texture.render(chunk);
 				// create a single background sprite with the texture
 				var background = new PIXI.Sprite(texture, {x: 0, y: 0, width: this._chunkSize, heigh:this._chunkSize});
 				background.position.x = cx * this._chunkSize;
 				background.position.y = cy * this._chunkSize;
 				this.chunk[cx+'.'+cy] = background;
-
-				/*
-				// render the tilemap to a render texture
-				texture = new PIXI.RenderTexture(endX-startX, endY-startY);
-				texture.render(chunkBase, null, true);
-				// create a single background sprite with the texture
-				background = new PIXI.Sprite(texture, {x: 0, y: 0, width: this._chunkSize, heigh:this._chunkSize});
-				background.position.x = cx * this._chunkSize;
-				background.position.y = cy * this._chunkSize;
-				this.chunkBase[cx+'.'+cy] = background;
-
-				// render the tilemap to a render texture
-				texture = new PIXI.RenderTexture(endX-startX, endY-startY);
-				texture.render(chunkCanopy, null, true);
-				// create a single background sprite with the texture
-				background = new PIXI.Sprite(texture, {x: 0, y: 0, width: this._chunkSize, heigh:this._chunkSize});
-				background.position.x = cx * this._chunkSize;
-				background.position.y = cy * this._chunkSize;
-				this.chunkCanopy[cx+'.'+cy] = background;
-				*/
 			}
 
 		});
@@ -4472,7 +4425,7 @@ define('subzero/components/rpgcontrols',[
 						}
 					})
 					this.state.addEntity(bomb);
-					this.entity.trigger('emote.msg', 'Boom!')
+					//this.entity.trigger('emote.msg', 'Boom!')
 				}
 			},
 			register: function(state){
@@ -5115,7 +5068,7 @@ define('subzero/components/bomb',[
 					this._anim -= delta;
 				}
 			}
-		})
+	})
 
 		Component.add('bomb', {
 			register: function(state){
@@ -5130,6 +5083,7 @@ define('subzero/components/bomb',[
 						importance: 6
 					})
 					
+					
 					for (var i = 0; i < 3; i++) {
 						var scale = (Math.random()*2-1)*0.5 + 1;
 						var explo = this.state.factory.create('explosion', {
@@ -5137,14 +5091,20 @@ define('subzero/components/bomb',[
 								tx: this.get('xform.tx') + (Math.random()*2-1)*32,
 								ty: this.get('xform.ty') + (Math.random()*2-1)*32
 							},
-							sprite: {
+							"sprite" : {
+					            "src" : "explosion",
+					            "container": "entities",
+					            "offsetx" : -32,
+					            "offsety" : -32,
 								scalex: scale,
 								scaley: scale
 							}
 						})
 						this.state.addEntity(explo);
+						
 					}
 					this.state.removeEntity(this.entity);
+
 				}
 			}
 		})
@@ -5636,7 +5596,6 @@ define('subzero/subzerostate',[
 				var pc = this.getEntity('pc');
 				this.pc = pc;
 
-				//this.containers.map.addChild(this.map.containerBase);
 				var mask = new PIXI.Graphics();
 				mask.beginFill()
 				mask.drawRect(32, 96, 800, 480);
@@ -5656,8 +5615,7 @@ define('subzero/subzerostate',[
 				this.containers.map.addChild(this.map.container);
 				this.containers.map.addChild(this.containers.underfoot);
 				this.containers.map.addChild(this.containers.entities);
-				//this.containers.map.addChild(this.containers.overhead);
-				//this.containers.map.addChild(this.map.containerCanopy);
+				this.containers.map.addChild(this.containers.overhead);
 				this.containers.map.position.x = this.game.width/(2*this._scale)-(this.map.width*this.map.tileSize*0.5);
 				this.containers.map.position.y = this.game.height/(2*this._scale)-(this.map.height*this.map.tileSize*0.5);
 				this.game.changeState('game');
@@ -5699,9 +5657,8 @@ define('subzero/subzerostate',[
 					var e = this._entities[this._entity_ids[i]];
 					e.render();
 				};
-				this.spriteSort(this.containers.entities)
+				//this.spriteSort(this.containers.entities);
 				this.game.renderer.render(this.stage);
-				console.log(this.game.renderer.stageRenderGroup.batchs.length)
 			},
 
 
@@ -5862,7 +5819,6 @@ define('subzero/main',[
 	        	tick: function(){
 	        		if (this.input.isPressed('space')){
 	        			this.game.createState('game');
-	        			this.game.changeState('game');
 	        			return;
 	        		}
 	        	},

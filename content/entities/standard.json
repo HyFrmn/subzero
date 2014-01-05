@@ -125,12 +125,6 @@
     },
     "explosion" : {
         "xform" : {},
-        "sprite" : {
-            "src" : "explosion",
-            "container": "entities",
-            "offsetx" : -32,
-            "offsety" : -32
-        },
         "explosion" : {}
     },
     "door" : {

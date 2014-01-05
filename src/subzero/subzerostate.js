@@ -85,10 +85,10 @@ define([
 				}.bind(this));
 			},
 			loadLevel : function(levelData){
-				//this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
-				//var blurFilter = new PIXI.BlurFilter();
-				//this.background.filters = [blurFilter]
-				//this.stage.addChild(this.background);
+				this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
+				var blurFilter = new PIXI.GreyFilter();
+				this.background.filters = [blurFilter]
+				this.stage.addChild(this.background);
 				this.stage.addChild(this.container);
 				var text = new PIXI.BitmapText('Subzero', {font:'64px 8bit'});
 				this.stage.addChild(text);
@@ -108,7 +108,6 @@ define([
 				var pc = this.getEntity('pc');
 				this.pc = pc;
 
-				//this.containers.map.addChild(this.map.containerBase);
 				var mask = new PIXI.Graphics();
 				mask.beginFill()
 				mask.drawRect(32, 96, 800, 480);
@@ -128,8 +127,7 @@ define([
 				this.containers.map.addChild(this.map.container);
 				this.containers.map.addChild(this.containers.underfoot);
 				this.containers.map.addChild(this.containers.entities);
-				//this.containers.map.addChild(this.containers.overhead);
-				//this.containers.map.addChild(this.map.containerCanopy);
+				this.containers.map.addChild(this.containers.overhead);
 				this.containers.map.position.x = this.game.width/(2*this._scale)-(this.map.width*this.map.tileSize*0.5);
 				this.containers.map.position.y = this.game.height/(2*this._scale)-(this.map.height*this.map.tileSize*0.5);
 				this.game.changeState('game');

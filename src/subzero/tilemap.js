@@ -60,7 +60,6 @@ define([
 				if (!this._ready){
 					return
 				}
-
 				var pixelWidth = this.width * this.tileSize;
 				var pixelHeight = this.height * this.tileSize;
 				var chunks = [Math.ceil(pixelWidth/this._chunkSize),Math.ceil(pixelHeight/this._chunkSize)];
@@ -71,20 +70,17 @@ define([
 				var scx = Math.floor(startX/this._chunkSize);
 				var sex = Math.ceil(endX/this._chunkSize);
 				var scy = Math.floor(startY/this._chunkSize);
-				var sey = Math.ceil(endY/this._chunkSize);	
+				var sey = Math.ceil(endY/this._chunkSize);
 				for (var x=0; x<chunks[0]; x++){
 					for (var y=0; y<chunks[1]; y++){
 						if ((x>=scx) && (x<= sex) &&  y>= scy && y<=sey){
 							if (this.container.children.indexOf(this.chunk[x+'.'+y])<0){
-								this.container.addChild(this.chunk[x+'.'+y])
-								//this.containerBase.addChild(this.chunkBase[x+'.'+y])
-								//this.containerCanopy.addChild(this.chunkCanopy[x+'.'+y])
+								this.container.addChild(this.chunk[x+'.'+y]);
+								console.log('Add Chunk', x, y)
 							}
 						} else {
 							if (this.container.children.indexOf(this.chunk[x+'.'+y])>=0){
 								this.container.removeChild(this.chunk[x+'.'+y])
-								//this.containerBase.removeChild(this.chunkBase[x+'.'+y])
-								//this.containerCanopy.removeChild(this.chunkCanopy[x+'.'+y])
 							}
 						}
 					}
@@ -118,8 +114,6 @@ define([
 				var chunkEndX = Math.ceil(endX / this.tileSize);
 				var chunkEndY = Math.ceil(endY / this.tileSize);
 
-				var chunkBase = new PIXI.DisplayObjectContainer();
-				var chunkCanopy = new PIXI.DisplayObjectContainer();
 				var chunk = new PIXI.DisplayObjectContainer();
 
 
@@ -142,59 +136,18 @@ define([
 								sprite.position.y = (y*this.tileSize) - startY;
 								chunk.addChild(sprite);
 							}
-							name='canopy'
-							if (tile.layers[name]!==undefined){
-								var sprite = new PIXI.Sprite(this._tileTextures[tile.layers[name]]);
-
-								sprite.position.x = (x*this.tileSize) - startX;
-								sprite.position.y = (y*this.tileSize) - startY;
-								chunkCanopy.addChild(sprite);
-							}
-							
-							/*
-							var graphic = new PIXI.Graphics()
-							// begin a green fill..
-							
-							graphic.beginFill(0xFFFFFF);
-							graphic.drawRect(0,0,32,32);
-							graphic.endFill();
-							graphic.position.x = (x*this.tileSize) - startX;
-							graphic.position.y = (y*this.tileSize) - startY;
-							graphic.alpha = tile.data.socialValue;
-							chunk.addChild(graphic)
-							//*/
 						}
 					}
 				}
 
 				// render the tilemap to a render texture
-				var texture = new PIXI.RenderTexture(endX-startX, endY-startY);
-				texture.render(chunk, null, true);
+				var texture = new PIXI.RenderTexture(endX-startX, endY-startY, this.renderer);
+				texture.render(chunk);
 				// create a single background sprite with the texture
 				var background = new PIXI.Sprite(texture, {x: 0, y: 0, width: this._chunkSize, heigh:this._chunkSize});
 				background.position.x = cx * this._chunkSize;
 				background.position.y = cy * this._chunkSize;
 				this.chunk[cx+'.'+cy] = background;
-
-				/*
-				// render the tilemap to a render texture
-				texture = new PIXI.RenderTexture(endX-startX, endY-startY);
-				texture.render(chunkBase, null, true);
-				// create a single background sprite with the texture
-				background = new PIXI.Sprite(texture, {x: 0, y: 0, width: this._chunkSize, heigh:this._chunkSize});
-				background.position.x = cx * this._chunkSize;
-				background.position.y = cy * this._chunkSize;
-				this.chunkBase[cx+'.'+cy] = background;
-
-				// render the tilemap to a render texture
-				texture = new PIXI.RenderTexture(endX-startX, endY-startY);
-				texture.render(chunkCanopy, null, true);
-				// create a single background sprite with the texture
-				background = new PIXI.Sprite(texture, {x: 0, y: 0, width: this._chunkSize, heigh:this._chunkSize});
-				background.position.x = cx * this._chunkSize;
-				background.position.y = cy * this._chunkSize;
-				this.chunkCanopy[cx+'.'+cy] = background;
-				*/
 			}
 
 		});

@@ -24,7 +24,7 @@ define([
 						}
 					})
 					this.state.addEntity(bomb);
-					this.entity.trigger('emote.msg', 'Boom!')
+					//this.entity.trigger('emote.msg', 'Boom!')
 				}
 			},
 			register: function(state){

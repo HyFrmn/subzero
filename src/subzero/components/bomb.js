@@ -19,7 +19,7 @@ define([
 					this._anim -= delta;
 				}
 			}
-		})
+	})
 
 		Component.add('bomb', {
 			register: function(state){
@@ -34,6 +34,7 @@ define([
 						importance: 6
 					})
 					
+					
 					for (var i = 0; i < 3; i++) {
 						var scale = (Math.random()*2-1)*0.5 + 1;
 						var explo = this.state.factory.create('explosion', {
@@ -41,14 +42,20 @@ define([
 								tx: this.get('xform.tx') + (Math.random()*2-1)*32,
 								ty: this.get('xform.ty') + (Math.random()*2-1)*32
 							},
-							sprite: {
+							"sprite" : {
+					            "src" : "explosion",
+					            "container": "entities",
+					            "offsetx" : -32,
+					            "offsety" : -32,
 								scalex: scale,
 								scaley: scale
 							}
 						})
 						this.state.addEntity(explo);
+						
 					}
 					this.state.removeEntity(this.entity);
+
 				}
 			}
 		})
