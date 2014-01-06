@@ -24,11 +24,7 @@ define([
 	            this.setAnim('stand_' + this.get('chara.dir'));
 			},
 			setAnim: function(anim){
-				if (this._anim!=anim){
-					this._anim = anim;
-					this._frame=0;
-					this._frames = this._walkcycleFrames[anim];
-				}
+				this.entity.trigger('anim.set', anim);
 			},
 			setDirection: function(dir){
 				if (this.get('chara.dir')!=dir){
@@ -57,16 +53,6 @@ define([
 				} else {
 					this.setAnim('stand_' + this.get('chara.dir'));
 				}
-				if (this._animTimeout<=0){
-					this._animTimeout = (1/30);
-					this._frame++;
-					if (this._frame>=this._frames.length){
-						this._frame=0;
-					}
-				} else {
-					this._animTimeout -= delta;
-				}
-				this.set('sprite.frame', this._frames[this._frame]);
 			}
 		});
 	}

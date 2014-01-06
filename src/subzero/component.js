@@ -18,11 +18,11 @@ define([
 			deregister: function(){
 
 			},
-			on: function(evt, cb){
+			on: function(evt, cb, options){
 				if (this._callbacks[cb]===undefined){
 					this._callbacks[cb] = cb.bind(this);
 				}
-				this.entity.on(evt, this._callbacks[cb]);
+				this.entity.on(evt, this._callbacks[cb], options);
 			},
 			off: function(evt, cb){
 				this.entity.off(evt, this._callbacks[cb]);

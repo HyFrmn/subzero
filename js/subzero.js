@@ -2656,6 +2656,7 @@ define('sge/game',[
 
 				this.renderer = null;
 
+				this._nextState = null;
 				this._states = {};
 				this._stateClassMap = {};
 				this._currentState = null;
@@ -2694,6 +2695,10 @@ define('sge/game',[
 				if (this._currentState){
 					this._currentState.tick(delta);
 				}
+				if (this._nextState!=null){
+					this._changeState(this._nextState);
+					this._nextState=null;
+				}
 			},
 
 			render: function(){
@@ -2721,6 +2726,10 @@ define('sge/game',[
 			},
 
 			changeState: function(name){
+				this._nextState = name;
+			},
+
+			_changeState: function(name){
 				if (this._currentState){
 					this._currentState.endState();
 				}
@@ -3786,6 +3795,22 @@ define('sge/main',[
 );
 define('sge', ['sge/main'], function (main) { return main; });
 
+define('subzero/config',[], function(){
+	return {
+		colors : {
+			primaryBright:    '0x0B61A4',
+			primaryMid:       '0x25567B',
+			primaryDark: 	  '0x033E6B',
+			primaryAlt1:      '0x3F92D2',
+			primaryAlt2:      '0x66A3D2', 
+			complementBright: '0xFF9200',
+			complementMid:    '0xBF8230',
+			complementDark:   '0xA65F00',
+			complementAlt1:   '0xFFAD40',
+			complementAlt2:   '0xFFC373'
+		}
+	}
+});
 define('subzero/tilemap',[
 		'sge'
 	], function(sge){
@@ -3864,7 +3889,6 @@ define('subzero/tilemap',[
 						if ((x>=scx) && (x<= sex) &&  y>= scy && y<=sey){
 							if (this.container.children.indexOf(this.chunk[x+'.'+y])<0){
 								this.container.addChild(this.chunk[x+'.'+y]);
-								console.log('Add Chunk', x, y)
 							}
 						} else {
 							if (this.container.children.indexOf(this.chunk[x+'.'+y])>=0){
@@ -3919,7 +3943,6 @@ define('subzero/tilemap',[
 							name='layer0'
 							if (tile.layers[name]!==undefined){
 								var sprite = new PIXI.Sprite(this._tileTextures[tile.layers[name]]);
-
 								sprite.position.x = (x*this.tileSize) - startX;
 								sprite.position.y = (y*this.tileSize) - startY;
 								chunk.addChild(sprite);
@@ -3929,13 +3952,13 @@ define('subzero/tilemap',[
 				}
 
 				// render the tilemap to a render texture
-				var texture = new PIXI.RenderTexture(endX-startX, endY-startY, this.renderer);
+				var texture = new PIXI.RenderTexture(endX-startX, endY-startY);
 				texture.render(chunk);
 				// create a single background sprite with the texture
 				var background = new PIXI.Sprite(texture, {x: 0, y: 0, width: this._chunkSize, heigh:this._chunkSize});
 				background.position.x = cx * this._chunkSize;
 				background.position.y = cy * this._chunkSize;
-				this.chunk[cx+'.'+cy] = background;
+				this.chunk[cx+'.'+cy] = chunk;
 			}
 
 		});
@@ -4009,6 +4032,20 @@ define('subzero/tiledlevel',[
 								var e= state.factory.create(spawnData[0], {xform: {tx: spawnX, ty: spawnY}});
 								state.addEntity(e);
 							}
+						}
+
+
+
+						if (regionData.properties.socialValue){
+							socialValue = parseInt(regionData.properties.socialValue);
+							var startX = Math.floor(tx/map.tileSize);
+							var startY = Math.floor(ty/map.tileSize);
+							for (var x=0;x<width/32;x++){
+								for (var y=0;y<height/32;y++){
+									map.getTile(x, y).data.socialValue = socialValue;
+								}
+							}
+
 						}
 					};
 				}
@@ -4095,11 +4132,11 @@ define('subzero/component',[
 			deregister: function(){
 
 			},
-			on: function(evt, cb){
+			on: function(evt, cb, options){
 				if (this._callbacks[cb]===undefined){
 					this._callbacks[cb] = cb.bind(this);
 				}
-				this.entity.on(evt, this._callbacks[cb]);
+				this.entity.on(evt, this._callbacks[cb], options);
 			},
 			off: function(evt, cb){
 				this.entity.off(evt, this._callbacks[cb]);
@@ -5338,6 +5375,10 @@ define('subzero/components/rpgcontrols',[
 					this.set('movement.vy', dpad[1]*2);
 				}
 
+				if (this.input.isDown('Z')){
+					this.state.openInventory();
+				}
+
 				if (this.input.isPressed('enter')){
 					this.entity.trigger('interact')
 					console.log('interact')
@@ -5351,7 +5392,7 @@ define('subzero/components/rpgcontrols',[
 						}
 					})
 					this.state.addEntity(bomb);
-					//this.entity.trigger('emote.msg', 'Boom!')
+					this.entity.trigger('emote.msg', 'Boom!')
 				}
 			},
 			register: function(state){
@@ -5387,11 +5428,7 @@ define('subzero/components/chara',[
 	            this.setAnim('stand_' + this.get('chara.dir'));
 			},
 			setAnim: function(anim){
-				if (this._anim!=anim){
-					this._anim = anim;
-					this._frame=0;
-					this._frames = this._walkcycleFrames[anim];
-				}
+				this.entity.trigger('anim.set', anim);
 			},
 			setDirection: function(dir){
 				if (this.get('chara.dir')!=dir){
@@ -5420,16 +5457,6 @@ define('subzero/components/chara',[
 				} else {
 					this.setAnim('stand_' + this.get('chara.dir'));
 				}
-				if (this._animTimeout<=0){
-					this._animTimeout = (1/30);
-					this._frame++;
-					if (this._frame>=this._frames.length){
-						this._frame=0;
-					}
-				} else {
-					this._animTimeout -= delta;
-				}
-				this.set('sprite.frame', this._frames[this._frame]);
 			}
 		});
 	}
@@ -5489,6 +5516,7 @@ define('subzero/behaviour',[
 			init: function(comp, data){
 				this._super(comp, data);
 				this.target = data.target;
+				this.distance = data.distance || 64;
 			},
 			start: function(){
 				this._timeout = 0;
@@ -5508,7 +5536,7 @@ define('subzero/behaviour',[
 				var dx = tx - targetx;
 				var dy = ty - targety;
 				var dist = Math.sqrt(dx*dx+dy*dy);
-				if (dist<64){
+				if (dist<this.distance){
 					this.stop();
 				}
 				this.entity.set('movement.vx', -dx/dist * speed);
@@ -5839,7 +5867,7 @@ define('subzero/components/ai',[
 			soundCallback: function(tx, ty, sound){
 				if (sound.type==1){
 						this._ignoreList.push(sound.entity);
-						var instructions = [{xtype: 'goto', importance: sound.importance, target: new proxyTarget(tx, ty)},{xtype:'wait', timeout:5, importance: sound.importance}];
+						var instructions = [{xtype: 'goto', distance: 32, importance: sound.importance, target: new proxyTarget(tx, ty)},{xtype:'wait', timeout:5, importance: sound.importance}];
 						if (sound.importance>=this.comp.behaviour.importance){
 							this._instructions = instructions;
 							this._interupt=true;
@@ -5925,7 +5953,6 @@ define('subzero/components/physics',[
 			},
 			register: function(state){
 				this._super(state);
-				console.log(this.entity.name, this.get('physics.type'));
 				if (this.get('physics.type')==0){
 				    state.physics.entities.push(this.entity);   
 				}
@@ -6053,21 +6080,25 @@ define('subzero/components/emote',[
 			},
 			register: function(state){
 				this._super(state);
+				this._visible = false;
 				this.text = new PIXI.BitmapText("", {font: "20px 8bit"});
-				this.state.containers.overhead.addChild(this.text);
 				this.text.position.x = 300;
 				this.text.position.y = 300;
 				this._timeout = -1;
 				this.on('emote.msg', this.emote);
 			},
 			emote: function(msg){
-				this.text.setText(msg);
-				this.state.containers.overhead.addChild(this.text);
-				this._timeout = this.state.getTime() + 1;
+				if (!this._visible){
+					this.text.setText(msg);
+					this.state.containers.overhead.addChild(this.text);
+					this._timeout = this.state.getTime() + 1;
+					this._visible = true;
+				}
 			},
 			clear: function(){
 				this._timeout = -1;
 				this.state.containers.overhead.removeChild(this.text);
+				this._visible = false;
 			},
 			tick: function(){
 				if(this._timeout>0 && this._timeout<this.state.getTime()){
@@ -6075,8 +6106,10 @@ define('subzero/components/emote',[
 				}
 			},
 			render: function(){
-				this.text.position.x = this.get('xform.tx');
-				this.text.position.y = this.get('xform.ty')-64;
+				if (this._visible){
+					this.text.position.x = this.get('xform.tx');
+					this.text.position.y = this.get('xform.ty')-64;
+				}
 			}
 		});		
 	}
@@ -6296,6 +6329,105 @@ define('subzero/components/highlight',[
 		});
 	}
 );
+define('subzero/components/container',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		Component.add('container', {
+			init: function(entity, data){
+				this._super(entity, data);
+				this._open = false;
+			},
+			register: function(state){
+				this._super(state);
+				this.on('interact', this.toggle);
+			},
+			deregister: function(state){
+				this.off('interact', this.toggle);
+				this._super(state);
+			},
+			toggle: function(){
+				this.set('sprite.frame', 1)
+			}
+		});		
+	}
+);
+define('subzero/components/computer',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		Component.add('computer', {
+			init: function(entity, data){
+				this._super(entity, data);
+				this._open = false;
+			},
+			register: function(state){
+				this._super(state);
+				this.on('interact', this.toggle);
+			},
+			deregister: function(state){
+				this.off('interact', this.toggle);
+				this._super(state);
+			},
+			toggle: function(){
+				this.entity.trigger('anim.set', 'on');
+				this.on('anim.done', function(){
+					this.state.startCutscene();
+					cutsceneState = this.state.game.getState('cutscene');
+					cutsceneState.setDialog('Computer: 00101100110100110101001');
+					this.entity.trigger('anim.set', 'off');
+				}.bind(this), { once: true })
+			}
+		});		
+	}
+);
+define('subzero/components/anim',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		Component.add('anim', {
+			init: function(entity, data){
+				this._super(entity, data);
+				this._tracks = data.tracks;
+				this._currentTrack = null
+				this._index=0;
+				this._animTimeout = 0;
+			},
+			register: function(state){
+				this._super(state);
+				this.on('anim.set', this.setAnim);
+			},
+			deregister: function(state){
+				this._super(state);
+				this.off('anim.set', this.setAnim);
+			},
+			setAnim: function(anim){
+				this._currentTrack = this._tracks[anim];
+			},
+			tick: function(delta){
+				if (this._currentTrack!=null){
+					this._animTimeout-=delta;
+					if (this._animTimeout<=0){
+						this._animTimeout=1/30;
+						this._index++;
+						if (this._index>=this._currentTrack.frames.length){
+							if (this._currentTrack.once){
+								this._index=0;
+								this._currentTrack = null;
+								this.entity.trigger('anim.done');
+								return;
+							} else {
+								this._index = 0;
+							}
+						}
+						this.set('sprite.frame', this._currentTrack.frames[this._index]);
+					}
+				}
+				
+			}
+		});		
+	}
+);
 define('subzero/factory',[
 	'sge',
 	'./entity',
@@ -6311,7 +6443,10 @@ define('subzero/factory',[
 	'./components/goalpost',
 	'./components/door',
 	'./components/interact',
-	'./components/highlight'
+	'./components/highlight',
+	'./components/container',
+	'./components/computer',
+	'./components/anim'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {
@@ -6413,9 +6548,11 @@ define('subzero/social',[
 			},
 			setMap : function(map){
 				this.map = map;
+				/*
 				this.map.getTiles().forEach(function(t){
 						return t.data.socialValue = t.layers.base==16 ? 1 : 0;
 				});
+				*/
 				for (var i = this.map.width - 1; i >= 0; i--) {
 					this.map.getTile(i,0).data.socialValue=-1;
 					this.map.getTile(i,0).data.socialVector = [0, -1];
@@ -6545,8 +6682,14 @@ define('subzero/subzerostate',[
 			winGame: function(){
 				this.game.changeState('win');
 			},
+			openInventory: function(){
+				this.game.changeState('inventory');
+			},
 			loseGame: function(){
 				this.game.changeState('lose');
+			},
+			startCutscene: function(){
+				this.game.changeState('cutscene');
 			},
 			loadManifest: function(manifest){
 				console.log('Loaded Manifest')
@@ -6586,14 +6729,16 @@ define('subzero/subzerostate',[
 				}.bind(this));
 			},
 			loadLevel : function(levelData){
+				console.log('Loaded Level')
 				this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
-				var blurFilter = new PIXI.GreyFilter();
+				var blurFilter = new PIXI.PixelateFilter();
 				this.background.filters = [blurFilter]
 				this.stage.addChild(this.background);
 				this.stage.addChild(this.container);
 				var text = new PIXI.BitmapText('Subzero', {font:'64px 8bit'});
 				this.stage.addChild(text);
 				this.map = new TileMap(levelData.width, levelData.height, this.game.renderer);
+				
 				TiledLevel(this, this.map, levelData).then(function(){
 
 					this.social.setMap(this.map);
@@ -6619,7 +6764,7 @@ define('subzero/subzerostate',[
 
 				var mask = new PIXI.Graphics();
 				mask.beginFill()
-				mask.drawRect(32, 32, 800, 480);
+				mask.drawRect(32, 32, 800, 480+64);
 				mask.endFill();
 
 				this.containers.entities.mask = mask;
@@ -6648,6 +6793,12 @@ define('subzero/subzerostate',[
 					this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
 				}
 				
+				this.map.render();
+				for (var i = this._entity_ids.length - 1; i >= 0; i--) {
+					var e = this._entities[this._entity_ids[i]];
+					e.render();
+				};
+				this.spriteSort(this.containers.entities);
 				//this.background.position.x = (this.containers.map.position.x/10) - 128;
 				//this.background.position.y = (this.containers.map.position.y/10) - 128;
 				
@@ -6665,12 +6816,6 @@ define('subzero/subzerostate',[
 			},
 
 			render: function(){
-				this.map.render();
-				for (var i = this._entity_ids.length - 1; i >= 0; i--) {
-					var e = this._entities[this._entity_ids[i]];
-					e.render();
-				};
-				this.spriteSort(this.containers.entities);
 				this.game.renderer.render(this.stage);
 				//console.log(this.game.renderer.batchs.length)
 			},
@@ -6770,10 +6915,179 @@ define('subzero/subzerostate',[
 );
 define('subzero/main',[
 		'sge',
+		'./config',
 		'./subzerostate',
-	], function(sge, SubzeroState){
+	], function(sge, config, SubzeroState){
+		var MenuItem = sge.Class.extend({
+			init: function(text, callback){
+				this._text = text;
+				this._callback = callback;
+				this.container = new PIXI.DisplayObjectContainer();
+				this.background = new PIXI.Graphics();
+				this.background.lineStyle(4, config.colors.primaryDark, 1);
+				this.background.drawRect(0,0, 200, 32);
+				this.text = new PIXI.BitmapText(this._text, {font: '24px 8bit'});
+				this.text.position.y = 4;
+				this.text.position.x = 8;
+				this.container.addChild(this.background);
+				this.container.addChild(this.text);
+
+			},
+			select: function(){
+				this._selected = true
+			},
+			unselect: function(){
+				this._selected = false
+			},
+			update: function(){
+				if (this._selected){
+					this.container.position.x = 24;
+					this.background.lineStyle(4, config.colors.complementBright, 1);
+					this.background.drawRect(0,0, 200, 32);
+				} else {
+					this.container.position.x = 0;
+					this.background.lineStyle(4, config.colors.primaryDark, 1);
+					this.background.drawRect(0,0, 200, 32);
+				}
+			},
+			callback: function(){
+				this._callback();
+			}
+		});
+
 		return {
 			SubzeroState: SubzeroState,
+			CutsceneState : sge.GameState.extend({
+	        	init: function(game){
+	        		this._super(game);
+	        		this.stage = new PIXI.Stage(0x000000);
+					this.container = new PIXI.DisplayObjectContainer();
+					this._scale = 1;
+					this.container.scale.x= window.innerWidth / game.width;
+					this.container.scale.y= window.innerHeight / game.height;
+
+					this.background = new PIXI.Graphics();
+					this.background.beginFill('0x000000');
+					this.background.drawRect(0,0,game.width,game.height);
+					this.background.endFill()
+					this.background.alpha = 0.65;
+	        	},
+	        	tick: function(){
+	        		if (this.input.isPressed('space')){
+	        			this.game.changeState('game');
+	        		}
+	        	},
+	        	startState: function(){
+	        		this.gameState = this.game.getState('game');
+	        		this.gameState.stage.addChild(this.container);
+	        	},
+	        	endState: function(){
+	        		this.gameState.stage.removeChild(this.container);
+	        	},
+	        	render: function(){
+	        		this.game.renderer.render(this.gameState.stage);
+	        	},
+	        	setDialog: function(dialog){
+	        		while (this.container.children.length){
+	        			this.container.removeChild(this.container.children[0]);
+	        		}
+	        		var text = new PIXI.BitmapText(dialog, {font: '32px 8bit'});
+	        		text.position.y = this.game.height / (2*this._scale);
+	        		text.position.x = 32;
+	        		this.container.addChild(this.background)
+	        		this.container.addChild(text);
+	        	}
+	        }),
+			InventoryState : sge.GameState.extend({
+	        	init: function(game){
+	        		this._super(game);
+	        		this.stage = new PIXI.Stage(0x000000);
+					this.container = new PIXI.DisplayObjectContainer();
+					this._scale = 1;
+					this.container.scale.x= window.innerWidth / game.width;
+					this.container.scale.y= window.innerHeight / game.height;
+
+					this.background = new PIXI.Graphics();
+					this.background.beginFill('0x000000');
+					this.background.drawRect(0,0,game.width,game.height);
+					this.background.endFill()
+					this.background.alpha = 0.65;
+	        	
+	        		this.container.addChild(this.background);
+
+	        		this._index = 0;
+					this.menuContainer = new PIXI.DisplayObjectContainer();
+					this.menuContainer.position.x = this.menuContainer.position.y = 64;
+					this.container.addChild(this.menuContainer);
+					this._itemText = ['','','','',''];
+					this.items = [];
+					this.createMenu();
+	        	},
+
+	        	createMenu: function(){
+	        		for (var i=0;i<this._itemText.length;i++){
+	        			var item = new MenuItem(this._itemText[i]);
+	        			item.container.position.y = i * 40;
+	        			this.menuContainer.addChild(item.container);
+	        			this.items.push(item);
+	        		}
+	        		var item = new MenuItem('Quit', function(){
+	        			this.game.changeState('game');
+	        		}.bind(this));
+        			item.container.position.y = i * 40;
+        			this.menuContainer.addChild(item.container);
+        			this.items.push(item);
+
+        			this.updateMenu();
+	        	},
+
+	        	tick: function(){
+	        		if (this.input.isPressed('up')){
+	        			this.up();
+	        		}
+
+	        		if (this.input.isPressed('down')){
+	        			this.down();
+	        		}
+
+	        		if (this.input.isPressed('enter') || this.input.isPressed('space')){
+	        			this.items[this._index].callback();
+	        		}
+	        	},
+
+	        	up: function(){
+	        		this._index--;
+	        		if (this._index<0){
+	        			this._index=0;
+	        		}
+	        		this.updateMenu();
+	        	},
+
+	        	down: function(){
+	        		this._index++;
+	        		if (this._index>=this.items.length){
+	        			this._index=this.items.length-1;
+	        		}
+	        		this.updateMenu();
+	        	},
+
+	        	updateMenu: function(){
+					this.items.forEach(function(i){i.unselect()});
+        			this.items[this._index].select();
+        			this.items.forEach(function(i){i.update()});
+	        	},
+
+	        	startState: function(){
+	        		this.gameState = this.game.getState('game');
+	        		this.gameState.stage.addChild(this.container);
+	        	},
+	        	endState: function(){
+	        		this.gameState.stage.removeChild(this.container);
+	        	},
+	        	render: function(){
+	        		this.game.renderer.render(this.gameState.stage);
+	        	}
+	        }),
 			PausedState : sge.GameState.extend({
 	        	init: function(game){
 	        		this._super(game);

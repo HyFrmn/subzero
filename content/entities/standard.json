@@ -17,15 +17,18 @@
             "height": 16
         },
         "chara" : {
-            "frames": {
-                "walk_down" : [19,20,21,22,23,24,25,26],
-                "walk_up" : [1,2,3,4,5,6,7,8],
-                "walk_left" : [10,11,12,13,14,15,16,17],
-                "walk_right" : [28,29,30,31,32,33,34,35],
-                "stand_down" : [18],
-                "stand_up" : [0],
-                "stand_right" : [27],
-                "stand_left" : [9]
+            
+        },
+        "anim" : {
+            "tracks": {
+                "walk_down" : { "frames" : [19,20,21,22,23,24,25,26]},
+                "walk_up" : { "frames" : [1,2,3,4,5,6,7,8]},
+                "walk_left" : { "frames" : [10,11,12,13,14,15,16,17]},
+                "walk_right" : { "frames" : [28,29,30,31,32,33,34,35]},
+                "stand_down" : { "frames" : [18]},
+                "stand_up" : { "frames" : [0]},
+                "stand_right" : { "frames" : [27]},
+                "stand_left" : { "frames" :[9]}
             }
         },
         "highlight" : {},
@@ -160,6 +163,18 @@
         },
         "physics" : {
             "type" : 1
+        },
+        "anim" : {
+            "tracks" : {
+                "on" : {
+                    "frames" : [0,1,2,3,4,5],
+                    "once" : true
+                },
+                "off" : {
+                    "frames" : [5,4,3,2,1,0],
+                    "once" : true
+                }
+            }
         }
     },
     "container" : {

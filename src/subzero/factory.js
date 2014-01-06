@@ -15,7 +15,8 @@ define([
 	'./components/interact',
 	'./components/highlight',
 	'./components/container',
-	'./components/computer'
+	'./components/computer',
+	'./components/anim'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {
