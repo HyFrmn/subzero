@@ -119,7 +119,7 @@ define([
 			soundCallback: function(tx, ty, sound){
 				if (sound.type==1){
 						this._ignoreList.push(sound.entity);
-						var instructions = [{xtype: 'goto', importance: sound.importance, target: new proxyTarget(tx, ty)},{xtype:'wait', timeout:5, importance: sound.importance}];
+						var instructions = [{xtype: 'goto', distance: 32, importance: sound.importance, target: new proxyTarget(tx, ty)},{xtype:'wait', timeout:5, importance: sound.importance}];
 						if (sound.importance>=this.comp.behaviour.importance){
 							this._instructions = instructions;
 							this._interupt=true;

@@ -44,8 +44,14 @@ define([
 			winGame: function(){
 				this.game.changeState('win');
 			},
+			openInventory: function(){
+				this.game.changeState('inventory');
+			},
 			loseGame: function(){
 				this.game.changeState('lose');
+			},
+			startCutscene: function(){
+				this.game.changeState('cutscene');
 			},
 			loadManifest: function(manifest){
 				console.log('Loaded Manifest')
@@ -85,14 +91,16 @@ define([
 				}.bind(this));
 			},
 			loadLevel : function(levelData){
+				console.log('Loaded Level')
 				this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
-				var blurFilter = new PIXI.GreyFilter();
+				var blurFilter = new PIXI.PixelateFilter();
 				this.background.filters = [blurFilter]
 				this.stage.addChild(this.background);
 				this.stage.addChild(this.container);
 				var text = new PIXI.BitmapText('Subzero', {font:'64px 8bit'});
 				this.stage.addChild(text);
 				this.map = new TileMap(levelData.width, levelData.height, this.game.renderer);
+				
 				TiledLevel(this, this.map, levelData).then(function(){
 
 					this.social.setMap(this.map);
@@ -118,7 +126,7 @@ define([
 
 				var mask = new PIXI.Graphics();
 				mask.beginFill()
-				mask.drawRect(32, 32, 800, 480);
+				mask.drawRect(32, 32, 800, 480+64);
 				mask.endFill();
 
 				this.containers.entities.mask = mask;
@@ -147,6 +155,12 @@ define([
 					this.containers.map.position.y = 32-this.pc.get('xform.ty')+this.game.height/(2*this._scale);
 				}
 				
+				this.map.render();
+				for (var i = this._entity_ids.length - 1; i >= 0; i--) {
+					var e = this._entities[this._entity_ids[i]];
+					e.render();
+				};
+				this.spriteSort(this.containers.entities);
 				//this.background.position.x = (this.containers.map.position.x/10) - 128;
 				//this.background.position.y = (this.containers.map.position.y/10) - 128;
 				
@@ -164,12 +178,6 @@ define([
 			},
 
 			render: function(){
-				this.map.render();
-				for (var i = this._entity_ids.length - 1; i >= 0; i--) {
-					var e = this._entities[this._entity_ids[i]];
-					e.render();
-				};
-				this.spriteSort(this.containers.entities);
 				this.game.renderer.render(this.stage);
 				//console.log(this.game.renderer.batchs.length)
 			},

@@ -121,7 +121,8 @@
                  "name":"exit.test",
                  "properties":
                     {
-                     "goalpost.active":"1"
+                     "goalpost.active":"1",
+                     "physics.width":"48"
                     },
                  "type":"trigger",
                  "visible":true,
@@ -141,6 +142,20 @@
                  "visible":true,
                  "width":0,
                  "x":800,
+                 "y":128
+                }, 
+                {
+                 "gid":67,
+                 "height":0,
+                 "name":"cpu",
+                 "properties":
+                    {
+
+                    },
+                 "type":"computer",
+                 "visible":true,
+                 "width":0,
+                 "x":768,
                  "y":128
                 }],
          "opacity":1,
@@ -170,6 +185,7 @@
                  "name":"test",
                  "properties":
                     {
+                     "socialValue":"1",
                      "spawn":"citizen:12"
                     },
                  "type":"region",

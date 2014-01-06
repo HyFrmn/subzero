@@ -29,14 +29,24 @@ define([
 	        
 
 			game = new sge.Game();
+			
 			game.setStateClass('paused', subzero.PausedState);
 			game.createState('paused');
+			
 			game.setStateClass('menu', subzero.MenuState);
 			game.createState('menu');
+			
 			game.setStateClass('win', subzero.WinState);
 			game.createState('win');
+			
 			game.setStateClass('lose', subzero.LoseState);
 			game.createState('lose');
+			
+			game.setStateClass('cutscene', subzero.CutsceneState);
+			game.createState('cutscene');
+
+			game.setStateClass('inventory', subzero.InventoryState);
+			game.createState('inventory');
 
 			game.setStateClass('game', subzero.SubzeroState);
 			game.start(options);

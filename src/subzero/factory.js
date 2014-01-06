@@ -13,7 +13,9 @@ define([
 	'./components/goalpost',
 	'./components/door',
 	'./components/interact',
-	'./components/highlight'
+	'./components/highlight',
+	'./components/container',
+	'./components/computer'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {

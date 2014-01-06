@@ -65,6 +65,20 @@ define([
 								state.addEntity(e);
 							}
 						}
+
+
+
+						if (regionData.properties.socialValue){
+							socialValue = parseInt(regionData.properties.socialValue);
+							var startX = Math.floor(tx/map.tileSize);
+							var startY = Math.floor(ty/map.tileSize);
+							for (var x=0;x<width/32;x++){
+								for (var y=0;y<height/32;y++){
+									map.getTile(x, y).data.socialValue = socialValue;
+								}
+							}
+
+						}
 					};
 				}
 

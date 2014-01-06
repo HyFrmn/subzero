@@ -28,6 +28,7 @@ define([
 
 				this.renderer = null;
 
+				this._nextState = null;
 				this._states = {};
 				this._stateClassMap = {};
 				this._currentState = null;
@@ -66,6 +67,10 @@ define([
 				if (this._currentState){
 					this._currentState.tick(delta);
 				}
+				if (this._nextState!=null){
+					this._changeState(this._nextState);
+					this._nextState=null;
+				}
 			},
 
 			render: function(){
@@ -93,6 +98,10 @@ define([
 			},
 
 			changeState: function(name){
+				this._nextState = name;
+			},
+
+			_changeState: function(name){
 				if (this._currentState){
 					this._currentState.endState();
 				}

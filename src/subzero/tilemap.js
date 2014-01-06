@@ -76,7 +76,6 @@ define([
 						if ((x>=scx) && (x<= sex) &&  y>= scy && y<=sey){
 							if (this.container.children.indexOf(this.chunk[x+'.'+y])<0){
 								this.container.addChild(this.chunk[x+'.'+y]);
-								console.log('Add Chunk', x, y)
 							}
 						} else {
 							if (this.container.children.indexOf(this.chunk[x+'.'+y])>=0){
@@ -131,7 +130,6 @@ define([
 							name='layer0'
 							if (tile.layers[name]!==undefined){
 								var sprite = new PIXI.Sprite(this._tileTextures[tile.layers[name]]);
-
 								sprite.position.x = (x*this.tileSize) - startX;
 								sprite.position.y = (y*this.tileSize) - startY;
 								chunk.addChild(sprite);
@@ -141,13 +139,13 @@ define([
 				}
 
 				// render the tilemap to a render texture
-				var texture = new PIXI.RenderTexture(endX-startX, endY-startY, this.renderer);
+				var texture = new PIXI.RenderTexture(endX-startX, endY-startY);
 				texture.render(chunk);
 				// create a single background sprite with the texture
 				var background = new PIXI.Sprite(texture, {x: 0, y: 0, width: this._chunkSize, heigh:this._chunkSize});
 				background.position.x = cx * this._chunkSize;
 				background.position.y = cy * this._chunkSize;
-				this.chunk[cx+'.'+cy] = background;
+				this.chunk[cx+'.'+cy] = chunk;
 			}
 
 		});

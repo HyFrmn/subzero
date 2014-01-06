@@ -8,7 +8,9 @@
         ["man_f", [64,64]],
         ["explosion", [64,64]],
         ["door", [32,64]],
-        ["shelves", [32,64]]
+        ["metal_cabinet_a", [32,64]],
+        ["metal_shelf_a", [32,64]],
+        ["computer", [32,64]]
     ],
     "images" : [
         "backgrounds/space_a",

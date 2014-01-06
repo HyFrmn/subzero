@@ -7,9 +7,11 @@ define([
 			},
 			setMap : function(map){
 				this.map = map;
+				/*
 				this.map.getTiles().forEach(function(t){
 						return t.data.socialValue = t.layers.base==16 ? 1 : 0;
 				});
+				*/
 				for (var i = this.map.width - 1; i >= 0; i--) {
 					this.map.getTile(i,0).data.socialValue=-1;
 					this.map.getTile(i,0).data.socialVector = [0, -1];

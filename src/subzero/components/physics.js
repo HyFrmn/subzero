@@ -20,7 +20,6 @@ define([
 			},
 			register: function(state){
 				this._super(state);
-				console.log(this.entity.name, this.get('physics.type'));
 				if (this.get('physics.type')==0){
 				    state.physics.entities.push(this.entity);   
 				}
@@ -30,7 +29,7 @@ define([
 			},
 			deregister: function(state){
 				// @if DEBUG
-				//this.state.containers.underfoot.removeChild(this.indicater);
+				this.state.containers.underfoot.removeChild(this.indicater);
 				// @endif
 			},
 			// @if DEBUG

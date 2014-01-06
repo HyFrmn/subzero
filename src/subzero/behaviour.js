@@ -53,6 +53,7 @@ define([
 			init: function(comp, data){
 				this._super(comp, data);
 				this.target = data.target;
+				this.distance = data.distance || 64;
 			},
 			start: function(){
 				this._timeout = 0;
@@ -72,7 +73,7 @@ define([
 				var dx = tx - targetx;
 				var dy = ty - targety;
 				var dist = Math.sqrt(dx*dx+dy*dy);
-				if (dist<64){
+				if (dist<this.distance){
 					this.stop();
 				}
 				this.entity.set('movement.vx', -dx/dist * speed);

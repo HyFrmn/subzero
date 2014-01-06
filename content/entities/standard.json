@@ -144,13 +144,31 @@
             "offsety" : -48
         }
     },
+    "computer" : {
+        "meta" : { "inherit" : "trigger" },
+        "computer" : {},
+        "sprite" : {
+            "src" : "computer",
+            "frame" : 0,
+            "offsety" : -48,
+            "offsetx" : -16,
+            "container" : "entities"
+        },
+        "interact" : {},
+        "highlight" : {
+            "radius" : 24
+        },
+        "physics" : {
+            "type" : 1
+        }
+    },
     "container" : {
         "meta" : { "inherit" : "trigger" },
         "container" : {},
         "sprite" : {
-            "src" : "shelves",
-            "frame" : 1,
-            "offsety" : -64,
+            "src" : "metal_cabinet_a",
+            "frame" : 0,
+            "offsety" : -56,
             "offsetx" : -16,
             "container" : "entities"
         },

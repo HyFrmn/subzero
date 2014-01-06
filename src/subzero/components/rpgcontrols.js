@@ -16,6 +16,10 @@ define([
 					this.set('movement.vy', dpad[1]*2);
 				}
 
+				if (this.input.isDown('Z')){
+					this.state.openInventory();
+				}
+
 				if (this.input.isPressed('enter')){
 					this.entity.trigger('interact')
 					console.log('interact')
@@ -29,7 +33,7 @@ define([
 						}
 					})
 					this.state.addEntity(bomb);
-					//this.entity.trigger('emote.msg', 'Boom!')
+					this.entity.trigger('emote.msg', 'Boom!')
 				}
 			},
 			register: function(state){
