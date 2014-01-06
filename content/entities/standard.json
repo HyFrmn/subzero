@@ -155,7 +155,10 @@
             "container" : "entities"
         },
         "interact" : {},
-        "highlight" : {}
+        "highlight" : {},
+        "physics" : {
+            "type" : 1
+        }
     },
     "shelf" : {
         "meta" : { "inherit" : "container" }

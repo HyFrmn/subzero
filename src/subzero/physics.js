@@ -23,7 +23,9 @@ define([
 			detectCollision: function(){
 				var e, ep, aRect, bRect;
 				var response = new sat.Response();
-				var testEntities = this.entities.slice(0);
+				var testEntities = this.entities.filter(function(q){
+					return q.get('physics.type')==0;
+				});
 				var testHashes = [];
 				var collisionHashes = [];
 				for (var i = testEntities.length - 1; i >= 0; i--) {
@@ -38,10 +40,21 @@ define([
 						if (testHashes.indexOf(hash)<0){
 							testHashes.push(hash);
 							ep = potential[k];
+							if (ep.get('physics.type')==2){
+								continue;
+							}
 							bRect = new sat.Box(new sat.Vector(ep.get('xform.tx'),ep.get('xform.ty')), ep.get('physics.width'), ep.get('physics.height'));
 							collided = sat.testPolygonPolygon(aRect.toPolygon(), bRect.toPolygon(), response)
 							if (collided){
-								this.move(ep, 0, response.overlapV.x, response.overlapV.y);
+								if (ep.get('physics.type')==2||e.get('physics.type')==2){
+									
+								} if (ep.get('physics.type')==1){
+									this.move(e, 0, -response.overlapV.x, -response.overlapV.y);
+								} else {
+									this.move(e, 0, -0.5*response.overlapV.x, -0.5*response.overlapV.y);
+									this.move(ep, 0, 0.5*response.overlapV.x,  0.5*response.overlapV.y);
+								}
+								
 								response.clear();
 								// @if DEBUG
 								ep.set('physics.color', '0xAA0000');

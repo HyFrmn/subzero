@@ -5,7 +5,7 @@ define([
 		Component.add('physics', {
 			init: function(entity, data){
 				this._super(entity, data);
-				this.type = data.type || 0;
+				this.set('physics.type', data.type!=undefined ? data.type : 0);
 				this.set('physics.width', data.width || 24);
 				this.set('physics.height', data.height || 24);
 				// @if DEBUG
@@ -20,7 +20,8 @@ define([
 			},
 			register: function(state){
 				this._super(state);
-				if (this.type==0){
+				console.log(this.entity.name, this.get('physics.type'));
+				if (this.get('physics.type')==0){
 				    state.physics.entities.push(this.entity);   
 				}
 				// @if DEBUG

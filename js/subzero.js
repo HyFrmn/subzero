@@ -5122,7 +5122,9 @@ define('subzero/physics',[
 			detectCollision: function(){
 				var e, ep, aRect, bRect;
 				var response = new sat.Response();
-				var testEntities = this.entities.slice(0);
+				var testEntities = this.entities.filter(function(q){
+					return q.get('physics.type')==0;
+				});
 				var testHashes = [];
 				var collisionHashes = [];
 				for (var i = testEntities.length - 1; i >= 0; i--) {
@@ -5137,10 +5139,21 @@ define('subzero/physics',[
 						if (testHashes.indexOf(hash)<0){
 							testHashes.push(hash);
 							ep = potential[k];
+							if (ep.get('physics.type')==2){
+								continue;
+							}
 							bRect = new sat.Box(new sat.Vector(ep.get('xform.tx'),ep.get('xform.ty')), ep.get('physics.width'), ep.get('physics.height'));
 							collided = sat.testPolygonPolygon(aRect.toPolygon(), bRect.toPolygon(), response)
 							if (collided){
-								this.move(ep, 0, response.overlapV.x, response.overlapV.y);
+								if (ep.get('physics.type')==2||e.get('physics.type')==2){
+									
+								} if (ep.get('physics.type')==1){
+									this.move(e, 0, -response.overlapV.x, -response.overlapV.y);
+								} else {
+									this.move(e, 0, -0.5*response.overlapV.x, -0.5*response.overlapV.y);
+									this.move(ep, 0, 0.5*response.overlapV.x,  0.5*response.overlapV.y);
+								}
+								
 								response.clear();
 							}
 							
@@ -5905,14 +5918,15 @@ define('subzero/components/physics',[
 		Component.add('physics', {
 			init: function(entity, data){
 				this._super(entity, data);
-				this.type = data.type || 0;
+				this.set('physics.type', data.type!=undefined ? data.type : 0);
 				this.set('physics.width', data.width || 24);
 				this.set('physics.height', data.height || 24);
 				
 			},
 			register: function(state){
 				this._super(state);
-				if (this.type==0){
+				console.log(this.entity.name, this.get('physics.type'));
+				if (this.get('physics.type')==0){
 				    state.physics.entities.push(this.entity);   
 				}
 			},
