@@ -1,0 +1,10 @@
+{
+	"items" : [{
+			"name" : "bomb",
+			"description" : "A simple pipe bomb. Lots of flash, not much bank.",
+			"value" : 25,
+			"use" : [{
+					"type"
+				}]
+		}]
+}

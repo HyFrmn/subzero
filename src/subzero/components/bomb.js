@@ -44,7 +44,7 @@ define([
 							},
 							"sprite" : {
 					            "src" : "explosion",
-					            "container": "entities",
+					            "container": "glow",
 					            "offsetx" : -32,
 					            "offsety" : -32,
 								scalex: scale,

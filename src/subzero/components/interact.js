@@ -21,7 +21,7 @@ define([
 			},
 			interact: function(){
 				if (this._current){
-					this._current.trigger('interact');
+					this._current.trigger('interact', this.entity);
 				}
 			},
 			tick: function(delta){

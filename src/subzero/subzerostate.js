@@ -6,8 +6,9 @@ define([
 		'./physics',
 		'./factory',
 		'./social',
-		'./ai'
-	], function(sge, TileMap, TiledLevel, Entity, Physics, Factory, Social, AI){
+		'./ai',
+		'./hud'
+	], function(sge, TileMap, TiledLevel, Entity, Physics, Factory, Social, AI, HUD){
 		var SubzeroState = sge.GameState.extend({
 			init: function(game){
 				this._super(game);
@@ -33,11 +34,15 @@ define([
 				this.containers.map = new PIXI.DisplayObjectContainer();
 				this.containers.overhead = new PIXI.DisplayObjectContainer();
 				this.containers.underfoot = new PIXI.DisplayObjectContainer();
+				this.containers.glow = new PIXI.DisplayObjectContainer();
+				this.containers.hud = new PIXI.DisplayObjectContainer();
 				this.container.addChild(this.containers.map);
+				this.container.addChild(this.containers.hud);
 				
 				this.physics = new Physics();
 				this.factory = Factory;
 				this.social = new Social();
+				this.hud = new HUD(this);
 				var loader = new sge.Loader();
 				loader.loadJSON('content/manifest.json').then(this.loadManifest.bind(this));
 			},
@@ -91,30 +96,29 @@ define([
 				}.bind(this));
 			},
 			loadLevel : function(levelData){
-				console.log('Loaded Level')
 				this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
-				var blurFilter = new PIXI.PixelateFilter();
-				this.background.filters = [blurFilter]
 				this.stage.addChild(this.background);
 				this.stage.addChild(this.container);
-				var text = new PIXI.BitmapText('Subzero', {font:'64px 8bit'});
-				this.stage.addChild(text);
 				this.map = new TileMap(levelData.width, levelData.height, this.game.renderer);
-				
 				TiledLevel(this, this.map, levelData).then(function(){
-
 					this.social.setMap(this.map);
 					this.map.preRender();
-					console.log('Created Level')
-
 					this.physics.setMap(this);
-					this.initGame();
-				}.bind(this), 500)
+					var loader = new sge.Loader();
+					loader.loadJS('content/levels/' + this.game.data.map + '.js', null, {state : this}).then(this.loadLevelEvents.bind(this), this.initGame.bind(this));
+				}.bind(this), 500);
+			},
+			loadLevelEvents: function(sandbox){
+				sandbox();
+				this.initGame();
 			},
 			initGame: function(){
 
 				var pc = this.getEntity('pc');
 				this.pc = pc;
+				if (this.pc){
+					this.hud.setPC(pc);
+				}
 
 				var mask = new PIXI.Graphics();
 				mask.beginFill()
@@ -136,8 +140,10 @@ define([
 				this.containers.map.addChild(this.containers.underfoot);
 				this.containers.map.addChild(this.containers.entities);
 				this.containers.map.addChild(this.containers.overhead);
+				this.containers.map.addChild(this.containers.glow);
 				this.containers.map.position.x = this.game.width/(2*this._scale)-(this.map.width*this.map.tileSize*0.5);
 				this.containers.map.position.y = this.game.height/(2*this._scale)-(this.map.height*this.map.tileSize*0.5);
+				console.log('Starting Game')
 				this.game.changeState('game');
 
 			},

@@ -4,19 +4,27 @@ define([
 		'./subzerostate',
 	], function(sge, config, SubzeroState){
 		var MenuItem = sge.Class.extend({
-			init: function(text, callback){
-				this._text = text;
-				this._callback = callback;
+			init: function(data){
+				this._text = data[0];
+				this._count = data[1];
+				this._callback = data[2];
 				this.container = new PIXI.DisplayObjectContainer();
 				this.background = new PIXI.Graphics();
 				this.background.lineStyle(4, config.colors.primaryDark, 1);
-				this.background.drawRect(0,0, 200, 32);
+				this.background.drawRect(0,0, 250, 32);
 				this.text = new PIXI.BitmapText(this._text, {font: '24px 8bit'});
 				this.text.position.y = 4;
 				this.text.position.x = 8;
+				
 				this.container.addChild(this.background);
 				this.container.addChild(this.text);
 
+				if (this._count!==undefined&&this._count!==null){
+					this.count = new PIXI.BitmapText('x' + this._count, {font: '24px 8bit'});
+					this.count.position.y = 4;
+					this.count.position.x = 210;
+					this.container.addChild(this.count);
+				}
 			},
 			select: function(){
 				this._selected = true
@@ -28,11 +36,11 @@ define([
 				if (this._selected){
 					this.container.position.x = 24;
 					this.background.lineStyle(4, config.colors.complementBright, 1);
-					this.background.drawRect(0,0, 200, 32);
+					this.background.drawRect(0,0, 250, 32);
 				} else {
 					this.container.position.x = 0;
 					this.background.lineStyle(4, config.colors.primaryDark, 1);
-					this.background.drawRect(0,0, 200, 32);
+					this.background.drawRect(0,0, 250, 32);
 				}
 			},
 			callback: function(){
@@ -110,22 +118,27 @@ define([
 	        	},
 
 	        	createMenu: function(){
+	        		while (this.menuContainer.children.length){
+	        			this.menuContainer.removeChild(this.menuContainer.children[0]);
+	        		};
+	        		this.items = [];
 	        		for (var i=0;i<this._itemText.length;i++){
 	        			var item = new MenuItem(this._itemText[i]);
 	        			item.container.position.y = i * 40;
 	        			this.menuContainer.addChild(item.container);
 	        			this.items.push(item);
 	        		}
-	        		var item = new MenuItem('Quit', function(){
-	        			this.game.changeState('game');
-	        		}.bind(this));
+	        		var item = new MenuItem(['Quit', null, function(){
+	        			this.quit();
+	        		}.bind(this)]);
         			item.container.position.y = i * 40;
         			this.menuContainer.addChild(item.container);
         			this.items.push(item);
-
-        			this.updateMenu();
+					this.updateMenu();
 	        	},
-
+	        	quit: function(){
+	        		this.game.changeState('game');
+	        	},
 	        	tick: function(){
 	        		if (this.input.isPressed('up')){
 	        			this.up();
@@ -165,6 +178,19 @@ define([
 	        	startState: function(){
 	        		this.gameState = this.game.getState('game');
 	        		this.gameState.stage.addChild(this.container);
+
+	        		var pc = this.gameState.getEntity('pc');
+	        		if (pc){
+	        			var inv = pc.get('inventory.items');
+	        			var keys = Object.keys(inv);
+	        			this._itemText = keys.map(function(key){
+	        				return [key, inv[key], function(){
+	        					pc.trigger('item.equip', key);
+	        					this.quit();
+	        				}.bind(this)];
+	        			}.bind(this));
+	        		}
+	        		this.createMenu();
 	        	},
 	        	endState: function(){
 	        		this.gameState.stage.removeChild(this.container);

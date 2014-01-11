@@ -45,7 +45,8 @@
         "interact.control" : {},
         "sprite" : {
             "src" :  "man_b"
-        }
+        },
+        "inventory" : {}
     },
     "citizen_base" : {
         "meta" : {
@@ -119,7 +120,14 @@
     "bomb" : {
         "meta" : { "inherit" : "trigger" },
         "bomb" : {},
-        "sound": {}
+        "sound": {},
+        "sprite": {
+            "src" : "scifi_icons",
+            "frame" : 11,
+            "offsety" : -12,
+            "offsetx" : -12,
+            "container" : "entities"
+        }
     },
     "guardpost" : {
         "meta" : { "inherit" : "trigger" },
@@ -195,5 +203,22 @@
     },
     "shelf" : {
         "meta" : { "inherit" : "container" }
+    },
+    "item" : {
+        "meta" : { "inherit" : "trigger" },
+        "sprite" : {
+            "src" : "scifi_icons",
+            "frame" : 11,
+            "offsety" : -20,
+            "offsetx" : -12,
+            "container" : "entities"
+        },
+        "interact" : {},
+        "highlight" : {
+            "radius" : 8
+            },
+        "item" : {
+            "item" : "bomb"
+        }
     }
 }

@@ -16,7 +16,10 @@ define([
 	'./components/highlight',
 	'./components/container',
 	'./components/computer',
-	'./components/anim'
+	'./components/anim',
+	'./components/inventory',
+	'./components/item',
+	'./components/equipable'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {

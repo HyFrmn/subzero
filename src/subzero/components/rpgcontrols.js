@@ -21,19 +21,11 @@ define([
 				}
 
 				if (this.input.isPressed('enter')){
-					this.entity.trigger('interact')
-					console.log('interact')
+					this.entity.trigger('interact');
 				}
 				
 				if (this.input.isPressed('space')){
-					var bomb = this.state.factory.create('bomb', {
-						xform: {
-							tx: this.get('xform.tx'),
-							ty: this.get('xform.ty')
-						}
-					})
-					this.state.addEntity(bomb);
-					this.entity.trigger('emote.msg', 'Boom!')
+					this.entity.trigger('item.use');
 				}
 			},
 			register: function(state){

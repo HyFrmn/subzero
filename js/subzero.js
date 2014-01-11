@@ -3698,82 +3698,114 @@ define('sge/when',['require'],function (require) {
 })(typeof define === 'function' && define.amd ? define : function (factory) { module.exports = factory(require); }, this);
 
 define('sge/loader',[
-		'./class',
-		'./when'
-	], function(Class, when){
-		var ajax = function(url, callback){
-			var xmlHttp = new XMLHttpRequest();
-			xmlHttp.open('get', url, true);
-			xmlHttp.send(null);
-			xmlHttp.onreadystatechange = function() {
-				if (xmlHttp.readyState === 4) {
-			  	    if (xmlHttp.status === 200) {
-				        callback(xmlHttp.responseText, xmlHttp);
-				    } else {
-				        console.error('Error: ' + xmlHttp.responseText);
-				    }
-				} else {
-				  //still loading
-				}
-			}
-		}
+        './class',
+        './when'
+    ], function(Class, when){
+        var ajax = function(url, callback, failure){
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open('get', url, true);
+            xmlHttp.send(null);
+            xmlHttp.onreadystatechange = function() {
+                if (xmlHttp.readyState === 4) {
+                    if (xmlHttp.status === 200) {
+                        callback(xmlHttp.responseText, xmlHttp);
+                    } else {
+                        failure(xmlHttp);
+                    }
+                } else {
+                  //still loading
+                }
+            }
+        }
 
 
 
-		var Loader = Class.extend({
-			init: function(){},
-			loadJSON: function(url){
-				var defered = new when.defer();
-				ajax(url, function(text){
-					var data = JSON.parse(text);
-					defered.resolve(data);
-				});
-				return defered.promise;
-			},
-			loadFont: function(url){
-				var defered = new when.defer();
-				var loader = new PIXI.AssetLoader([url]);
-				loader.onComplete = function(){
-					defered.resolve();
-				}
-				loader.load();
-				return defered.promise;
-			},
-			loadTexture: function(url, textureName){
-				var defered = new when.defer();
-				var tex = new PIXI.ImageLoader(url);
-				tex.addEventListener("loaded", function(event){
-					PIXI.TextureCache[textureName] = new PIXI.Texture(tex.texture.baseTexture);
-					defered.resolve(tex);
-				});
-				tex.load();
-				return defered.promise;
-			},
-			loadSpriteFrames: function(url, textureName, width, height){
-				var defered = new when.defer();
-				var tex = new PIXI.ImageLoader(url);
-				tex.addEventListener("loaded", function(event){
-					var xcount = Math.floor(tex.texture.width/width);
-					var ycount = Math.floor(tex.texture.height/height);
-					var frame = 0;
-					var texture;
-					for (var y=0;y<ycount;y++){
-						for(var x=0;x<xcount;x++){
-							texture = new PIXI.Texture(tex.texture, {x: x*width, y: y*height, width: width, height: height});
-							PIXI.TextureCache[textureName+'-'+frame] = texture;
-							frame++;
-							
-						}
-					}
-					defered.resolve(tex);
-				});
-				tex.load();
-				return defered.promise;
-			}
-		})
+        var Loader = Class.extend({
+            init: function(){},
+            loadJSON: function(url){
+                var defered = new when.defer();
+                ajax(url, function(text){
+                    var data = JSON.parse(text);
+                    defered.resolve(data);
+                }, function(xmlHttp){
+                    defered.reject(xmlHttp);
+                });
+                return defered.promise;
+            },
+            loadJS: function(url, that, locals) {
+                var defered = new when.defer();
+                console.log('Src', url)
+                ajax(url, function(text){
+                    var sandbox = this.createSandbox(text, that, locals);
+                    defered.resolve(sandbox);
+                }.bind(this), function(xmlHttp){
+                    defered.reject(xmlHttp);
+                });
+                return defered.promise;
+            },
+            loadFont: function(url){
+                var defered = new when.defer();
+                var loader = new PIXI.AssetLoader([url]);
+                loader.onComplete = function(){
+                    defered.resolve();
+                }
+                loader.load();
+                return defered.promise;
+            },
+            loadTexture: function(url, textureName){
+                var defered = new when.defer();
+                var tex = new PIXI.ImageLoader(url);
+                tex.addEventListener("loaded", function(event){
+                    PIXI.TextureCache[textureName] = new PIXI.Texture(tex.texture.baseTexture);
+                    defered.resolve(tex);
+                });
+                tex.load();
+                return defered.promise;
+            },
+            loadSpriteFrames: function(url, textureName, width, height){
+                var defered = new when.defer();
+                var tex = new PIXI.ImageLoader(url);
+                tex.addEventListener("loaded", function(event){
+                    var xcount = Math.floor(tex.texture.width/width);
+                    var ycount = Math.floor(tex.texture.height/height);
+                    var frame = 0;
+                    var texture;
+                    for (var y=0;y<ycount;y++){
+                        for(var x=0;x<xcount;x++){
+                            texture = new PIXI.Texture(tex.texture, {x: x*width, y: y*height, width: width, height: height});
+                            PIXI.TextureCache[textureName+'-'+frame] = texture;
+                            frame++;
+                            
+                        }
+                    }
+                    defered.resolve(tex);
+                });
+                tex.load();
+                return defered.promise;
+            },
+            createSandbox: function(code, that, locals) {
+                that = that || Object.create(null);
+                locals = locals || {};
+                var params = []; // the names of local variables
+                var args = []; // the local variables
 
-		return Loader
-	}
+                for (var param in locals) {
+                    if (locals.hasOwnProperty(param)) {
+                        args.push(locals[param]);
+                        params.push(param);
+                    }
+                }
+
+                var context = Array.prototype.concat.call(that, params, code); // create the parameter list for the sandbox
+                var sandbox = new (Function.prototype.bind.apply(Function, context)); // create the sandbox function
+                context = Array.prototype.concat.call(that, args); // create the argument list for the sandbox
+
+                return Function.prototype.bind.apply(sandbox, context); // bind the local variables to the sandbox
+            },
+        })
+
+        return Loader
+    }
 );
 define('sge/main',[
 		'./class',
@@ -5380,19 +5412,11 @@ define('subzero/components/rpgcontrols',[
 				}
 
 				if (this.input.isPressed('enter')){
-					this.entity.trigger('interact')
-					console.log('interact')
+					this.entity.trigger('interact');
 				}
 				
 				if (this.input.isPressed('space')){
-					var bomb = this.state.factory.create('bomb', {
-						xform: {
-							tx: this.get('xform.tx'),
-							ty: this.get('xform.ty')
-						}
-					})
-					this.state.addEntity(bomb);
-					this.entity.trigger('emote.msg', 'Boom!')
+					this.entity.trigger('item.use');
 				}
 			},
 			register: function(state){
@@ -6053,7 +6077,7 @@ define('subzero/components/bomb',[
 							},
 							"sprite" : {
 					            "src" : "explosion",
-					            "container": "entities",
+					            "container": "glow",
 					            "offsetx" : -32,
 					            "offsety" : -32,
 								scalex: scale,
@@ -6262,7 +6286,7 @@ define('subzero/components/interact',[
 			},
 			interact: function(){
 				if (this._current){
-					this._current.trigger('interact');
+					this._current.trigger('interact', this.entity);
 				}
 			},
 			tick: function(delta){
@@ -6311,6 +6335,7 @@ define('subzero/components/highlight',[
 				this._super(state);
 				this.off('highlight.on', this.turnOn);
 				this.off('highlight.off', this.turnOff);
+				this.turnOff();
 			},
 			turnOn: function(){
 				this._active = true;
@@ -6318,7 +6343,9 @@ define('subzero/components/highlight',[
 			},
 			turnOff: function(){
 				this._active = false;
-				this.state.containers.underfoot.removeChild(this.indicater);
+				if (this.state.containers.underfoot.children.indexOf(this.indicater)){
+					this.state.containers.underfoot.removeChild(this.indicater);
+				}
 			},
 			render: function(){
 				if (this._active){
@@ -6428,6 +6455,105 @@ define('subzero/components/anim',[
 		});		
 	}
 );
+define('subzero/components/inventory',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		Component.add('inventory', {
+			init: function(entity, data){
+				this._super(entity, data);
+				this.set('inventory.items', {});
+			},
+			register: function(state){
+				this._super(state);
+			},
+			addItem: function(item){
+				var inv = this.get('inventory.items');
+				if (inv[item]==undefined){
+					inv[item]=1;
+				} else {
+					inv[item]++;
+				}
+				this.set('inventory.items', inv);
+			}
+		});		
+	}
+);
+define('subzero/components/item',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		Component.add('item', {
+			init: function(entity, data){
+				this._super(entity, data);
+				this.set('item.item', data.item);
+			},
+			register: function(state){
+				this._super(state);
+				this.on('interact', this.interact);
+			},
+			deregister: function(state){
+				this._super(state);
+				this.off('interact', this.interact);
+			},
+			interact: function(e){
+				if (e.components.inventory){
+					e.components.inventory.addItem(this.get('item.item'));
+				}
+				this.state.removeEntity(this.entity);
+			},
+			tick: function(delta){
+
+			}
+		});		
+	}
+);
+define('subzero/components/equipable',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		Component.add('equipable', {
+			init: function(entity, data){
+				this._super(entity, data);
+				this._equiped = null;
+			},
+			register: function(state){
+				this._super(state);
+				this.on('item.equip', this.itemEquip)
+				this.on('item.use', this.itemUse)
+			},
+			deregister: function(state){
+				this._super(state);
+				this.off('item.equip', this.itemEquip);
+				this.off('item.use', this.itemUse)
+			},
+			itemEquip: function(item){
+				this._equiped = item;
+				this.entity.trigger('item.equiped', this._equiped);
+			},
+			itemUse: function(){
+				if (this._equiped){
+					inv = this.get('inventory.items');
+					if (inv[this._equiped]>0){
+						inv[this._equiped]--;
+						//TODO: Replace with real item used code.
+						var bomb = this.state.factory.create(this._equiped, {
+							xform: {
+								tx: this.get('xform.tx'),
+								ty: this.get('xform.ty')
+							}
+						})
+						this.state.addEntity(bomb);
+						if (inv[this._equiped]<=0){
+							this.itemEquip(null);
+						}
+					}
+				}
+			}
+
+		});		
+	}
+);
 define('subzero/factory',[
 	'sge',
 	'./entity',
@@ -6446,7 +6572,10 @@ define('subzero/factory',[
 	'./components/highlight',
 	'./components/container',
 	'./components/computer',
-	'./components/anim'
+	'./components/anim',
+	'./components/inventory',
+	'./components/item',
+	'./components/equipable'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {
@@ -6636,6 +6765,34 @@ define('subzero/social',[
 		return SocialSystem;
 	}
 );
+define('subzero/hud',[
+	'sge'
+	], function(sge){
+		var PlayerHUD = sge.Class.extend({
+			init: function(state){
+				this.pc = null;
+				this.state = state;
+				this.container = new PIXI.DisplayObjectContainer	();
+			},
+			setPC: function(pc){
+				this.pc = pc;
+				this.createDisplay();
+				this.state.containers.hud.addChild(this.container);
+				this.pc.on('item.equiped', this.updateItem.bind(this));
+			},
+			updateItem: function(item){
+				console.log(item);
+				this._equiped.setText('Equiped:' + item);
+			},
+			createDisplay: function(){
+				this._equiped = new PIXI.BitmapText('Equiped: null', {font: '16px 8bit'});
+				this.container.addChild(this._equiped);
+			}
+		})
+
+		return PlayerHUD
+	}
+);
 define('subzero/subzerostate',[
 		'sge',
 		'./tilemap',
@@ -6644,8 +6801,9 @@ define('subzero/subzerostate',[
 		'./physics',
 		'./factory',
 		'./social',
-		'./ai'
-	], function(sge, TileMap, TiledLevel, Entity, Physics, Factory, Social, AI){
+		'./ai',
+		'./hud'
+	], function(sge, TileMap, TiledLevel, Entity, Physics, Factory, Social, AI, HUD){
 		var SubzeroState = sge.GameState.extend({
 			init: function(game){
 				this._super(game);
@@ -6671,11 +6829,15 @@ define('subzero/subzerostate',[
 				this.containers.map = new PIXI.DisplayObjectContainer();
 				this.containers.overhead = new PIXI.DisplayObjectContainer();
 				this.containers.underfoot = new PIXI.DisplayObjectContainer();
+				this.containers.glow = new PIXI.DisplayObjectContainer();
+				this.containers.hud = new PIXI.DisplayObjectContainer();
 				this.container.addChild(this.containers.map);
+				this.container.addChild(this.containers.hud);
 				
 				this.physics = new Physics();
 				this.factory = Factory;
 				this.social = new Social();
+				this.hud = new HUD(this);
 				var loader = new sge.Loader();
 				loader.loadJSON('content/manifest.json').then(this.loadManifest.bind(this));
 			},
@@ -6729,30 +6891,29 @@ define('subzero/subzerostate',[
 				}.bind(this));
 			},
 			loadLevel : function(levelData){
-				console.log('Loaded Level')
 				this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
-				var blurFilter = new PIXI.PixelateFilter();
-				this.background.filters = [blurFilter]
 				this.stage.addChild(this.background);
 				this.stage.addChild(this.container);
-				var text = new PIXI.BitmapText('Subzero', {font:'64px 8bit'});
-				this.stage.addChild(text);
 				this.map = new TileMap(levelData.width, levelData.height, this.game.renderer);
-				
 				TiledLevel(this, this.map, levelData).then(function(){
-
 					this.social.setMap(this.map);
 					this.map.preRender();
-					console.log('Created Level')
-
 					this.physics.setMap(this);
-					this.initGame();
-				}.bind(this), 500)
+					var loader = new sge.Loader();
+					loader.loadJS('content/levels/' + this.game.data.map + '.js', null, {state : this}).then(this.loadLevelEvents.bind(this), this.initGame.bind(this));
+				}.bind(this), 500);
+			},
+			loadLevelEvents: function(sandbox){
+				sandbox();
+				this.initGame();
 			},
 			initGame: function(){
 
 				var pc = this.getEntity('pc');
 				this.pc = pc;
+				if (this.pc){
+					this.hud.setPC(pc);
+				}
 
 				var mask = new PIXI.Graphics();
 				mask.beginFill()
@@ -6774,8 +6935,10 @@ define('subzero/subzerostate',[
 				this.containers.map.addChild(this.containers.underfoot);
 				this.containers.map.addChild(this.containers.entities);
 				this.containers.map.addChild(this.containers.overhead);
+				this.containers.map.addChild(this.containers.glow);
 				this.containers.map.position.x = this.game.width/(2*this._scale)-(this.map.width*this.map.tileSize*0.5);
 				this.containers.map.position.y = this.game.height/(2*this._scale)-(this.map.height*this.map.tileSize*0.5);
+				console.log('Starting Game')
 				this.game.changeState('game');
 
 			},
@@ -6919,19 +7082,27 @@ define('subzero/main',[
 		'./subzerostate',
 	], function(sge, config, SubzeroState){
 		var MenuItem = sge.Class.extend({
-			init: function(text, callback){
-				this._text = text;
-				this._callback = callback;
+			init: function(data){
+				this._text = data[0];
+				this._count = data[1];
+				this._callback = data[2];
 				this.container = new PIXI.DisplayObjectContainer();
 				this.background = new PIXI.Graphics();
 				this.background.lineStyle(4, config.colors.primaryDark, 1);
-				this.background.drawRect(0,0, 200, 32);
+				this.background.drawRect(0,0, 250, 32);
 				this.text = new PIXI.BitmapText(this._text, {font: '24px 8bit'});
 				this.text.position.y = 4;
 				this.text.position.x = 8;
+				
 				this.container.addChild(this.background);
 				this.container.addChild(this.text);
 
+				if (this._count!==undefined&&this._count!==null){
+					this.count = new PIXI.BitmapText('x' + this._count, {font: '24px 8bit'});
+					this.count.position.y = 4;
+					this.count.position.x = 210;
+					this.container.addChild(this.count);
+				}
 			},
 			select: function(){
 				this._selected = true
@@ -6943,11 +7114,11 @@ define('subzero/main',[
 				if (this._selected){
 					this.container.position.x = 24;
 					this.background.lineStyle(4, config.colors.complementBright, 1);
-					this.background.drawRect(0,0, 200, 32);
+					this.background.drawRect(0,0, 250, 32);
 				} else {
 					this.container.position.x = 0;
 					this.background.lineStyle(4, config.colors.primaryDark, 1);
-					this.background.drawRect(0,0, 200, 32);
+					this.background.drawRect(0,0, 250, 32);
 				}
 			},
 			callback: function(){
@@ -7025,22 +7196,27 @@ define('subzero/main',[
 	        	},
 
 	        	createMenu: function(){
+	        		while (this.menuContainer.children.length){
+	        			this.menuContainer.removeChild(this.menuContainer.children[0]);
+	        		};
+	        		this.items = [];
 	        		for (var i=0;i<this._itemText.length;i++){
 	        			var item = new MenuItem(this._itemText[i]);
 	        			item.container.position.y = i * 40;
 	        			this.menuContainer.addChild(item.container);
 	        			this.items.push(item);
 	        		}
-	        		var item = new MenuItem('Quit', function(){
-	        			this.game.changeState('game');
-	        		}.bind(this));
+	        		var item = new MenuItem(['Quit', null, function(){
+	        			this.quit();
+	        		}.bind(this)]);
         			item.container.position.y = i * 40;
         			this.menuContainer.addChild(item.container);
         			this.items.push(item);
-
-        			this.updateMenu();
+					this.updateMenu();
 	        	},
-
+	        	quit: function(){
+	        		this.game.changeState('game');
+	        	},
 	        	tick: function(){
 	        		if (this.input.isPressed('up')){
 	        			this.up();
@@ -7080,6 +7256,19 @@ define('subzero/main',[
 	        	startState: function(){
 	        		this.gameState = this.game.getState('game');
 	        		this.gameState.stage.addChild(this.container);
+
+	        		var pc = this.gameState.getEntity('pc');
+	        		if (pc){
+	        			var inv = pc.get('inventory.items');
+	        			var keys = Object.keys(inv);
+	        			this._itemText = keys.map(function(key){
+	        				return [key, inv[key], function(){
+	        					pc.trigger('item.equip', key);
+	        					this.quit();
+	        				}.bind(this)];
+	        			}.bind(this));
+	        		}
+	        		this.createMenu();
 	        	},
 	        	endState: function(){
 	        		this.gameState.stage.removeChild(this.container);

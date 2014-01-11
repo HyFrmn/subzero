@@ -23,6 +23,7 @@ define([
 				this._super(state);
 				this.off('highlight.on', this.turnOn);
 				this.off('highlight.off', this.turnOff);
+				this.turnOff();
 			},
 			turnOn: function(){
 				this._active = true;
@@ -30,7 +31,9 @@ define([
 			},
 			turnOff: function(){
 				this._active = false;
-				this.state.containers.underfoot.removeChild(this.indicater);
+				if (this.state.containers.underfoot.children.indexOf(this.indicater)){
+					this.state.containers.underfoot.removeChild(this.indicater);
+				}
 			},
 			render: function(){
 				if (this._active){
