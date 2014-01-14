@@ -11,7 +11,8 @@
         ["metal_cabinet_a", [32,64]],
         ["metal_shelf_a", [32,64]],
         ["computer", [32,64]],
-        ["scifi_icons", [24,24]]
+        ["scifi_icons", [24,24]],
+        ["switch", [32, 64]]
     ],
     "images" : [
         "backgrounds/space_a",

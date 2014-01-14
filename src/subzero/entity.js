@@ -37,7 +37,11 @@ define([
 						this._render_funcs.push(this.components[key].render.bind(this.components[key]))
 					}
 					if (this.components[key].tick){
-						this._tick_funcs.push(this.components[key].tick.bind(this.components[key]))
+						this._tick_funcs.push(function(delta){
+							if (this.components[key].enabled){
+								this.components[key].tick(delta)
+							}
+						}.bind(this));
 					}
 				}.bind(this));
 			},

@@ -2,9 +2,10 @@ define([
 		'sge'
 	], function(sge){
 		var Component = sge.Class.extend({
-			init: function(entity){
+			init: function(entity, data){
 				this.entity = entity;
 				this._callbacks = [];
+				this.enabled = data.enabled!==undefined ? Boolean(data.enabled) : true;
 			},
 			get: function(attr){
 				return this.entity.get(attr)

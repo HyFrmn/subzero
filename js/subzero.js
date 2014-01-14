@@ -4148,9 +4148,10 @@ define('subzero/component',[
 		'sge'
 	], function(sge){
 		var Component = sge.Class.extend({
-			init: function(entity){
+			init: function(entity, data){
 				this.entity = entity;
 				this._callbacks = [];
+				this.enabled = data.enabled!==undefined ? Boolean(data.enabled) : true;
 			},
 			get: function(attr){
 				return this.entity.get(attr)
@@ -4317,7 +4318,11 @@ define('subzero/entity',[
 						this._render_funcs.push(this.components[key].render.bind(this.components[key]))
 					}
 					if (this.components[key].tick){
-						this._tick_funcs.push(this.components[key].tick.bind(this.components[key]))
+						this._tick_funcs.push(function(delta){
+							if (this.components[key].enabled){
+								this.components[key].tick(delta)
+							}
+						}.bind(this));
 					}
 				}.bind(this));
 			},
@@ -6293,7 +6298,7 @@ define('subzero/components/interact',[
 				var tx = this.get('xform.tx');
 				var ty = this.get('xform.ty');
 				var targets = this.state.findEntities(tx, ty, 32).filter(function(e){
-					return e.components['interact']!=undefined
+					return e.components.interact!=undefined && e.components.interact.enabled;
 				});
 				targets.sort(function(a,b){return b._findDist-a._findDist});
 				if (this._current!=targets[0]){
@@ -6463,6 +6468,11 @@ define('subzero/components/inventory',[
 			init: function(entity, data){
 				this._super(entity, data);
 				this.set('inventory.items', {});
+				if (data.items){
+					data.items.split(',').forEach(function(item){
+						this.addItem(item);
+					}.bind(this));
+				}
 			},
 			register: function(state){
 				this._super(state);
@@ -6554,6 +6564,42 @@ define('subzero/components/equipable',[
 		});		
 	}
 );
+define('subzero/components/switch',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		Component.add('switch', {
+			init: function(entity, data){
+				this._super(entity, data);
+				this.set('switch.on', data.on || false);
+				this.set('switch.entity', data.entity);
+			},
+			register: function(state){
+				this._super(state);
+				this.on('interact', this.interact);
+			},
+			deregister: function(state){
+				this._super(state);
+				this.off('interact', this.interact);
+			},
+			interact: function(){
+				this.set('switch.on', !this.get('switch.on'));
+				this.update();
+				var entityName = this.get('switch.entity');
+				if (entityName){
+					var entity = this.state.getEntity(entityName);
+					console.log(entityName, entity);
+					if (entity){
+						entity.trigger('interact');
+					}
+				}
+			},
+			update: function(){
+				this.set('sprite.frame', this.get('switch.on') ? 1 : 0);
+			}
+		});		
+	}
+);
 define('subzero/factory',[
 	'sge',
 	'./entity',
@@ -6575,7 +6621,8 @@ define('subzero/factory',[
 	'./components/anim',
 	'./components/inventory',
 	'./components/item',
-	'./components/equipable'
+	'./components/equipable',
+	'./components/switch'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {
@@ -7066,7 +7113,7 @@ define('subzero/subzerostate',[
 				return entities;
 			},
 			getEntity: function(name){
-				return this._entity_name[name];
+				return this._entity_name[name.replace(/@/,'')];
 			},
 			getEntities: function(query){
 

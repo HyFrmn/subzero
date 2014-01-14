@@ -220,5 +220,20 @@
         "item" : {
             "item" : "bomb"
         }
+    },
+    "switch" : {
+        "meta" : {"inherit" : "trigger"},
+        "sprite" : {
+            "src" : "switch",
+            "frame" : 1,
+            "offsety" : -48,
+            "offsetx" : -16,
+            "container" : "entities"
+        },
+        "interact" : {},
+        "highlight" : {
+            "radius" : 32
+        },
+        "switch" : {}
     }
 }

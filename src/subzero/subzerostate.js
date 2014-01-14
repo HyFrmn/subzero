@@ -271,7 +271,7 @@ define([
 				return entities;
 			},
 			getEntity: function(name){
-				return this._entity_name[name];
+				return this._entity_name[name.replace(/@/,'')];
 			},
 			getEntities: function(query){
 

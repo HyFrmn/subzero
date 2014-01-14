@@ -6,6 +6,11 @@ define([
 			init: function(entity, data){
 				this._super(entity, data);
 				this.set('inventory.items', {});
+				if (data.items){
+					data.items.split(',').forEach(function(item){
+						this.addItem(item);
+					}.bind(this));
+				}
 			},
 			register: function(state){
 				this._super(state);
