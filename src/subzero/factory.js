@@ -17,7 +17,6 @@ define([
 	'./components/container',
 	'./components/computer',
 	'./components/anim',
-	'./components/inventory',
 	'./components/item',
 	'./components/equipable',
 	'./components/switch'

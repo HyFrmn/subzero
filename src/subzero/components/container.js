@@ -15,8 +15,9 @@ define([
 				this.off('interact', this.toggle);
 				this._super(state);
 			},
-			toggle: function(){
-				this.set('sprite.frame', 1)
+			toggle: function(entity){
+				this.set('sprite.frame', 1);
+				this.state.swapInventory(entity, this.entity);
 			}
 		});		
 	}

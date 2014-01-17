@@ -48,6 +48,9 @@ define([
 			game.setStateClass('inventory', subzero.InventoryState);
 			game.createState('inventory');
 
+			game.setStateClass('swap', subzero.InventorySwapState);
+			game.createState('swap');
+
 			game.setStateClass('game', subzero.SubzeroState);
 			game.start(options);
 			game.changeState('menu')

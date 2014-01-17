@@ -50,7 +50,12 @@ define([
 				this.game.changeState('win');
 			},
 			openInventory: function(){
+				this.game.getState('inventory').createMenu(this.getEntity('pc'));
 				this.game.changeState('inventory');
+			},
+			swapInventory: function(a, b){
+				this.game.getState('swap').createMenu(a, b);
+				this.game.changeState('swap');
 			},
 			loseGame: function(){
 				this.game.changeState('lose');
