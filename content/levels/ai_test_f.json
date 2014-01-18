@@ -122,12 +122,26 @@
                  "name":"cabinet.test",
                  "properties":
                     {
-                     "inventory.items":"bomb,bomb,bomb,bomb,bomb"
+                     "inventory.items":"bomb,bomb,bomb,bomb,bomb,ident"
                     },
                  "type":"shelf",
                  "visible":true,
                  "width":0,
                  "x":480,
+                 "y":128
+                }, 
+                {
+                 "gid":69,
+                 "height":0,
+                 "name":"guard",
+                 "properties":
+                    {
+
+                    },
+                 "type":"ganymede_guard",
+                 "visible":true,
+                 "width":0,
+                 "x":608,
                  "y":128
                 }],
          "opacity":1,

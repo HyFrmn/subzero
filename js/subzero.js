@@ -7125,6 +7125,18 @@ define('subzero/inventory',[
 					inv[item]++;
 				}
 				this.set('inventory.items', inv);
+			},
+			removeItem: function(item){
+				var inv = this.get('inventory.items');
+				if (inv[item]==undefined){
+					inv[item]=0;
+				} else {
+					inv[item]--;
+				}
+				if (inv[item]<=0){
+					delete inv[item];
+				}
+				this.set('inventory.items', inv);
 			}
 		});
 
@@ -7322,6 +7334,8 @@ define('subzero/inventory',[
             },
 
             createMenu: function(entityA, entityB){
+            	this._a = entityA;
+            	this._b = entityB;
                 var invA = entityA.get('inventory.items');
                 var keysA = Object.keys(invA);
                 var invB = entityB.get('inventory.items');
@@ -7329,42 +7343,54 @@ define('subzero/inventory',[
                 var itemsA = keysA.map(function(key){
                     return [entityA, key, function(){
                         while (invA[key]){
-                        	invA[key]--;
+                        	entityA.components.inventory.removeItem(key);
                         	entityB.components.inventory.addItem(key);
                         }
-                        this.updateMenu();
+                        this.rebuildMenu();
                     }.bind(this)];
                 }.bind(this));
                 
                 var itemsB = keysB.map(function(key){
                     return [entityB, key, function(){
                         while (invB[key]){
-                        	invB[key]--;
+                        	entityB.components.inventory.removeItem(key);
                         	entityA.components.inventory.addItem(key);
                         }
-                        this.updateMenu();
+                        this.rebuildMenu();
                     }.bind(this)];
                 }.bind(this));
                 var maxcount = Math.max(itemsA.length, itemsB.length);
+                for (var i=0;i<maxcount;i++){
+                	this.items.push([null,null]);
+                }
                 var menuContainerA = new PIXI.DisplayObjectContainer();
                 var menuContainerB = new PIXI.DisplayObjectContainer();
-                for (var i=0;i<maxcount;i++){
-                    var itemA = new MenuItem(itemsA[i]);
+                for (var i=0;i<itemsA.length;i++){
+                    itemA = new MenuItem(itemsA[i]);
                     itemA.container.position.y = i * 40;
                     menuContainerA.addChild(itemA.container);
+                    if (this.items[i]===undefined){
+                    	this.items[i] = {}
+                    }
+                    this.items[i][0] = itemA;
+                }
 
-                    var itemB = new MenuItem(itemsB[i]);
+                for (var i=0;i<itemsB.length;i++){
+                    itemB = new MenuItem(itemsB[i]);
                     itemB.container.position.y = i * 40;
                     menuContainerB.addChild(itemB.container);
-
-                    this.items.push([itemA,itemB]);
+                    if (this.items[i]===undefined){
+                    	this.items[i] = {}
+                    }
+                    this.items[i][1] = itemB;
                 }
+
                 var item = new MenuItem(['Quit', 'Quit', function(){
                     this.quit();
                 }.bind(this)]);
-                item.container.position.y = i * 40;
+                item.container.position.y = maxcount * 40;
                 menuContainerA.addChild(item.container);
-                this.items.push([item,item]);
+                this.items[maxcount] = [item,item];
                 this.container.addChild(menuContainerA);
                 this.menuContainerA = menuContainerA;
                 this.menuContainerA.position.x = 64;
@@ -7442,9 +7468,32 @@ define('subzero/inventory',[
             },
 
             updateMenu: function(){
-                this.items.forEach(function(t){t[0].unselect();t[1].unselect()});
-                this.items[this._index[1]][this._index[0]].select();
-                this.items.forEach(function(t){t[0].update();t[1].update()});
+                this.items.forEach(function(t){
+                	if (t[0]) {
+ 	               		t[0].unselect();
+					}
+                	if (t[1]) {
+ 	               		t[1].unselect();
+					}
+               	});
+
+               	var item = this.items[this._index[1]][this._index[0]];
+               	if (item){
+               		item.select();
+               	}
+                this.items.forEach(function(t){
+                	if (t[0]) {
+ 	               		t[0].update();
+					}
+                	if (t[1]) {
+ 	               		t[1].update();
+					}
+               	});
+            },
+
+            rebuildMenu: function(){
+            	this.resetMenu();
+            	this.createMenu(this._a, this._b);
             },
 
             resetMenu: function(){
