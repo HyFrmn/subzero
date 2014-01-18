@@ -1,12 +1,11 @@
 require.config({
 	baseUrl: 'src',
-	packages: ['sge', 'editor'],
+	packages: ['editor'],
 
 })
-define(['sge','editor'], 
-	function(sge, editor){
-	
-		console.log('Editor', sge, editor);
+define(['editor'], 
+	function(editor){
+		console.log('Editor', editor);
 		var a = new editor.Node();
 		var b = new editor.Node();
 		b._group.x(640).y(120);

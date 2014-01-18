@@ -1,5 +1,5 @@
-define(['sge'],
-	function(sge){
+define(['sge/class'],
+	function(Class){
 		console.log('Node')
 
 		var SOCKETWIDTH=12;
@@ -8,7 +8,7 @@ define(['sge'],
 		var toolData = {};
 		var draw = SVG('canvas');
 
-		var Connection = sge.Class.extend({
+		var Connection = Class.extend({
 			init: function(a, indexOut, b){
 				this._a = a;
 				this._aIndex = indexOut;
@@ -35,7 +35,7 @@ define(['sge'],
 			}
 		})
 
-		var Node = sge.Class.extend({
+		var Node = Class.extend({
 			init: function(){
 				this._inputs = [];
 				this._outputs = [];
@@ -72,7 +72,7 @@ define(['sge'],
 				if (tool!=='select'){
 					return;
 				}
-				connection = this._connections.filter(function(conn){return conn._aIndex==idx});
+				var connection = this._connections.filter(function(conn){return conn._aIndex==idx});
 				if (connection.length>0){
 					connection[0].remove();
 				} else {

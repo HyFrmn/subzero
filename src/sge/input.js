@@ -1,5 +1,5 @@
 define(
-    ['./Observable'],
+    ['./observable'],
 function(Observable){
     var KEYMAP = {
         "B1" : "space",
