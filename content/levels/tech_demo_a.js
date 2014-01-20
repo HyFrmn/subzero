@@ -4,9 +4,8 @@ var door = state.getEntity('door.out');
 var exit = state.getEntity('exit.top');
 
 exit.on('contact.start', function(){
-	console.log('Contact!')
 	state.changeLevel('tech_demo_b');
-})
+});
 
 guard.on('interact', function(entity){
 	var inv = entity.get('inventory.items');
@@ -15,8 +14,15 @@ guard.on('interact', function(entity){
 	if (inv.ident){
 		cutscene.setDialog("Ok, you checkout. Welcome to Ganymede");
 		door.trigger('interact');
+		state.set('ganymede.enter', true);
 	} else {
 		cutscene.setDialog("Sorry you need an ident card to enter the station.");
 	}
 	state.startCutscene();
 });
+
+console.log('Test:', state.get('ganymede'))
+
+if (state.get('ganymede.enter')){
+	door.trigger('interact');
+}

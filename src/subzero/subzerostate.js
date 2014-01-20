@@ -200,7 +200,6 @@ define([
 				//console.log(this.game.renderer.batchs.length)
 			},
 
-
 			addEntity : function(e){
 				var id = 0;
 				while (this._entities[id]!==undefined){
@@ -217,6 +216,7 @@ define([
 				this._updateHash(e, tx, ty);
 				return e;
 			},
+			
 			removeEntity: function(e){
 				e.deregister(this);
 				var id = e.id;
@@ -229,6 +229,7 @@ define([
 				}
 				delete this._entities[id];
 			},
+
 			_updateHash: function(e, tx, ty){
 				if (!e){
 					return;
@@ -256,6 +257,7 @@ define([
 					}	
 				}
 			},
+			
 			findEntities: function(tx, ty, radius){
 				var hx = Math.floor(tx/32);
 				var hy = Math.floor(ty/32);
@@ -282,11 +284,21 @@ define([
 				}
 				return entities;
 			},
+			
 			getEntity: function(name){
 				return this._entity_name[name.replace(/@/,'')];
 			},
+			
 			getEntities: function(query){
 
+			},
+
+			get: function(path){
+				return this.game.data.persist[path]
+			},
+
+			set: function(path, value){
+				return this.game.data.persist[path]=value;
 			}
 		})
 

@@ -39,6 +39,7 @@
         "standard"
     ],
     "levels" : [
+        "tech_demo_a",
         "galileosquare",
         "transport",
         "docks",

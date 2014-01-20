@@ -79,7 +79,7 @@
                  "name":"cabinet.test",
                  "properties":
                     {
-                     "inventory.items":"bomb,bomb,bomb,bomb,bomb,ident"
+                     "inventory.items":"bomb,bomb"
                     },
                  "type":"shelf",
                  "visible":true,
@@ -93,7 +93,7 @@
                  "name":"cabinet.test",
                  "properties":
                     {
-                     "inventory.items":"bomb,bomb,bomb,bomb,bomb,ident"
+                     "inventory.items":"bomb,bomb"
                     },
                  "type":"shelf",
                  "visible":true,
@@ -107,7 +107,7 @@
                  "name":"cabinet.test",
                  "properties":
                     {
-                     "inventory.items":"bomb,bomb,bomb,bomb,bomb,ident"
+                     "inventory.items":"bomb,bomb"
                     },
                  "type":"shelf",
                  "visible":true,
