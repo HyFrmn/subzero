@@ -47,6 +47,8 @@
         "ai_test_b"
     ],
     "audio" : [
-        "menu.selection.click"
+        "menu.selection.click",
+        "select.up",
+        "select.down"
     ]
 }

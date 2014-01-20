@@ -169,6 +169,7 @@ define([
                     this._index=0;
                 }
                 this.updateMenu();
+                createjs.Sound.play('select.up');
             },
 
             down: function(){
@@ -177,13 +178,14 @@ define([
                     this._index=this.items.length-1;
                 }
                 this.updateMenu();
+                createjs.Sound.play('select.down');
             },
 
             updateMenu: function(){
                 this.items.forEach(function(i){i.unselect()});
                 this.items[this._index].select();
                 this.items.forEach(function(i){i.update()});
-                createjs.Sound.play('menu.selection.click');
+                
             },
 
             resetMenu: function(){
@@ -335,6 +337,7 @@ define([
                 }
                 this._index[1] = y;
                 this.updateMenu();
+                createjs.Sound.play('select.up');
             },
 
             down: function(){
@@ -345,6 +348,7 @@ define([
                 }
                 this._index[1] = y;
                 this.updateMenu();
+                createjs.Sound.play('select.down');
             },
 
             left: function(){
@@ -355,6 +359,7 @@ define([
                 }
                 this._index[0] = x;
                 this.updateMenu();
+                createjs.Sound.play('select.up');
             },
 
             right: function(){
@@ -365,6 +370,7 @@ define([
                 }
                 this._index[0] = x;
                 this.updateMenu();
+                createjs.Sound.play('select.down');
             },
 
             updateMenu: function(){
@@ -389,7 +395,6 @@ define([
  	               		t[1].update();
 					}
                	});
-                createjs.Sound.play('menu.selection.click');
             },
 
             rebuildMenu: function(){
