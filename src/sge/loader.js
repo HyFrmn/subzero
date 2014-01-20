@@ -22,7 +22,19 @@ define([
 
 
         var Loader = Class.extend({
-            init: function(){},
+            init: function(){
+                this._hasAudio = false;
+                if (createjs.Sound.initializeDefaultPlugins()) {
+
+                    //createjs.Sound.registerPlugins([createjs.WebAudioPlugin]);
+                    createjs.Sound.addEventListener("fileload", this._loadAudio.bind(this));
+                    this._soundPromises = {};
+                    console.log('Audio Config')
+                    this._hasAudio = true;
+                } else {
+                    console.log('No Audio')
+                }
+            },
             loadJSON: function(url){
                 var defered = new when.defer();
                 ajax(url, function(text){
@@ -84,6 +96,20 @@ define([
                 tex.load();
                 return defered.promise;
             },
+            loadAudio: function(url, id){
+                var defered = new when.defer();
+                if (this._hasAudio){
+                    this._soundPromises[id] = defered;
+                    createjs.Sound.registerSound(url, id);
+                } else {
+                    defered.resolve();
+                }
+                return defered.promise;
+            },
+            _loadAudio: function(evt){
+                console.log('Event', evt);
+                this._soundPromises[evt.id].resolve()
+            },
             createSandbox: function(code, that, locals) {
                 that = that || Object.create(null);
                 locals = locals || {};
@@ -103,6 +129,7 @@ define([
 
                 return Function.prototype.bind.apply(sandbox, context); // bind the local variables to the sandbox
             },
+
         })
 
         return Loader

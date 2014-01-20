@@ -183,6 +183,7 @@ define([
                 this.items.forEach(function(i){i.unselect()});
                 this.items[this._index].select();
                 this.items.forEach(function(i){i.update()});
+                createjs.Sound.play('menu.selection.click');
             },
 
             resetMenu: function(){
@@ -388,6 +389,7 @@ define([
  	               		t[1].update();
 					}
                	});
+                createjs.Sound.play('menu.selection.click');
             },
 
             rebuildMenu: function(){

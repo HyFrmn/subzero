@@ -23,6 +23,7 @@ define([
             sge.When.all(promises).then(function(){
 
                 game = new sge.Game();
+                game.loader = loader;
                 game.setStateClass('paused', PausedState);
                 game.createState('paused');
                 

@@ -43,7 +43,7 @@ define([
 				this.factory = Factory;
 				this.social = new Social();
 				this.hud = new HUD(this);
-				var loader = new sge.Loader();
+				var loader = game.loader;
 				loader.loadJSON('content/manifest.json').then(this.loadManifest.bind(this));
 			},
 			winGame: function(){
@@ -65,7 +65,7 @@ define([
 			},
 			loadManifest: function(manifest){
 				console.log('Loaded Manifest')
-				var loader = new sge.Loader();
+				var loader = this.game.loader;
 				var promises = [];
 				if (manifest.sprites){
 					manifest.sprites.forEach(function(data){
@@ -92,6 +92,11 @@ define([
 						promises.push(loader.loadJSON('content/ai/' + data +'.json').then(AI.load.bind(AI)));
 					}.bind(this))
 				}
+				if (manifest.audio){
+					manifest.audio.forEach(function(data){
+						promises.push(loader.loadAudio('content/audio/' + data +'.wav', data));
+					}.bind(this))
+				}
 
 				sge.When.all(promises).then(function(){
 					console.log('Loaded Assets');
@@ -109,7 +114,7 @@ define([
 					this.social.setMap(this.map);
 					this.map.preRender();
 					this.physics.setMap(this);
-					var loader = new sge.Loader();
+					var loader = this.game.loader;
 					loader.loadJS('content/levels/' + this.game.data.map + '.js', null, {state : this}).then(this.loadLevelEvents.bind(this), this.initGame.bind(this));
 				}.bind(this), 500);
 			},

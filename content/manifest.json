@@ -45,5 +45,8 @@
         "docks",
         "ai_test_a",
         "ai_test_b"
+    ],
+    "audio" : [
+        "menu.selection.click"
     ]
 }
