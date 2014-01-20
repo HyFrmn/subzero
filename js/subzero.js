@@ -19238,6 +19238,7 @@ define('subzero/subzerostate',[
 					}.bind(this))
 				}
 				if (manifest.audio){
+				    createjs.Sound.removeAllSounds()
 					manifest.audio.forEach(function(data){
 						promises.push(loader.loadAudio('content/audio/' + data +'.wav', data));
 					}.bind(this))
