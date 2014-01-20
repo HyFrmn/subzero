@@ -96,11 +96,11 @@ define([
 				sge.When.all(promises).then(function(){
 					console.log('Loaded Assets');
 					loader.loadJSON('content/levels/' + this.game.data.map + '.json').then(function(data){
-						this.loadLevel(data);
+						this.loadLevelData(data);
 					}.bind(this))
 				}.bind(this));
 			},
-			loadLevel : function(levelData){
+			loadLevelData : function(levelData){
 				this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
 				this.stage.addChild(this.background);
 				this.stage.addChild(this.container);
@@ -117,29 +117,36 @@ define([
 				sandbox();
 				this.initGame();
 			},
+			changeLevel: function(map, location){
+				console.log('Change Level', map)
+				this.game.changeState('load');
+				this.game.data.map = map;
+				this.game.data.spawn = location;
+				this.game.createState('game');
+			},
 			initGame: function(){
 
 				var pc = this.getEntity('pc');
 				this.pc = pc;
 				if (this.pc){
 					this.hud.setPC(pc);
+					if (this.game.data.spawn){
+						var spawnEntity = this.getEntity(this.game.data.spawn);
+						this.pc.set('xform.tx', spawnEntity.get('xform.tx'));
+						this.pc.set('xform.ty', spawnEntity.get('xform.ty'));
+					}
 				}
 
-				var mask = new PIXI.Graphics();
-				mask.beginFill()
-				mask.drawRect(32, 96, 800, 480);
-				mask.endFill();
-
-				this.containers.underfoot.mask = mask;
-				this.containers.map.addChild(mask);
+				this.containers.underfoot.mask = this.map.maskBase;
+				this.containers.map.addChild(this.map.maskBase);
 
 				var mask = new PIXI.Graphics();
 				mask.beginFill()
 				mask.drawRect(32, 32, 800, 480+64);
 				mask.endFill();
 
-				this.containers.entities.mask = mask;
-				this.containers.map.addChild(mask);
+				this.containers.entities.mask = this.map.maskCanopy;
+				this.containers.map.addChild(this.map.maskCanopy);
 
 				this.containers.map.addChild(this.map.container);
 				this.containers.map.addChild(this.containers.underfoot);

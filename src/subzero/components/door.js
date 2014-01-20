@@ -22,8 +22,8 @@ define([
 				tile.data.passable = this._open;
 				var tile = this.map.getTileAtPos(this.get('xform.tx'),this.get('xform.ty')-32);
 				tile.data.passable = this._open;
-				var tile = this.map.getTileAtPos(this.get('xform.tx'),this.get('xform.ty')-64);
-				tile.data.passable = this._open;
+				//var tile = this.map.getTileAtPos(this.get('xform.tx'),this.get('xform.ty')-64);
+				//tile.data.passable = this._open;
 			},
 			toggle: function(){
 				if (this._open){

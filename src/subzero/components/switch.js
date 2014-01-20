@@ -22,7 +22,6 @@ define([
 				var entityName = this.get('switch.entity');
 				if (entityName){
 					var entity = this.state.getEntity(entityName);
-					console.log(entityName, entity);
 					if (entity){
 						entity.trigger('interact');
 					}

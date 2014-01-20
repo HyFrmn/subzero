@@ -31,6 +31,12 @@ define([
 				this.containerCanopy = new PIXI.DisplayObjectContainer();
 				this.containerCanopy.position.x=this.containerCanopy.position.y=0;
 
+				this.maskBase = new PIXI.Graphics();
+				this.maskBase.beginFill();
+
+				this.maskCanopy = new PIXI.Graphics();
+				this.maskCanopy.beginFill();
+
 				for (var i = (width * height) -1; i >= 0; i--) {
 					var tile = new Tile();
 					tile.layers.base = 0;
@@ -133,6 +139,12 @@ define([
 								sprite.position.x = (x*this.tileSize) - startX;
 								sprite.position.y = (y*this.tileSize) - startY;
 								chunk.addChild(sprite);
+							} else {
+								this.maskBase.drawRect(x*this.tileSize,y*this.tileSize,this.tileSize,this.tileSize);
+							}
+
+							if (!tile.layers.canopy){
+								this.maskCanopy.drawRect(x*this.tileSize,y*this.tileSize,this.tileSize,this.tileSize);
 							}
 						}
 					}

@@ -40,15 +40,19 @@ define([
 						if (testHashes.indexOf(hash)<0){
 							testHashes.push(hash);
 							ep = potential[k];
+							/*
 							if (ep.get('physics.type')==2){
 								continue;
 							}
+							*/
 							bRect = new sat.Box(new sat.Vector(ep.get('xform.tx'),ep.get('xform.ty')), ep.get('physics.width'), ep.get('physics.height'));
 							collided = sat.testPolygonPolygon(aRect.toPolygon(), bRect.toPolygon(), response)
 							if (collided){
+								e.trigger('contact.start', ep);
+								ep.trigger('contact.start', e);
 								if (ep.get('physics.type')==2||e.get('physics.type')==2){
-									
-								} if (ep.get('physics.type')==1){
+									//Don't resolve the collision.
+								} else if (ep.get('physics.type')==1){
 									this.move(e, 0, -response.overlapV.x, -response.overlapV.y);
 								} else {
 									this.move(e, 0, -0.5*response.overlapV.x, -0.5*response.overlapV.y);
@@ -59,6 +63,9 @@ define([
 								// @if DEBUG
 								ep.set('physics.color', '0xAA0000');
 								// @endif
+								
+								
+
 							}
 							
 						}
@@ -68,8 +75,8 @@ define([
 			move: function(entity, delta, vx, vy){
 
 				if (vx==undefined){
-					vx = entity.get('movement.vx') * delta * 64;
-					vy = entity.get('movement.vy') * delta * 64;
+					vx = entity.get('movement.vx') * delta * entity.get('movement.speed');
+					vy = entity.get('movement.vy') * delta * entity.get('movement.speed');
 				}
 
 				var tx = entity.get('xform.tx');

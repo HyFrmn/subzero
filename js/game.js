@@ -35,6 +35,9 @@ define([
 			
 			game.setStateClass('menu', subzero.MenuState);
 			game.createState('menu');
+
+			game.setStateClass('load', subzero.MenuState);
+			game.createState('load');
 			
 			game.setStateClass('win', subzero.WinState);
 			game.createState('win');

@@ -9,6 +9,7 @@ define([
 				this.set('sprite.frame', 16);
 				this.set('movement.vx', 0);
 				this.set('movement.vy', 0);
+				this.set('movement.speed', 96);
 				this._anim = null;
 				this._animTimeout = 0;
 				this._walkcycleFrames = {
