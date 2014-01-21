@@ -19,7 +19,8 @@ define([
 	'./components/anim',
 	'./components/item',
 	'./components/equipable',
-	'./components/switch'
+	'./components/switch',
+	'./components/persist'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {

@@ -47,7 +47,6 @@ define([
             },
             loadJS: function(url, that, locals) {
                 var defered = new when.defer();
-                console.log('Src', url)
                 ajax(url, function(text){
                     var sandbox = this.createSandbox(text, that, locals);
                     defered.resolve(sandbox);
@@ -107,7 +106,6 @@ define([
                 return defered.promise;
             },
             _loadAudio: function(evt){
-                console.log('Event', evt);
                 this._soundPromises[evt.id].resolve()
             },
             createSandbox: function(code, that, locals) {

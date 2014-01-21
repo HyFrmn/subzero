@@ -126,6 +126,9 @@ define([
 			changeLevel: function(map, location){
 				console.log('Change Level', map)
 				this.game.changeState('load');
+				for (var i = this._entity_ids.length - 1; i >= 0; i--) {
+					this._entities[this._entity_ids[i]].trigger('persist');
+				};
 				this.game.data.map = map;
 				this.game.data.spawn = location;
 				this.game.createState('game');
@@ -142,6 +145,22 @@ define([
 						this.pc.set('xform.ty', spawnEntity.get('xform.ty'));
 					}
 				}
+
+				var names = Object.keys(this.game.data.persist.entities);
+				console.log('Names:', names)
+				for (var i = names.length - 1; i >= 0; i--) {
+					var name = names[i];
+					var data = this.game.data.persist.entities[name];
+					var entity = this.getEntity(name);
+					console.log('Persist', name);
+					if (entity){
+						var attrs = Object.keys(data);
+						for (var j = attrs.length - 1; j >= 0; j--) {
+							entity.set(attrs[j], data[attrs[j]]);
+							console.log(name, attrs[j], data[attrs[j]]);
+						}
+					}
+				};
 
 				this.containers.underfoot.mask = this.map.maskBase;
 				this.containers.map.addChild(this.map.maskBase);
@@ -296,15 +315,17 @@ define([
 			},
 
 			get: function(path){
-				return this.game.data.persist[path]
+				return this.game.data.persist.vars[path]
 			},
 
 			set: function(path, value){
-				return this.game.data.persist[path]=value;
+				return this.game.data.persist.vars[path]=value;
 			},
 			startState: function(){
 				window.onblur = function(){
-                    this.game.changeState('paused')
+					if (this.game._currentState==this){
+	                    this.game.changeState('paused')
+	                }
                 }.bind(this);
 			},
 			endState: function(){

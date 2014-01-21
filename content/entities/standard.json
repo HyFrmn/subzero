@@ -46,7 +46,10 @@
         "sprite" : {
             "src" :  "man_b"
         },
-        "inventory" : {}
+        "inventory" : {},
+        "persist" : {
+            "attrs" : ["inventory.items"]
+        }
     },
     "citizen_base" : {
         "meta" : {

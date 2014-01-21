@@ -16,7 +16,8 @@ define([
                 map: getURLParameter('debug-map') || 'tech_demo_a',
             },
             persist: {
-                
+                vars: {},
+                entities: {}
             },
             map: getURLParameter('debug-map') || 'tech_demo_a',
         }
