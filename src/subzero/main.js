@@ -51,9 +51,7 @@ define([
                 game.setStateClass('game', SubzeroState);
                 game.start(options);
                 game.changeState('menu')
-                window.onblur = function(){
-                    game.changeState('paused')
-                }
+                
 
             })
             

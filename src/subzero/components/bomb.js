@@ -6,7 +6,8 @@ define([
 			register: function(state){
 				this._super(state);
 				this._frame= 0;
-				this._anim = 0
+				this._anim = 0;
+				createjs.Sound.play('explosion');
 			},
 			tick: function(delta){
 				if (this._anim<=0){

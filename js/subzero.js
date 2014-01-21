@@ -14874,7 +14874,6 @@ define('sge/game',[
 		'./input'
 	], 
 	function(Class, Input){
-
 		var Game =  Class.extend({
 			init: function(options){
 				this.options = {
@@ -18334,7 +18333,8 @@ define('subzero/components/bomb',[
 			register: function(state){
 				this._super(state);
 				this._frame= 0;
-				this._anim = 0
+				this._anim = 0;
+				createjs.Sound.play('explosion');
 			},
 			tick: function(delta){
 				if (this._anim<=0){
@@ -19330,9 +19330,6 @@ define('subzero/subzerostate',[
 					e.render();
 				};
 				this.spriteSort(this.containers.entities);
-				//this.background.position.x = (this.containers.map.position.x/10) - 128;
-				//this.background.position.y = (this.containers.map.position.y/10) - 128;
-				
 			},
 
 			spriteSort: function(parent) {
@@ -19348,7 +19345,6 @@ define('subzero/subzerostate',[
 
 			render: function(){
 				this.game.renderer.render(this.stage);
-				//console.log(this.game.renderer.batchs.length)
 			},
 
 			addEntity : function(e){
@@ -19450,6 +19446,14 @@ define('subzero/subzerostate',[
 
 			set: function(path, value){
 				return this.game.data.persist[path]=value;
+			},
+			startState: function(){
+				window.onblur = function(){
+                    this.game.changeState('paused')
+                }.bind(this);
+			},
+			endState: function(){
+				//window.onblue = null;
 			}
 		})
 
@@ -20180,9 +20184,7 @@ define('subzero/main',[
                 game.setStateClass('game', SubzeroState);
                 game.start(options);
                 game.changeState('menu')
-                window.onblur = function(){
-                    game.changeState('paused')
-                }
+                
 
             })
             

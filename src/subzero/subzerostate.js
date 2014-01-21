@@ -185,9 +185,6 @@ define([
 					e.render();
 				};
 				this.spriteSort(this.containers.entities);
-				//this.background.position.x = (this.containers.map.position.x/10) - 128;
-				//this.background.position.y = (this.containers.map.position.y/10) - 128;
-				
 			},
 
 			spriteSort: function(parent) {
@@ -203,7 +200,6 @@ define([
 
 			render: function(){
 				this.game.renderer.render(this.stage);
-				//console.log(this.game.renderer.batchs.length)
 			},
 
 			addEntity : function(e){
@@ -305,6 +301,14 @@ define([
 
 			set: function(path, value){
 				return this.game.data.persist[path]=value;
+			},
+			startState: function(){
+				window.onblur = function(){
+                    this.game.changeState('paused')
+                }.bind(this);
+			},
+			endState: function(){
+				//window.onblue = null;
 			}
 		})
 

@@ -3,6 +3,18 @@ define([
 		'./input'
 	], 
 	function(Class, Input){
+		// @if DEBUG
+		var stats = new Stats();
+		stats.setMode(0);
+
+		// Align top-left
+		stats.domElement.style.position = 'absolute';
+		stats.domElement.style.left = '0px';
+		stats.domElement.style.top = '0px';
+
+		document.body.appendChild( stats.domElement );
+
+		// @endif
 
 		var Game =  Class.extend({
 			init: function(options){
@@ -64,6 +76,9 @@ define([
 			},
 
 			tick: function(delta){
+				// @if DEBUG
+				stats.begin();
+				// @endif
 				if (this._currentState){
 					this._currentState.tick(delta);
 				}
@@ -71,6 +86,9 @@ define([
 					this._changeState(this._nextState);
 					this._nextState=null;
 				}
+				// @if DEBUG
+				stats.end();
+				// @endif
 			},
 
 			render: function(){

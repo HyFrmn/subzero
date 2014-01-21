@@ -49,6 +49,7 @@
     "audio" : [
         "menu.selection.click",
         "select.up",
-        "select.down"
+        "select.down",
+        "explosion"
     ]
 }
