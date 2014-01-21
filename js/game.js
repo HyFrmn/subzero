@@ -15,9 +15,11 @@ define([
                 drawSocial: getURLParameter('debug-social') || false,
                 map: getURLParameter('debug-map') || 'tech_demo_a',
             },
+            //TODO: Move to SaveGame
             persist: {
                 vars: {},
-                entities: {}
+                entities: {},
+                maps: {}
             },
             map: getURLParameter('debug-map') || 'tech_demo_a',
         }

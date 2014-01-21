@@ -119,14 +119,26 @@ define([
 								}
 							}
 							var entity = state.factory.create(entityData.type, eData);
-							entity.name = entityData.name;
+							var name = entityData.name;
+							if (state._entity_name[name]!=undefined){
+								var baseName = name;
+								var q = 0;
+								while (state._entity_name[name]!=undefined){
+									q++;
+									name = baseName + q;
+								}
+								// @if DEBUG
+								console.warn('Renamed Entity:', baseName, name);
+								// @endif
+							}
+							entity.name = name;
 
 							if (spawn){
 								state.addEntity(entity);	
 							} else {
 								state._unspawnedEntities[entity.name] = entity;
 							}
-							state._entity_name[entityData.name] = entity;
+							state._entity_name[entity.name] = entity;
 						} else {
 							console.error('Missing:', entityData.type);
 						}

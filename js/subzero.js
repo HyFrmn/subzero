@@ -15988,7 +15988,6 @@ define('sge/loader',[
             },
             loadJS: function(url, that, locals) {
                 var defered = new when.defer();
-                console.log('Src', url)
                 ajax(url, function(text){
                     var sandbox = this.createSandbox(text, that, locals);
                     defered.resolve(sandbox);
@@ -16048,7 +16047,6 @@ define('sge/loader',[
                 return defered.promise;
             },
             _loadAudio: function(evt){
-                console.log('Event', evt);
                 this._soundPromises[evt.id].resolve()
             },
             createSandbox: function(code, that, locals) {
@@ -16400,14 +16398,23 @@ define('subzero/tiledlevel',[
 								}
 							}
 							var entity = state.factory.create(entityData.type, eData);
-							entity.name = entityData.name;
+							var name = entityData.name;
+							if (state._entity_name[name]!=undefined){
+								var baseName = name;
+								var q = 0;
+								while (state._entity_name[name]!=undefined){
+									q++;
+									name = baseName + q;
+								}
+							}
+							entity.name = name;
 
 							if (spawn){
 								state.addEntity(entity);	
 							} else {
 								state._unspawnedEntities[entity.name] = entity;
 							}
-							state._entity_name[entityData.name] = entity;
+							state._entity_name[entity.name] = entity;
 						} else {
 							console.error('Missing:', entityData.type);
 						}
@@ -18904,6 +18911,41 @@ define('subzero/components/switch',[
 		});		
 	}
 );
+define('subzero/components/persist',[
+	'sge',
+	'../component'
+	], function(sge, Component){
+		Component.add('persist', {
+			init: function(entity, data){
+				this._super(entity, data);
+				this._attrs = data.attrs;
+				this._global = Boolean(data.global);
+			},
+			register: function(state){
+				this._super(state);
+				this.on('persist', this.persist);
+			},
+			deregister: function(state){
+				this._super(state);
+				this.off('persist', this.persist);
+			},
+			persist: function(){
+				var mapName = this.state.game.data.map;
+				var gameData = this.state.game.data.persist;
+				var persistData = {};
+				for (var i = this._attrs.length - 1; i >= 0; i--) {
+					var attr = this._attrs[i];
+					persistData[attr] = this.get(attr);
+				}
+				if (this._global){
+					gameData.entities[this.entity.name] = persistData;
+				} else {
+					gameData.maps[mapName].entities[this.entity.name] = persistData;
+				}
+			}
+		});		
+	}
+);
 define('subzero/factory',[
 	'sge',
 	'./entity',
@@ -18925,7 +18967,8 @@ define('subzero/factory',[
 	'./components/anim',
 	'./components/item',
 	'./components/equipable',
-	'./components/switch'
+	'./components/switch',
+	'./components/persist'
 	],function(sge, Entity){
 		var deepExtend = function(destination, source) {
           for (var property in source) {
@@ -19271,6 +19314,13 @@ define('subzero/subzerostate',[
 			changeLevel: function(map, location){
 				console.log('Change Level', map)
 				this.game.changeState('load');
+				//TODO: MOVE TO PERSIST SYSTEM (CurrentGame? Story? SavedGame?);
+				this.game.data.persist.maps[this.game.data.map] = {
+					entities: {}
+				}
+				for (var i = this._entity_ids.length - 1; i >= 0; i--) {
+					this._entities[this._entity_ids[i]].trigger('persist');
+				}
 				this.game.data.map = map;
 				this.game.data.spawn = location;
 				this.game.createState('game');
@@ -19285,6 +19335,35 @@ define('subzero/subzerostate',[
 						var spawnEntity = this.getEntity(this.game.data.spawn);
 						this.pc.set('xform.tx', spawnEntity.get('xform.tx'));
 						this.pc.set('xform.ty', spawnEntity.get('xform.ty'));
+					}
+				}
+
+				var names = Object.keys(this.game.data.persist.entities);
+				for (var i = names.length - 1; i >= 0; i--) {
+					var name = names[i];
+					var data = this.game.data.persist.entities[name];
+					var entity = this.getEntity(name);
+					if (entity){
+						var attrs = Object.keys(data);
+						for (var j = attrs.length - 1; j >= 0; j--) {
+							entity.set(attrs[j], data[attrs[j]]);
+						}
+					}
+				};
+
+				var mapData = this.game.data.persist.maps[this.game.data.map];
+				if (mapData){
+					var names = Object.keys(mapData.entities);
+					for (var i = names.length - 1; i >= 0; i--) {
+						var name = names[i];
+						var data = mapData.entities[name];
+						var entity = this.getEntity(name);
+						if (entity){
+							var attrs = Object.keys(data);
+							for (var j = attrs.length - 1; j >= 0; j--) {
+								entity.set(attrs[j], data[attrs[j]]);
+							}
+						}
 					}
 				}
 
@@ -19441,15 +19520,17 @@ define('subzero/subzerostate',[
 			},
 
 			get: function(path){
-				return this.game.data.persist[path]
+				return this.game.data.persist.vars[path]
 			},
 
 			set: function(path, value){
-				return this.game.data.persist[path]=value;
+				return this.game.data.persist.vars[path]=value;
 			},
 			startState: function(){
 				window.onblur = function(){
-                    this.game.changeState('paused')
+					if (this.game._currentState==this){
+	                    this.game.changeState('paused')
+	                }
                 }.bind(this);
 			},
 			endState: function(){

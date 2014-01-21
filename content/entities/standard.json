@@ -13,7 +13,7 @@
             "offsety" : -58
         },
         "physics" : {
-            "width" : 24,
+            "width" : 16,
             "height": 16
         },
         "chara" : {
@@ -48,7 +48,8 @@
         },
         "inventory" : {},
         "persist" : {
-            "attrs" : ["inventory.items"]
+            "attrs" : ["inventory.items"],
+            "global" : true
         }
     },
     "citizen_base" : {
@@ -202,6 +203,9 @@
         "highlight" : {},
         "physics" : {
             "type" : 1
+        },
+        "persist" : {
+            "attrs" : ["inventory.items"]
         }
     },
     "shelf" : {

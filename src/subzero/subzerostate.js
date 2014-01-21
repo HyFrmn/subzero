@@ -126,9 +126,13 @@ define([
 			changeLevel: function(map, location){
 				console.log('Change Level', map)
 				this.game.changeState('load');
+				//TODO: MOVE TO PERSIST SYSTEM (CurrentGame? Story? SavedGame?);
+				this.game.data.persist.maps[this.game.data.map] = {
+					entities: {}
+				}
 				for (var i = this._entity_ids.length - 1; i >= 0; i--) {
 					this._entities[this._entity_ids[i]].trigger('persist');
-				};
+				}
 				this.game.data.map = map;
 				this.game.data.spawn = location;
 				this.game.createState('game');
@@ -147,20 +151,33 @@ define([
 				}
 
 				var names = Object.keys(this.game.data.persist.entities);
-				console.log('Names:', names)
 				for (var i = names.length - 1; i >= 0; i--) {
 					var name = names[i];
 					var data = this.game.data.persist.entities[name];
 					var entity = this.getEntity(name);
-					console.log('Persist', name);
 					if (entity){
 						var attrs = Object.keys(data);
 						for (var j = attrs.length - 1; j >= 0; j--) {
 							entity.set(attrs[j], data[attrs[j]]);
-							console.log(name, attrs[j], data[attrs[j]]);
 						}
 					}
 				};
+
+				var mapData = this.game.data.persist.maps[this.game.data.map];
+				if (mapData){
+					var names = Object.keys(mapData.entities);
+					for (var i = names.length - 1; i >= 0; i--) {
+						var name = names[i];
+						var data = mapData.entities[name];
+						var entity = this.getEntity(name);
+						if (entity){
+							var attrs = Object.keys(data);
+							for (var j = attrs.length - 1; j >= 0; j--) {
+								entity.set(attrs[j], data[attrs[j]]);
+							}
+						}
+					}
+				}
 
 				this.containers.underfoot.mask = this.map.maskBase;
 				this.containers.map.addChild(this.map.maskBase);

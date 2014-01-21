@@ -6,6 +6,7 @@ define([
 			init: function(entity, data){
 				this._super(entity, data);
 				this._attrs = data.attrs;
+				this._global = Boolean(data.global);
 			},
 			register: function(state){
 				this._super(state);
@@ -16,13 +17,18 @@ define([
 				this.off('persist', this.persist);
 			},
 			persist: function(){
+				var mapName = this.state.game.data.map;
+				var gameData = this.state.game.data.persist;
 				var persistData = {};
 				for (var i = this._attrs.length - 1; i >= 0; i--) {
 					var attr = this._attrs[i];
 					persistData[attr] = this.get(attr);
 				}
-				this.state.game.data.persist.entities[this.entity.name] = persistData;
-				console.log(this.entity.name, persistData);
+				if (this._global){
+					gameData.entities[this.entity.name] = persistData;
+				} else {
+					gameData.maps[mapName].entities[this.entity.name] = persistData;
+				}
 			}
 		});		
 	}

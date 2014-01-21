@@ -39,8 +39,8 @@ define([
 				this.indicater.beginFill(this.get('physics.color'));
 				this.indicater.drawRect(0, 0, this.get('physics.width'), this.get('physics.height'));
 				this.indicater.endFill();
-				this.indicater.position.x = this.get('xform.tx')-12;
-				this.indicater.position.y = this.get('xform.ty')-8;
+				this.indicater.position.x = this.get('xform.tx')-(this.get('physics.width')/2);
+				this.indicater.position.y = this.get('xform.ty')-(this.get('physics.height')/2);
 			
 			}
 			// @endif
