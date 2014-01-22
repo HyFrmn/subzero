@@ -38,7 +38,12 @@ define([
             loadJSON: function(url){
                 var defered = new when.defer();
                 ajax(url, function(text){
-                    var data = JSON.parse(text);
+                    try {
+                        var data = JSON.parse(text);
+                    } catch(err) {
+                        console.error(err);
+                    }
+                    
                     defered.resolve(data);
                 }, function(xmlHttp){
                     defered.reject(xmlHttp);

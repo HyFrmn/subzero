@@ -60,7 +60,12 @@ define([
 			loseGame: function(){
 				this.game.changeState('lose');
 			},
-			startCutscene: function(){
+			startCutscene: function(options){
+				if (options){
+					if (options.dialog){
+						this.game.getState('cutscene').setDialog(options.dialog);
+					}
+				}
 				this.game.changeState('cutscene');
 			},
 			loadManifest: function(manifest){
@@ -90,6 +95,12 @@ define([
 				if (manifest.ai){
 					manifest.ai.forEach(function(data){
 						promises.push(loader.loadJSON('content/ai/' + data +'.json').then(AI.load.bind(AI)));
+					}.bind(this))
+				}
+				if (manifest.dialog){
+					var dialog = this.game.getState('cutscene').dialog;
+					manifest.dialog.forEach(function(data){
+						promises.push(loader.loadJSON('content/dialog/' + data +'.json').then(dialog.load.bind(dialog)));
 					}.bind(this))
 				}
 				if (manifest.audio){

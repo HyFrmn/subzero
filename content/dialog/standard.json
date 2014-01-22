@@ -1,3 +1,15 @@
 {
-	
+	"needIdent" : [{
+			"id" : 2,
+			"text" : "Move along...",
+			"condition" : "state.get('ganymede.enter')"
+		},{
+			"id" : 0,
+			"text" : "Ok, you checkout. Welcome to Ganymede.",
+			"condition" : "'ident' in @(pc).inventory.items",
+			"postScript" : "@(door.out).trigger('interact');state.set('ganymede.enter', true);"
+		},{
+			"id" : 1,
+			"text" : "Sorry you need an ident card to enter Ganymede."
+		}]	
 }
