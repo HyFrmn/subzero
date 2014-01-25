@@ -22,10 +22,19 @@
 				"speaker" : "guard",
 				"responses" : [{
 						"id" : 3,
-						"text" : "Where can I get an Ident card?"
+						"text" : "Where can I get an Ident card?",
+						"nodes" : [{
+								"id" : 6,
+								"text" : "You should have been issued one where ever you live.\nCheck with security down the hall they can help."
+							}
+						]
 					},{
 						"id" : 4,
-						"text" : "Why do I need an Ident card."
+						"text" : "Why do I need an Ident card.",
+						"nodes" : [{
+								"id" : 7,
+								"text" : "Everyone one in Ganymede needs an ident card.\nIt's used to pay for goods, and provides access to secure areas."
+							}]
 					},{
 						"id" : 5,
 						"command" : "exit"
