@@ -41,6 +41,7 @@ define([
                     try {
                         var data = JSON.parse(text);
                     } catch(err) {
+                        console.log('Error Parsing:', url)
                         console.error(err);
                     }
                     

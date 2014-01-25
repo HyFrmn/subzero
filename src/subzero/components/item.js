@@ -16,8 +16,8 @@ define([
 				this.off('interact', this.interact);
 			},
 			interact: function(e){
-				if (e.components.inventory){
-					e.components.inventory.addItem(this.get('item.item'));
+				if (e.inventory){
+					e.inventory.addItem(this.get('item.item'));
 				}
 				this.state.removeEntity(this.entity);
 			},

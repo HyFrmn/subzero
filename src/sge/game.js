@@ -44,7 +44,8 @@ define([
 				this._states = {};
 				this._stateClassMap = {};
 				this._currentState = null;
-				this.renderer = PIXI.autoDetectRenderer(this.width, this.height, canvas);
+				//Don't Support Canvas
+				this.renderer = new PIXI.WebGLRenderer(this.width, this.height, canvas);
 				this.input = new Input(canvas);
 			},
 			start: function(data){

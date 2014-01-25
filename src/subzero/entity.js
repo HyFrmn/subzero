@@ -7,7 +7,7 @@ define([
 				this._super();
 				this.id = null
 				this.data = {};
-				this.components = {};
+				this._components = {};
 				this.tags = [];
 				this._tick_funcs = [];
 				this._render_funcs = [];
@@ -30,25 +30,25 @@ define([
 				};
 			},
 			register: function(state){
-				var keys = Object.keys(this.components);
+				var keys = Object.keys(this._components);
 				keys.forEach(function(key){
-					this.components[key].register(state);
-					if (this.components[key].render){
-						this._render_funcs.push(this.components[key].render.bind(this.components[key]))
+					this._components[key].register(state);
+					if (this._components[key].render){
+						this._render_funcs.push(this._components[key].render.bind(this._components[key]))
 					}
-					if (this.components[key].tick){
+					if (this._components[key].tick){
 						this._tick_funcs.push(function(delta){
-							if (this.components[key].enabled){
-								this.components[key].tick(delta)
+							if (this._components[key].enabled){
+								this._components[key].tick(delta)
 							}
 						}.bind(this));
 					}
 				}.bind(this));
 			},
 			deregister: function(state){
-				var keys = Object.keys(this.components);
+				var keys = Object.keys(this._components);
 				keys.forEach(function(key){
-					this.components[key].deregister(state);
+					this._components[key].deregister(state);
 				}.bind(this));
 			}
 		})
@@ -59,7 +59,8 @@ define([
 				var compData = data[comp];
 				var c = Component.Create(entity, comp, compData);
 				if (c){
-					entity.components[comp] = c;
+					entity._components[comp] = c;
+					entity[comp] = c;
 				}
 			});
 			return entity;

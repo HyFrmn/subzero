@@ -206,6 +206,9 @@
         },
         "persist" : {
             "attrs" : ["inventory.items"]
+        },
+        "inventory" : {
+            
         }
     },
     "shelf" : {

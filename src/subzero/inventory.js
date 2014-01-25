@@ -6,7 +6,7 @@ define([
 		Component.add('inventory', {
 			init: function(entity, data){
 				this._super(entity, data);
-				this.set('inventory.items', {});
+				this.items = {};
 				if (data.items){
 					data.items.split(',').forEach(function(item){
 						this.addItem(item);
@@ -17,25 +17,22 @@ define([
 				this._super(state);
 			},
 			addItem: function(item){
-				var inv = this.get('inventory.items');
-				if (inv[item]==undefined){
-					inv[item]=1;
+				
+				if (this.items[item]==undefined){
+					this.items[item]=1;
 				} else {
-					inv[item]++;
+					this.items[item]++;
 				}
-				this.set('inventory.items', inv);
 			},
 			removeItem: function(item){
-				var inv = this.get('inventory.items');
-				if (inv[item]==undefined){
-					inv[item]=0;
+				if (this.items[item]==undefined){
+					this.items[item]=0;
 				} else {
-					inv[item]--;
+					this.items[item]--;
 				}
-				if (inv[item]<=0){
-					delete inv[item];
+				if (this.items[item]<=0){
+					delete this.items[item];
 				}
-				this.set('inventory.items', inv);
 			}
 		});
 
@@ -46,7 +43,7 @@ define([
             	this._counting = false;
             	if (typeof data[0]!==typeof "string"){
             		this._counting = true;
-                	this._count = this.entity.get('inventory.items')[this.key];
+                	this._count = this.entity.inventory.items[this.key];
         		}
                 this._callback = data[2];
                 this.container = new PIXI.DisplayObjectContainer();
@@ -75,7 +72,7 @@ define([
             },
             update: function(){
             	if (this._counting){
-	            	this._count = this.entity.get('inventory.items')[this.key];
+	            	this._count = this.entity.inventory.items[this.key];
 		        	this.count.setText('x' + this._count)
 		        }
                 if (this._selected){
@@ -119,7 +116,7 @@ define([
             },
 
             createMenu: function(entity){
-                var inv = entity.get('inventory.items');
+                var inv = entity.inventory.items;
                 var keys = Object.keys(inv);
                 var items = keys.map(function(key){
                     return [entity, key, function(){
@@ -238,15 +235,15 @@ define([
             createMenu: function(entityA, entityB){
             	this._a = entityA;
             	this._b = entityB;
-                var invA = entityA.get('inventory.items');
+                var invA = entityA.inventory.items;
                 var keysA = Object.keys(invA);
-                var invB = entityB.get('inventory.items');
+                var invB = entityB.inventory.items;
                 var keysB = Object.keys(invB);
                 var itemsA = keysA.map(function(key){
                     return [entityA, key, function(){
                         while (invA[key]){
-                        	entityA.components.inventory.removeItem(key);
-                        	entityB.components.inventory.addItem(key);
+                        	entityA.inventory.removeItem(key);
+                        	entityB.inventory.addItem(key);
                         }
                         this.rebuildMenu();
                     }.bind(this)];
@@ -255,8 +252,8 @@ define([
                 var itemsB = keysB.map(function(key){
                     return [entityB, key, function(){
                         while (invB[key]){
-                        	entityB.components.inventory.removeItem(key);
-                        	entityA.components.inventory.addItem(key);
+                        	entityB.inventory.removeItem(key);
+                        	entityA.inventory.addItem(key);
                         }
                         this.rebuildMenu();
                     }.bind(this)];

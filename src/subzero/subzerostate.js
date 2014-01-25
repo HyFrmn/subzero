@@ -43,8 +43,9 @@ define([
 				this.factory = Factory;
 				this.social = new Social();
 				this.hud = new HUD(this);
-				var loader = game.loader;
-				loader.loadJSON('content/manifest.json').then(this.loadManifest.bind(this));
+				game.loader.loadJSON('content/levels/' + this.game.data.map + '.json').then(function(data){
+					this.loadLevelData(data);
+				}.bind(this))
 			},
 			winGame: function(){
 				this.game.changeState('win');
@@ -61,61 +62,12 @@ define([
 				this.game.changeState('lose');
 			},
 			startCutscene: function(options){
-				if (options){
-					if (options.dialog){
-						this.game.getState('cutscene').setDialog(options.dialog);
-					}
+				if (options.dialog){
+					var cutscene = this.game.getState('cutscene');
+					cutscene.startDialog(options.dialog);
+				} else {
+					this.game.changeState('cutscene');
 				}
-				this.game.changeState('cutscene');
-			},
-			loadManifest: function(manifest){
-				console.log('Loaded Manifest')
-				var loader = this.game.loader;
-				var promises = [];
-				if (manifest.sprites){
-					manifest.sprites.forEach(function(data){
-						promises.push(loader.loadSpriteFrames('content/sprites/' + data[0] +'.png',data[0], data[1][0],data[1][1]));
-					})
-				}
-				if (manifest.fonts){
-					manifest.fonts.forEach(function(data){
-						promises.push(loader.loadFont('content/font/' + data + '.fnt'));
-					}.bind(this))
-				}
-				if (manifest.images){
-					manifest.images.forEach(function(data){
-						promises.push(loader.loadTexture('content/' + data + '.png', data));
-					}.bind(this))
-				}
-				if (manifest.entities){
-					manifest.entities.forEach(function(data){
-						promises.push(loader.loadJSON('content/entities/' + data +'.json').then(Factory.load.bind(Factory)));
-					}.bind(this))
-				}
-				if (manifest.ai){
-					manifest.ai.forEach(function(data){
-						promises.push(loader.loadJSON('content/ai/' + data +'.json').then(AI.load.bind(AI)));
-					}.bind(this))
-				}
-				if (manifest.dialog){
-					var dialog = this.game.getState('cutscene').dialog;
-					manifest.dialog.forEach(function(data){
-						promises.push(loader.loadJSON('content/dialog/' + data +'.json').then(dialog.load.bind(dialog)));
-					}.bind(this))
-				}
-				if (manifest.audio){
-				    createjs.Sound.removeAllSounds()
-					manifest.audio.forEach(function(data){
-						promises.push(loader.loadAudio('content/audio/' + data +'.wav', data));
-					}.bind(this))
-				}
-
-				sge.When.all(promises).then(function(){
-					console.log('Loaded Assets');
-					loader.loadJSON('content/levels/' + this.game.data.map + '.json').then(function(data){
-						this.loadLevelData(data);
-					}.bind(this))
-				}.bind(this));
 			},
 			loadLevelData : function(levelData){
 				this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
