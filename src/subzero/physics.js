@@ -34,7 +34,7 @@ define([
 					ty = e.get('xform.ty');
 					
 					aRect = new sat.Box(new sat.Vector(tx, ty), e.get('physics.width'), e.get('physics.height'));
-					potential = this.state.findEntities(tx,ty, 32).filter(function(q){return q.components.physics!=null && q!=e});
+					potential = this.state.findEntities(tx,ty, 32).filter(function(q){return q.physics!=null && q!=e});
 					for (var k = potential.length - 1; k >= 0; k--) {
 						var hash = this._collisionHash(e, potential[k])
 						if (testHashes.indexOf(hash)<0){

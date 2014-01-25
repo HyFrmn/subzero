@@ -14902,7 +14902,8 @@ define('sge/game',[
 				this._states = {};
 				this._stateClassMap = {};
 				this._currentState = null;
-				this.renderer = PIXI.autoDetectRenderer(this.width, this.height, canvas);
+				//Don't Support Canvas
+				this.renderer = new PIXI.WebGLRenderer(this.width, this.height, canvas);
 				this.input = new Input(canvas);
 			},
 			start: function(data){
@@ -16088,7 +16089,26 @@ define('sge/main',[
 			Game : Game,
 			GameState : GameState,
 			Loader : Loader,
-			When : When
+			When : When,
+			createSandbox: function(code, that, locals) {
+                that = that || Object.create(null);
+                locals = locals || {};
+                var params = []; // the names of local variables
+                var args = []; // the local variables
+
+                for (var param in locals) {
+                    if (locals.hasOwnProperty(param)) {
+                        args.push(locals[param]);
+                        params.push(param);
+                    }
+                }
+
+                var context = Array.prototype.concat.call(that, params, code); // create the parameter list for the sandbox
+                var sandbox = new (Function.prototype.bind.apply(Function, context)); // create the sandbox function
+                context = Array.prototype.concat.call(that, args); // create the argument list for the sandbox
+
+                return Function.prototype.bind.apply(sandbox, context); // bind the local variables to the sandbox
+            }
 		}
 	}
 );
@@ -16576,7 +16596,7 @@ define('subzero/entity',[
 				this._super();
 				this.id = null
 				this.data = {};
-				this.components = {};
+				this._components = {};
 				this.tags = [];
 				this._tick_funcs = [];
 				this._render_funcs = [];
@@ -16599,25 +16619,25 @@ define('subzero/entity',[
 				};
 			},
 			register: function(state){
-				var keys = Object.keys(this.components);
+				var keys = Object.keys(this._components);
 				keys.forEach(function(key){
-					this.components[key].register(state);
-					if (this.components[key].render){
-						this._render_funcs.push(this.components[key].render.bind(this.components[key]))
+					this._components[key].register(state);
+					if (this._components[key].render){
+						this._render_funcs.push(this._components[key].render.bind(this._components[key]))
 					}
-					if (this.components[key].tick){
+					if (this._components[key].tick){
 						this._tick_funcs.push(function(delta){
-							if (this.components[key].enabled){
-								this.components[key].tick(delta)
+							if (this._components[key].enabled){
+								this._components[key].tick(delta)
 							}
 						}.bind(this));
 					}
 				}.bind(this));
 			},
 			deregister: function(state){
-				var keys = Object.keys(this.components);
+				var keys = Object.keys(this._components);
 				keys.forEach(function(key){
-					this.components[key].deregister(state);
+					this._components[key].deregister(state);
 				}.bind(this));
 			}
 		})
@@ -16628,7 +16648,8 @@ define('subzero/entity',[
 				var compData = data[comp];
 				var c = Component.Create(entity, comp, compData);
 				if (c){
-					entity.components[comp] = c;
+					entity._components[comp] = c;
+					entity[comp] = c;
 				}
 			});
 			return entity;
@@ -17495,7 +17516,7 @@ define('subzero/physics',[
 					ty = e.get('xform.ty');
 					
 					aRect = new sat.Box(new sat.Vector(tx, ty), e.get('physics.width'), e.get('physics.height'));
-					potential = this.state.findEntities(tx,ty, 32).filter(function(q){return q.components.physics!=null && q!=e});
+					potential = this.state.findEntities(tx,ty, 32).filter(function(q){return q.physics!=null && q!=e});
 					for (var k = potential.length - 1; k >= 0; k--) {
 						var hash = this._collisionHash(e, potential[k])
 						if (testHashes.indexOf(hash)<0){
@@ -18638,7 +18659,7 @@ define('subzero/components/interact',[
 				var tx = this.get('xform.tx');
 				var ty = this.get('xform.ty');
 				var targets = this.state.findEntities(tx, ty, 32).filter(function(e){
-					return e.components.interact!=undefined && e.components.interact.enabled;
+					return e.interact!=undefined && e.interact.enabled;
 				});
 				targets.sort(function(a,b){return b._findDist-a._findDist});
 				if (this._current!=targets[0]){
@@ -18819,8 +18840,8 @@ define('subzero/components/item',[
 				this.off('interact', this.interact);
 			},
 			interact: function(e){
-				if (e.components.inventory){
-					e.components.inventory.addItem(this.get('item.item'));
+				if (e.inventory){
+					e.inventory.addItem(this.get('item.item'));
 				}
 				this.state.removeEntity(this.entity);
 			},
@@ -18855,7 +18876,7 @@ define('subzero/components/equipable',[
 			},
 			itemUse: function(){
 				if (this._equiped){
-					inv = this.get('inventory.items');
+					inv = this.entity.inventory.items;
 					if (inv[this._equiped]>0){
 						inv[this._equiped]--;
 						//TODO: Replace with real item used code.
@@ -19231,8 +19252,9 @@ define('subzero/subzerostate',[
 				this.factory = Factory;
 				this.social = new Social();
 				this.hud = new HUD(this);
-				var loader = game.loader;
-				loader.loadJSON('content/manifest.json').then(this.loadManifest.bind(this));
+				game.loader.loadJSON('content/levels/' + this.game.data.map + '.json').then(function(data){
+					this.loadLevelData(data);
+				}.bind(this))
 			},
 			winGame: function(){
 				this.game.changeState('win');
@@ -19248,51 +19270,13 @@ define('subzero/subzerostate',[
 			loseGame: function(){
 				this.game.changeState('lose');
 			},
-			startCutscene: function(){
-				this.game.changeState('cutscene');
-			},
-			loadManifest: function(manifest){
-				console.log('Loaded Manifest')
-				var loader = this.game.loader;
-				var promises = [];
-				if (manifest.sprites){
-					manifest.sprites.forEach(function(data){
-						promises.push(loader.loadSpriteFrames('content/sprites/' + data[0] +'.png',data[0], data[1][0],data[1][1]));
-					})
+			startCutscene: function(options){
+				if (options.dialog){
+					var cutscene = this.game.getState('cutscene');
+					cutscene.startDialog(options.dialog);
+				} else {
+					this.game.changeState('cutscene');
 				}
-				if (manifest.fonts){
-					manifest.fonts.forEach(function(data){
-						promises.push(loader.loadFont('content/font/' + data + '.fnt'));
-					}.bind(this))
-				}
-				if (manifest.images){
-					manifest.images.forEach(function(data){
-						promises.push(loader.loadTexture('content/' + data + '.png', data));
-					}.bind(this))
-				}
-				if (manifest.entities){
-					manifest.entities.forEach(function(data){
-						promises.push(loader.loadJSON('content/entities/' + data +'.json').then(Factory.load.bind(Factory)));
-					}.bind(this))
-				}
-				if (manifest.ai){
-					manifest.ai.forEach(function(data){
-						promises.push(loader.loadJSON('content/ai/' + data +'.json').then(AI.load.bind(AI)));
-					}.bind(this))
-				}
-				if (manifest.audio){
-				    createjs.Sound.removeAllSounds()
-					manifest.audio.forEach(function(data){
-						promises.push(loader.loadAudio('content/audio/' + data +'.wav', data));
-					}.bind(this))
-				}
-
-				sge.When.all(promises).then(function(){
-					console.log('Loaded Assets');
-					loader.loadJSON('content/levels/' + this.game.data.map + '.json').then(function(data){
-						this.loadLevelData(data);
-					}.bind(this))
-				}.bind(this));
 			},
 			loadLevelData : function(levelData){
 				this.background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
@@ -19652,10 +19636,29 @@ define('subzero/mainmenu',[
 		return MenuState;
 	}
 );
+define('subzero/dialog',[
+	'sge',
+	'./behaviour'
+	], function(sge, Behaviour){
+		var Dialog = {dialogs: {}};
+		Dialog.load = function(data){
+			for (var prop in data) {
+		      // important check that this is objects own property 
+		      // not from prototype prop inherited
+		      if(data.hasOwnProperty(prop)){
+		        Dialog.dialogs[prop] = data[prop];
+		      }
+		   }
+
+		}
+		return Dialog;
+	}
+);
 define('subzero/cutscene',[
         'sge',
-        './config'
-    ], function(sge, config){
+        './config',
+        './dialog'
+    ], function(sge, config, Dialog){
     	var CutsceneState = sge.GameState.extend({
                 init: function(game){
                     this._super(game);
@@ -19673,6 +19676,17 @@ define('subzero/cutscene',[
                 },
                 tick: function(){
                     if (this.input.isPressed('space')){
+                        this.interact();
+                    }
+                },
+                interact: function(){
+                    if (this._node){
+                        if (this._node.postScript){
+                            var sandbox = this.createSandbox(this._node.postScript);
+                            sandbox();
+                        }
+                        this.parseDialogNode(this._node, true);
+                    } else {
                         this.game.changeState('game');
                     }
                 },
@@ -19686,7 +19700,57 @@ define('subzero/cutscene',[
                 render: function(){
                     this.game.renderer.render(this.gameState.stage);
                 },
-                setDialog: function(dialog){
+                startDialog: function(id){
+                    var node = Dialog.dialogs[id];
+                    var children = node.nodes || [];
+                    var child=null;
+                    for (var i=0; i<children.length;i++){
+                        child = children[i];
+                        break;
+                    }
+                    if (child){
+                        this.game.changeState('cutscene');
+                        this.parseDialogNode(child);
+                        return true;
+                    } else {
+                        return false;
+                    }
+                },
+                parseDialogNode: function(node, skipText){
+                    if (node.text && !skipText){
+                        this.setDialogText(node.text);
+                        this._node = node;
+                    } else {
+                        var children = node.nodes || [];
+                        var child=null;
+                        for (var i=0; i<children.length;i++){
+                            child = children[i];
+                            if (child.requirements){
+                                for (var j = child.requirements.length - 1; j >= 0; j--) {
+                                    var req = child.requirements[j];
+                                    var sandbox = this.createSandbox(req);
+                                    var result = Boolean(sandbox());
+                                    console.log(req, result)
+                                    if (!result){
+                                        child = null;
+                                        break;
+                                    }
+                                };
+                                if (child){
+                                    break;
+                                }
+                            } else {
+                                break;                                
+                            }
+                        }
+                        if (child){
+                            this.parseDialogNode(child);
+                        } else {
+                            this.game.changeState('game');
+                        }
+                    }
+                },
+                setDialogText: function(dialog){
                     while (this.container.children.length){
                         this.container.removeChild(this.container.children[0]);
                     }
@@ -19695,7 +19759,18 @@ define('subzero/cutscene',[
                     text.position.x = 32;
                     this.container.addChild(this.background)
                     this.container.addChild(text);
+                },
+                createSandbox : function(func){
+                    code = func.replace(/@\(([\w\.]+)\)/g,"state.getEntity('$1')");
+                    if (!code.match(/return/) && !code.match(/;/) && !code.match(/\n/)){
+                        code = 'return ' + code;
+                    }
+                    console.log('Sandbox Code', func, code);
+                    return sge.createSandbox(code, null, {
+                        state: this.game.getState('game')
+                    })
                 }
+
             })
 		return CutsceneState;
 	}
@@ -19786,7 +19861,7 @@ define('subzero/inventory',[
 		Component.add('inventory', {
 			init: function(entity, data){
 				this._super(entity, data);
-				this.set('inventory.items', {});
+				this.items = {};
 				if (data.items){
 					data.items.split(',').forEach(function(item){
 						this.addItem(item);
@@ -19797,25 +19872,22 @@ define('subzero/inventory',[
 				this._super(state);
 			},
 			addItem: function(item){
-				var inv = this.get('inventory.items');
-				if (inv[item]==undefined){
-					inv[item]=1;
+				
+				if (this.items[item]==undefined){
+					this.items[item]=1;
 				} else {
-					inv[item]++;
+					this.items[item]++;
 				}
-				this.set('inventory.items', inv);
 			},
 			removeItem: function(item){
-				var inv = this.get('inventory.items');
-				if (inv[item]==undefined){
-					inv[item]=0;
+				if (this.items[item]==undefined){
+					this.items[item]=0;
 				} else {
-					inv[item]--;
+					this.items[item]--;
 				}
-				if (inv[item]<=0){
-					delete inv[item];
+				if (this.items[item]<=0){
+					delete this.items[item];
 				}
-				this.set('inventory.items', inv);
 			}
 		});
 
@@ -19826,7 +19898,7 @@ define('subzero/inventory',[
             	this._counting = false;
             	if (typeof data[0]!==typeof "string"){
             		this._counting = true;
-                	this._count = this.entity.get('inventory.items')[this.key];
+                	this._count = this.entity.inventory.items[this.key];
         		}
                 this._callback = data[2];
                 this.container = new PIXI.DisplayObjectContainer();
@@ -19855,7 +19927,7 @@ define('subzero/inventory',[
             },
             update: function(){
             	if (this._counting){
-	            	this._count = this.entity.get('inventory.items')[this.key];
+	            	this._count = this.entity.inventory.items[this.key];
 		        	this.count.setText('x' + this._count)
 		        }
                 if (this._selected){
@@ -19899,7 +19971,7 @@ define('subzero/inventory',[
             },
 
             createMenu: function(entity){
-                var inv = entity.get('inventory.items');
+                var inv = entity.inventory.items;
                 var keys = Object.keys(inv);
                 var items = keys.map(function(key){
                     return [entity, key, function(){
@@ -20018,15 +20090,15 @@ define('subzero/inventory',[
             createMenu: function(entityA, entityB){
             	this._a = entityA;
             	this._b = entityB;
-                var invA = entityA.get('inventory.items');
+                var invA = entityA.inventory.items;
                 var keysA = Object.keys(invA);
-                var invB = entityB.get('inventory.items');
+                var invB = entityB.inventory.items;
                 var keysB = Object.keys(invB);
                 var itemsA = keysA.map(function(key){
                     return [entityA, key, function(){
                         while (invA[key]){
-                        	entityA.components.inventory.removeItem(key);
-                        	entityB.components.inventory.addItem(key);
+                        	entityA.inventory.removeItem(key);
+                        	entityB.inventory.addItem(key);
                         }
                         this.rebuildMenu();
                     }.bind(this)];
@@ -20035,8 +20107,8 @@ define('subzero/inventory',[
                 var itemsB = keysB.map(function(key){
                     return [entityB, key, function(){
                         while (invB[key]){
-                        	entityB.components.inventory.removeItem(key);
-                        	entityA.components.inventory.addItem(key);
+                        	entityB.inventory.removeItem(key);
+                        	entityA.inventory.addItem(key);
                         }
                         this.rebuildMenu();
                     }.bind(this)];
@@ -20222,51 +20294,87 @@ define('subzero/main',[
         './cutscene',
         './states',
         './inventory',
-    ], function(sge, config, SubzeroState, PausedState, LoadState, MenuState, CutsceneState, states, inventory){
-        
+        './factory',
+        './dialog'
+    ], function(sge, config, SubzeroState, PausedState, LoadState, MenuState, CutsceneState, states, inventory, Factory, Dialog){
+       
         var createGame = function(options){
 
             var loader = new sge.Loader();
             var promises = [];
             promises.push(loader.loadFont('content/font/standard_white.fnt'))
-            promises.push(loader.loadTexture('content/backgrounds/space_a.png', 'backgrounds/space_a'))
-            promises.push(loader.loadTexture('content/backgrounds/space_b.png', 'backgrounds/space_b'))
-            promises.push(loader.loadTexture('content/backgrounds/space_c.png', 'backgrounds/space_c'))
             promises.push(loader.loadTexture('content/backgrounds/space_d.png', 'backgrounds/space_d'))
-            promises.push(loader.loadTexture('content/backgrounds/space_e.png', 'backgrounds/space_e'))
             sge.When.all(promises).then(function(){
 
                 game = new sge.Game();
                 game.loader = loader;
-                game.setStateClass('paused', PausedState);
-                game.createState('paused');
-                
-                game.setStateClass('menu', MenuState);
-                game.createState('menu');
-
-                game.setStateClass('load', MenuState);
+                game.setStateClass('load', LoadState);
                 game.createState('load');
-                
-                game.setStateClass('win', states.WinState);
-                game.createState('win');
-                
-                game.setStateClass('lose', states.LoseState);
-                game.createState('lose');
-                
-                game.setStateClass('cutscene', CutsceneState);
-                game.createState('cutscene');
-
-                game.setStateClass('inventory', inventory.InventoryState);
-                game.createState('inventory');
-
-                game.setStateClass('swap', inventory.InventorySwapState);
-                game.createState('swap');
-
-                game.setStateClass('game', SubzeroState);
                 game.start(options);
-                game.changeState('menu')
-                
+                game.changeState('load');
 
+                loader.loadJSON('content/manifest.json').then(function(manifest){
+                    console.log('Loaded Manifest')
+                    var promises = [];
+                    if (manifest.sprites){
+                        manifest.sprites.forEach(function(data){
+                            promises.push(loader.loadSpriteFrames('content/sprites/' + data[0] +'.png',data[0], data[1][0],data[1][1]));
+                        })
+                    }
+                    if (manifest.fonts){
+                        manifest.fonts.forEach(function(data){
+                            promises.push(loader.loadFont('content/font/' + data + '.fnt'));
+                        })
+                    }
+                    if (manifest.images){
+                        manifest.images.forEach(function(data){
+                            promises.push(loader.loadTexture('content/' + data + '.png', data));
+                        })
+                    }
+                    if (manifest.entities){
+                        manifest.entities.forEach(function(data){
+                            promises.push(loader.loadJSON('content/entities/' + data +'.json').then(Factory.load.bind(Factory)));
+                        })
+                    }
+                    if (manifest.dialog){
+                        manifest.dialog.forEach(function(data){
+                            promises.push(loader.loadJSON('content/dialog/' + data +'.json').then(Dialog.load.bind(Dialog)));
+                        }.bind(this))
+                    }
+                    if (manifest.audio){
+                        createjs.Sound.removeAllSounds()
+                        manifest.audio.forEach(function(data){
+                            promises.push(loader.loadAudio('content/audio/' + data +'.wav', data));
+                        })
+                    }
+
+                    sge.When.all(promises).then(function(){
+                        console.log('Loaded Assets');
+                        game.setStateClass('paused', PausedState);
+                        game.createState('paused');
+                        
+                        game.setStateClass('menu', MenuState);
+                        game.createState('menu');
+
+                        game.setStateClass('win', states.WinState);
+                        game.createState('win');
+                        
+                        game.setStateClass('lose', states.LoseState);
+                        game.createState('lose');
+                        
+                        game.setStateClass('cutscene', CutsceneState);
+                        game.createState('cutscene');
+
+                        game.setStateClass('inventory', inventory.InventoryState);
+                        game.createState('inventory');
+
+                        game.setStateClass('swap', inventory.InventorySwapState);
+                        game.createState('swap');
+
+                        game.setStateClass('game', SubzeroState);
+                        game.changeState('menu');
+                    }.bind(this));
+                });
             })
             
         }

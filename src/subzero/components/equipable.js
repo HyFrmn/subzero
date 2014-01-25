@@ -23,7 +23,7 @@ define([
 			},
 			itemUse: function(){
 				if (this._equiped){
-					inv = this.get('inventory.items');
+					inv = this.entity.inventory.items;
 					if (inv[this._equiped]>0){
 						inv[this._equiped]--;
 						//TODO: Replace with real item used code.

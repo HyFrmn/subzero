@@ -1,7 +1,8 @@
 define([
         'sge',
-        './config'
-    ], function(sge, config){
+        './config',
+        './dialog'
+    ], function(sge, config, Dialog){
     	var CutsceneState = sge.GameState.extend({
                 init: function(game){
                     this._super(game);
@@ -19,6 +20,17 @@ define([
                 },
                 tick: function(){
                     if (this.input.isPressed('space')){
+                        this.interact();
+                    }
+                },
+                interact: function(){
+                    if (this._node){
+                        if (this._node.postScript){
+                            var sandbox = this.createSandbox(this._node.postScript);
+                            sandbox();
+                        }
+                        this.parseDialogNode(this._node, true);
+                    } else {
                         this.game.changeState('game');
                     }
                 },
@@ -32,7 +44,57 @@ define([
                 render: function(){
                     this.game.renderer.render(this.gameState.stage);
                 },
-                setDialog: function(dialog){
+                startDialog: function(id){
+                    var node = Dialog.dialogs[id];
+                    var children = node.nodes || [];
+                    var child=null;
+                    for (var i=0; i<children.length;i++){
+                        child = children[i];
+                        break;
+                    }
+                    if (child){
+                        this.game.changeState('cutscene');
+                        this.parseDialogNode(child);
+                        return true;
+                    } else {
+                        return false;
+                    }
+                },
+                parseDialogNode: function(node, skipText){
+                    if (node.text && !skipText){
+                        this.setDialogText(node.text);
+                        this._node = node;
+                    } else {
+                        var children = node.nodes || [];
+                        var child=null;
+                        for (var i=0; i<children.length;i++){
+                            child = children[i];
+                            if (child.requirements){
+                                for (var j = child.requirements.length - 1; j >= 0; j--) {
+                                    var req = child.requirements[j];
+                                    var sandbox = this.createSandbox(req);
+                                    var result = Boolean(sandbox());
+                                    console.log(req, result)
+                                    if (!result){
+                                        child = null;
+                                        break;
+                                    }
+                                };
+                                if (child){
+                                    break;
+                                }
+                            } else {
+                                break;                                
+                            }
+                        }
+                        if (child){
+                            this.parseDialogNode(child);
+                        } else {
+                            this.game.changeState('game');
+                        }
+                    }
+                },
+                setDialogText: function(dialog){
                     while (this.container.children.length){
                         this.container.removeChild(this.container.children[0]);
                     }
@@ -41,7 +103,18 @@ define([
                     text.position.x = 32;
                     this.container.addChild(this.background)
                     this.container.addChild(text);
+                },
+                createSandbox : function(func){
+                    code = func.replace(/@\(([\w\.]+)\)/g,"state.getEntity('$1')");
+                    if (!code.match(/return/) && !code.match(/;/) && !code.match(/\n/)){
+                        code = 'return ' + code;
+                    }
+                    console.log('Sandbox Code', func, code);
+                    return sge.createSandbox(code, null, {
+                        state: this.game.getState('game')
+                    })
                 }
+
             })
 		return CutsceneState;
 	}

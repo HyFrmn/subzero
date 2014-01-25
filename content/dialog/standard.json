@@ -1,3 +1,38 @@
 {
-	
+	"needIdent" : {
+		"nodes" : [{
+			"nodes" : [{
+				"id" : 2,
+				"text" : "Move along...",
+				"speaker" : "guard",
+				"requirements" : [
+					"state.get('ganymede.enter')"
+				]
+			},{
+				"id" : 1,
+				"text" : "Thank you sir. Welcome to Ganymede.",
+				"speaker" : "guard",
+				"requirements" : [
+					"'ident' in @(pc).inventory.items"
+				],
+				"postScript" : "state.set('ganymede.enter', true); @(door.out).trigger('interact');"
+			},{
+				"id" : 1,
+				"text" : "You need an Ident Card to enter Ganymede.",
+				"speaker" : "guard",
+				"responses" : [{
+						"id" : 3,
+						"text" : "Where can I get an Ident card?"
+					},{
+						"id" : 4,
+						"text" : "Why do I need an Ident card."
+					},{
+						"id" : 5,
+						"command" : "exit"
+					}
+				]
+			}]
+		}]
+	}
 }
+	

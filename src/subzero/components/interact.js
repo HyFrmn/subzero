@@ -71,7 +71,7 @@ define([
 				var tx = this.get('xform.tx');
 				var ty = this.get('xform.ty');
 				var targets = this.state.findEntities(tx, ty, 32).filter(function(e){
-					return e.components.interact!=undefined && e.components.interact.enabled;
+					return e.interact!=undefined && e.interact.enabled;
 				});
 				targets.sort(function(a,b){return b._findDist-a._findDist});
 				if (this._current!=targets[0]){
