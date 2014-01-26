@@ -84,6 +84,7 @@ define([
                 },
                 _clearResponses: function(){
                     this._responses = [];
+                    this._index = 0;
                 },
                 _addResponse: function(node){
                     if (node.command){
