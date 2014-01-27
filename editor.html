@@ -47,19 +47,22 @@
             <li ng-repeat="data in data.nodes" ng-include="'tree_item_renderer.html'"></li>
         </ul>
     </script>
-    
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
     <script src="vendor/angular.js"></script>
     <script src="vendor/angular-route.js"></script>
+    <script src="vendor/ui-bootstrap-tpls-0.10.0.js"></script>
     <script src="js/edit.js"></script>
 </head>
     <body ng-app="subzero">
         <div ng-controller="DialogCtrl">
             <button ng-click="save()">Save</button>
             <h2>Dialog</h2><button ng-click="addDialog()">+</button>
-            <div ng-repeat="child in dialog">
-                <h3>{{child.name}}</h3><button ng-click="addDialogNode(child)">+</button>
-                <div ng-repeat="node in child.nodes" ng-include="'tmpl/dialog_node.html'"  ng-init="parent = child"/>
-            </div>
+            <tabset>
+                <tab heading="{{child.name}}" ng-repeat="child in dialog">
+                    <h3>{{child.name}}</h3><button ng-click="addDialogNode(child)">+</button>
+                    <div ng-repeat="node in child.nodes" ng-include="'tmpl/dialog_node.html'"  ng-init="parent = child"/>
+                </tav>
+            </tabset>
         </div>
         <pre>
             {{ dialog }}

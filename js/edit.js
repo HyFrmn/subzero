@@ -1,4 +1,4 @@
-var module = angular.module("subzero", []);
+var module = angular.module("subzero", ['ui.bootstrap']);
 module.controller("DialogCtrl", ['$scope', '$http', function($scope, $http, $routeParams){
 
 	$scope.addResponse = function(node){
