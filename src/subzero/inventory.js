@@ -362,8 +362,8 @@ define([
             right: function(){
             	var x = this._index[0];
                 x++;
-                if (x>=this.items.length){
-                    x=this.items.length-1;
+                if (x>1){
+                    x=1;
                 }
                 this._index[0] = x;
                 this.updateMenu();

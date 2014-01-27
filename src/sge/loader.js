@@ -22,17 +22,21 @@ define([
 
 
         var Loader = Class.extend({
-            init: function(){
+            init: function(noAudio){
                 this._hasAudio = false;
-                if (createjs.Sound.initializeDefaultPlugins()) {
+                if (!noAudio){
+                    if (createjs){
+                        if (createjs.Sound.initializeDefaultPlugins()) {
 
-                    //createjs.Sound.registerPlugins([createjs.WebAudioPlugin]);
-                    createjs.Sound.addEventListener("fileload", this._loadAudio.bind(this));
-                    this._soundPromises = {};
-                    console.log('Audio Config')
-                    this._hasAudio = true;
-                } else {
-                    console.log('No Audio')
+                            //createjs.Sound.registerPlugins([createjs.WebAudioPlugin]);
+                            createjs.Sound.addEventListener("fileload", this._loadAudio.bind(this));
+                            this._soundPromises = {};
+                            console.log('Audio Config')
+                            this._hasAudio = true;
+                        } else {
+                            console.log('No Audio')
+                        }
+                    }
                 }
             },
             loadJSON: function(url){

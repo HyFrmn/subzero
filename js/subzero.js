@@ -15964,23 +15964,33 @@ define('sge/loader',[
 
 
         var Loader = Class.extend({
-            init: function(){
+            init: function(noAudio){
                 this._hasAudio = false;
-                if (createjs.Sound.initializeDefaultPlugins()) {
+                if (!noAudio){
+                    if (createjs){
+                        if (createjs.Sound.initializeDefaultPlugins()) {
 
-                    //createjs.Sound.registerPlugins([createjs.WebAudioPlugin]);
-                    createjs.Sound.addEventListener("fileload", this._loadAudio.bind(this));
-                    this._soundPromises = {};
-                    console.log('Audio Config')
-                    this._hasAudio = true;
-                } else {
-                    console.log('No Audio')
+                            //createjs.Sound.registerPlugins([createjs.WebAudioPlugin]);
+                            createjs.Sound.addEventListener("fileload", this._loadAudio.bind(this));
+                            this._soundPromises = {};
+                            console.log('Audio Config')
+                            this._hasAudio = true;
+                        } else {
+                            console.log('No Audio')
+                        }
+                    }
                 }
             },
             loadJSON: function(url){
                 var defered = new when.defer();
                 ajax(url, function(text){
-                    var data = JSON.parse(text);
+                    try {
+                        var data = JSON.parse(text);
+                    } catch(err) {
+                        console.log('Error Parsing:', url)
+                        console.error(err);
+                    }
+                    
                     defered.resolve(data);
                 }, function(xmlHttp){
                     defered.reject(xmlHttp);
@@ -18714,10 +18724,10 @@ define('subzero/components/highlight',[
 				}
 			},
 			render: function(){
-				if (this._active){
+				//if (this._active){
 					this.indicater.position.x = this.get('xform.tx');
 					this.indicater.position.y = this.get('xform.ty');
-				}
+				//}
 			}
 		});
 	}
@@ -19504,7 +19514,8 @@ define('subzero/subzerostate',[
 			},
 
 			get: function(path){
-				return this.game.data.persist.vars[path]
+				console.log(this.game.data.persist.vars, path, this.game.data.persist.vars[path]);
+				return this.game.data.persist.vars[path];
 			},
 
 			set: function(path, value){
@@ -19642,13 +19653,10 @@ define('subzero/dialog',[
 	], function(sge, Behaviour){
 		var Dialog = {dialogs: {}};
 		Dialog.load = function(data){
-			for (var prop in data) {
-		      // important check that this is objects own property 
-		      // not from prototype prop inherited
-		      if(data.hasOwnProperty(prop)){
-		        Dialog.dialogs[prop] = data[prop];
-		      }
-		   }
+			var dataDialog = data.dialog;
+			for (var i = dataDialog.length - 1; i >= 0; i--) {
+				Dialog.dialogs[dataDialog[i].name] = dataDialog[i];
+			};
 
 		}
 		return Dialog;
@@ -19659,6 +19667,22 @@ define('subzero/cutscene',[
         './config',
         './dialog'
     ], function(sge, config, Dialog){
+
+        //http://james.padolsey.com/javascript/wordwrap-for-javascript/
+        function wordwrap( str, width, brk, cut ) {
+         
+            brk = brk || '\n';
+            width = width || 75;
+            cut = cut || false;
+         
+            if (!str) { return str; }
+         
+            var regex = '.{1,' +width+ '}(\\s|$)' + (cut ? '|.{' +width+ '}|.+$' : '|\\S+?(\\s|$)');
+         
+            return str.match( RegExp(regex, 'g') ).join( brk );
+         
+        }
+
     	var CutsceneState = sge.GameState.extend({
                 init: function(game){
                     this._super(game);
@@ -19666,6 +19690,9 @@ define('subzero/cutscene',[
                     this.container = new PIXI.DisplayObjectContainer();
                     this._scale = 1;
                     this._index = 0;
+                    this._timeout = 1/15;
+                    this._char = 0;
+                    this._text = null;
                     this.container.scale.x= window.innerWidth / game.width;
                     this.container.scale.y= window.innerHeight / game.height;
 
@@ -19676,17 +19703,17 @@ define('subzero/cutscene',[
                     this.background.alpha = 0.65;
                     this._state = 'dialog';
                 },
-                tick: function(){
+                tick: function(delta){
                     if (this.input.isPressed('space') || this.input.isPressed('enter')){
                         this.interact();
                     }
-                     if (this.input.isPressed('up')){
+                    if (this.input.isPressed('up')){
                         this.up();
                     }
-
                     if (this.input.isPressed('down')){
                         this.down();
                     }
+                    this._updateText(delta);
                 },
                 interact: function(){
                     if (this._state=='choose'){
@@ -19700,6 +19727,8 @@ define('subzero/cutscene',[
 
                             this.parseDialogNode(node, true);
                         }
+                    } else if(this._state=='typing') {
+                        this._completeText();
                     } else {
                         if (this._node){
                             if (this._node.postScript){
@@ -19724,22 +19753,15 @@ define('subzero/cutscene',[
                 },
                 startDialog: function(id){
                     var node = Dialog.dialogs[id];
-                    var children = node.nodes || [];
-                    var child=null;
-                    for (var i=0; i<children.length;i++){
-                        child = children[i];
-                        break;
-                    }
-                    if (child){
+                    if (node){
                         this.game.changeState('cutscene');
-                        this.parseDialogNode(child);
-                        return true;
-                    } else {
-                        return false;
+                        this.parseDialogNode(node);
                     }
+                    
                 },
                 _clearResponses: function(){
                     this._responses = [];
+                    this._index = 0;
                 },
                 _addResponse: function(node){
                     if (node.command){
@@ -19855,14 +19877,46 @@ define('subzero/cutscene',[
                     }
                 },
                 setDialogText: function(dialog){
+                    this._char = 0;
                     while (this.container.children.length){
                         this.container.removeChild(this.container.children[0]);
                     }
-                    var text = new PIXI.BitmapText(dialog, {font: '32px 8bit'});
-                    text.position.y = this.game.height / (2*this._scale);
-                    text.position.x = 32;
+
+                    this._text = wordwrap(dialog, 60).replace(/\n\n/,'\n');
+
+                    this._textObj = new PIXI.BitmapText('', {font: '32px 8bit'});
+                    this._textObj.position.y = this.game.height / (2*this._scale);
+                    this._textObj.position.x = 32;
                     this.container.addChild(this.background)
-                    this.container.addChild(text);
+                    this.container.addChild(this._textObj);
+                    this._state = 'typing';
+                },
+                _updateText: function(delta){
+                    if (this._text){
+                        this._timeout -= delta;
+                        if (this._timeout<0){
+                            this._timeout=1/30;
+                            this._char++;
+
+                            if (this._char>=this._text.length){
+                                this._completeText();
+                            } else {
+                                if (this._text[this._char].match(/\n/)){
+                                    this._timeout = 1;
+                                } else {
+                                    while (this._text[this._char].match(/[ ]/)){
+                                        this._char++;
+                                    }
+                                }
+                                this._textObj.setText(this._text.slice(0, this._char));
+                            }
+                        }
+                    }
+                },
+                _completeText: function(){
+                    this._textObj.setText(this._text);
+                    this._state = 'waiting';
+                    this._text = null;
                 },
                 createSandbox : function(func){
                     code = func.replace(/@\(([\w\.]+)\)/g,"state.getEntity('$1')");
@@ -20321,8 +20375,8 @@ define('subzero/inventory',[
             right: function(){
             	var x = this._index[0];
                 x++;
-                if (x>=this.items.length){
-                    x=this.items.length-1;
+                if (x>1){
+                    x=1;
                 }
                 this._index[0] = x;
                 this.updateMenu();

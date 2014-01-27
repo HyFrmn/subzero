@@ -8,20 +8,61 @@
             background-color: #FFFFFF;
         }
 
+        textarea {
+            width: 250px;
+        }
         canvas {
             display: block;
         }
-    </style>
-    <script src="vendor/svg.js"></script>
-    <script src="vendor/svg.draggable.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.9/angular.min.js"></script>
-    <script src="vendor/require.js" data-main="js/edit"/>
-</head>
-<body>
-    <script>
- 
 
+        .node-dialog {
+            background: gray;
+            border-radius: 12px;
+            margin: 1em;
+            padding: 0.5em;
+            border: 1px solid black;
+        }
+
+        .node-dialog textarea, .node-dialog input: {
+            border-radius: 4px;
+        }
+
+        .node-dialog label {
+            width: 120px;
+        }
+
+        .dialog-response {
+            background: white;
+            padding: 0.5em;
+            border-radius: 4px;
+            margin: 0.5em;
+        }
+
+    </style>
+    <script type="text/ng-template"  id="tree_item_renderer.html">
+        {{data.name}}
+        <button ng-click="add(data)">Add node</button>
+        <button ng-click="delete(data)" ng-show="data.nodes.length > 0">Delete nodes</button>
+        <ul>
+            <li ng-repeat="data in data.nodes" ng-include="'tree_item_renderer.html'"></li>
+        </ul>
     </script>
-    <div id="canvas" />
+    
+    <script src="vendor/angular.js"></script>
+    <script src="vendor/angular-route.js"></script>
+    <script src="js/edit.js"></script>
+</head>
+    <body ng-app="subzero">
+        <div ng-controller="DialogCtrl">
+            <button ng-click="save()">Save</button>
+            <h2>Dialog</h2><button ng-click="addDialog()">+</button>
+            <div ng-repeat="child in dialog">
+                <h3>{{child.name}}</h3><button ng-click="addDialogNode(child)">+</button>
+                <div ng-repeat="node in child.nodes" ng-include="'tmpl/dialog_node.html'"  ng-init="parent = child"/>
+            </div>
+        </div>
+        <pre>
+            {{ dialog }}
+        </pre>
     </body>
 </html>

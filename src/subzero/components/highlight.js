@@ -36,10 +36,10 @@ define([
 				}
 			},
 			render: function(){
-				if (this._active){
+				//if (this._active){
 					this.indicater.position.x = this.get('xform.tx');
 					this.indicater.position.y = this.get('xform.ty');
-				}
+				//}
 			}
 		});
 	}

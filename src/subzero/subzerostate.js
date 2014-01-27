@@ -295,7 +295,8 @@ define([
 			},
 
 			get: function(path){
-				return this.game.data.persist.vars[path]
+				console.log(this.game.data.persist.vars, path, this.game.data.persist.vars[path]);
+				return this.game.data.persist.vars[path];
 			},
 
 			set: function(path, value){

@@ -1,0 +1,41 @@
+<div>
+    <div class="node-dialog">
+        <button ng-click="removeDialogNode(parent, node)">Remove Node</button>
+        <div>
+            <label>Text</label>
+            <textarea ng-model="node.text"></textarea>
+        </div>
+
+        <div>
+            <label>Speaker</label>
+            <input type="text" ng-model="node.speaker"/>
+        </div>
+
+        <div>
+            <label>Requirements<button ng-click="addRequirement(node)">+</button></label>
+            <div ng-repeat="req in node.requirements">
+                <input type="text" ng-model="req"/><button ng-click="removeRequirement(node, req)">-</button>
+            </div>
+        </div>
+
+        <div>
+
+            <label>Responses<button ng-click="addResponse(node)">+</button></label>
+            <div class="dialog-response" ng-repeat="response in node.responses">
+                <label>Text</label>
+                <textarea ng-model="response.text"></textarea>
+                <label>Command</label>
+                <input type="text" ng-model="response.command"></input>
+                <div ng-repeat="node in response.nodes" ng-init="parent = response" ng-include="'tmpl/dialog_node.html'">
+                </div>
+                <button ng-click="removeResponse(node, response)">Remove Response</button>
+                <button ng-click="addDialogNode(response)">Add Child</button>
+            </div>
+        </div>
+
+        <div>
+            <label>Post Script</label>
+            <textarea ng-model="node.postScript"></textarea>
+        </div>
+    </div>
+</div>

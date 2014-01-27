@@ -3,6 +3,22 @@ define([
         './config',
         './dialog'
     ], function(sge, config, Dialog){
+
+        //http://james.padolsey.com/javascript/wordwrap-for-javascript/
+        function wordwrap( str, width, brk, cut ) {
+         
+            brk = brk || '\n';
+            width = width || 75;
+            cut = cut || false;
+         
+            if (!str) { return str; }
+         
+            var regex = '.{1,' +width+ '}(\\s|$)' + (cut ? '|.{' +width+ '}|.+$' : '|\\S+?(\\s|$)');
+         
+            return str.match( RegExp(regex, 'g') ).join( brk );
+         
+        }
+
     	var CutsceneState = sge.GameState.extend({
                 init: function(game){
                     this._super(game);
@@ -10,6 +26,9 @@ define([
                     this.container = new PIXI.DisplayObjectContainer();
                     this._scale = 1;
                     this._index = 0;
+                    this._timeout = 1/15;
+                    this._char = 0;
+                    this._text = null;
                     this.container.scale.x= window.innerWidth / game.width;
                     this.container.scale.y= window.innerHeight / game.height;
 
@@ -20,17 +39,17 @@ define([
                     this.background.alpha = 0.65;
                     this._state = 'dialog';
                 },
-                tick: function(){
+                tick: function(delta){
                     if (this.input.isPressed('space') || this.input.isPressed('enter')){
                         this.interact();
                     }
-                     if (this.input.isPressed('up')){
+                    if (this.input.isPressed('up')){
                         this.up();
                     }
-
                     if (this.input.isPressed('down')){
                         this.down();
                     }
+                    this._updateText(delta);
                 },
                 interact: function(){
                     if (this._state=='choose'){
@@ -44,6 +63,8 @@ define([
 
                             this.parseDialogNode(node, true);
                         }
+                    } else if(this._state=='typing') {
+                        this._completeText();
                     } else {
                         if (this._node){
                             if (this._node.postScript){
@@ -68,19 +89,11 @@ define([
                 },
                 startDialog: function(id){
                     var node = Dialog.dialogs[id];
-                    var children = node.nodes || [];
-                    var child=null;
-                    for (var i=0; i<children.length;i++){
-                        child = children[i];
-                        break;
-                    }
-                    if (child){
+                    if (node){
                         this.game.changeState('cutscene');
-                        this.parseDialogNode(child);
-                        return true;
-                    } else {
-                        return false;
+                        this.parseDialogNode(node);
                     }
+                    
                 },
                 _clearResponses: function(){
                     this._responses = [];
@@ -200,14 +213,46 @@ define([
                     }
                 },
                 setDialogText: function(dialog){
+                    this._char = 0;
                     while (this.container.children.length){
                         this.container.removeChild(this.container.children[0]);
                     }
-                    var text = new PIXI.BitmapText(dialog, {font: '32px 8bit'});
-                    text.position.y = this.game.height / (2*this._scale);
-                    text.position.x = 32;
+
+                    this._text = wordwrap(dialog, 60).replace(/\n\n/,'\n');
+
+                    this._textObj = new PIXI.BitmapText('', {font: '32px 8bit'});
+                    this._textObj.position.y = this.game.height / (2*this._scale);
+                    this._textObj.position.x = 32;
                     this.container.addChild(this.background)
-                    this.container.addChild(text);
+                    this.container.addChild(this._textObj);
+                    this._state = 'typing';
+                },
+                _updateText: function(delta){
+                    if (this._text){
+                        this._timeout -= delta;
+                        if (this._timeout<0){
+                            this._timeout=1/30;
+                            this._char++;
+
+                            if (this._char>=this._text.length){
+                                this._completeText();
+                            } else {
+                                if (this._text[this._char].match(/\n/)){
+                                    this._timeout = 1;
+                                } else {
+                                    while (this._text[this._char].match(/[ ]/)){
+                                        this._char++;
+                                    }
+                                }
+                                this._textObj.setText(this._text.slice(0, this._char));
+                            }
+                        }
+                    }
+                },
+                _completeText: function(){
+                    this._textObj.setText(this._text);
+                    this._state = 'waiting';
+                    this._text = null;
                 },
                 createSandbox : function(func){
                     code = func.replace(/@\(([\w\.]+)\)/g,"state.getEntity('$1')");
