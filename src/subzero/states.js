@@ -12,7 +12,7 @@ define([
                     this.container.scale.y= window.innerHeight / game.height;
                 
                     
-                    var background = new PIXI.Sprite.fromFrame('backgrounds/space_d');
+                    var background = new PIXI.Sprite.fromFrame('backgrounds/space_a');
                     this.stage.addChild(background);
 
                     var text = new PIXI.BitmapText('Win', {font: '96px 8bit', align: 'center'});
@@ -46,7 +46,7 @@ define([
                     this.container.scale.y= window.innerHeight / game.height;
                 
                     
-                    var background = new PIXI.Sprite.fromFrame('backgrounds/space_e');
+                    var background = new PIXI.Sprite.fromFrame('backgrounds/space_a');
                     this.stage.addChild(background);
 
                     var text = new PIXI.BitmapText('Lose', {font: '96px 8bit', align: 'center'});

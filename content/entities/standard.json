@@ -121,6 +121,26 @@
             "type" : 2
         }
     },
+    "bed" : {
+        "meta" : { "inherit" : "trigger" },
+        "sprite": {
+            "src" : "bed",
+            "frame" : 0,
+            "offsety" : -32,
+            "offsetx" : -16,
+            "container" : "entities"
+        }
+    },
+    "desk" : {
+        "meta" : { "inherit" : "trigger" },
+        "sprite": {
+            "src" : "desk.small",
+            "frame" : 0,
+            "offsety" : -48,
+            "offsetx" : -48,
+            "container" : "entities"
+        }
+    },
     "bomb" : {
         "meta" : { "inherit" : "trigger" },
         "bomb" : {},

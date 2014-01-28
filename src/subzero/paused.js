@@ -12,7 +12,7 @@ define([
                 this.container.scale.y= window.innerHeight / game.height;
             
                 
-                var background = new PIXI.Sprite.fromFrame('backgrounds/space_a');
+                var background = new PIXI.Sprite.fromFrame('backgrounds/space_b');
                 this.stage.addChild(background);
 
                 var text = new PIXI.BitmapText('Paused', {font: '96px 8bit'});

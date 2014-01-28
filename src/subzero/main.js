@@ -16,8 +16,7 @@ define([
 
             var loader = new sge.Loader();
             var promises = [];
-            promises.push(loader.loadFont('content/font/standard_white.fnt'))
-            promises.push(loader.loadTexture('content/backgrounds/space_d.png', 'backgrounds/space_d'))
+            promises.push(loader.loadFont('content/font/standard_white.fnt'));
             sge.When.all(promises).then(function(){
 
                 game = new sge.Game();
@@ -86,7 +85,7 @@ define([
                         game.createState('swap');
 
                         game.setStateClass('game', SubzeroState);
-                        game.changeState('menu');
+                        game.getState('load').ready('menu');
                     }.bind(this));
                 });
             })

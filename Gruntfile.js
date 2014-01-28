@@ -13,7 +13,7 @@ module.exports = function(grunt) {
         clean: [".tmp/"],
 
         concat: {
-            "js/subzero.js" : ["vendor/pixi.js","vendor/soundjs.min.js","vendor/require.js",".tmp/app.js"],
+            "js/subzero.js" : ["vendor/pixi.js","vendor/soundjs.min.js","vendor/TweenMax.js","vendor/require.js",".tmp/app.js"],
             "options" : {
                 process : function(content, srcpath){
                     content = content.replace(/\$\$BUILD_DATE/, grunt.template.today('yyyy-mm-dd'))
@@ -47,7 +47,7 @@ module.exports = function(grunt) {
                 options: {
                     archive: "game.zip"
                 },
-                files: [{src: 'content/**'},{src: 'js/*'},{src: 'vendor/*'},{src: 'index.html'}]
+                files: [{src: 'content/**'},{src: 'js/subzero'},{src: 'index.html'}]
             }
         },
 

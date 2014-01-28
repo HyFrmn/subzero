@@ -7,7 +7,8 @@ define([
 		'./factory',
 		'./social',
 		'./ai',
-		'./hud'
+		'./hud',
+		'./filters/camera'
 	], function(sge, TileMap, TiledLevel, Entity, Physics, Factory, Social, AI, HUD){
 		var SubzeroState = sge.GameState.extend({
 			init: function(game){
@@ -38,6 +39,12 @@ define([
 				this.containers.hud = new PIXI.DisplayObjectContainer();
 				this.container.addChild(this.containers.map);
 				this.container.addChild(this.containers.hud);
+
+				this.curtain = new PIXI.Graphics();
+				this.curtain.beginFill('0x000000');
+				this.curtain.drawRect(0,0,game.width, game.height);
+				this.curtain.endFill();
+				this.container.addChild(this.curtain);
 				
 				this.physics = new Physics();
 				this.factory = Factory;
@@ -101,7 +108,6 @@ define([
 				this.game.createState('game');
 			},
 			initGame: function(){
-
 				var pc = this.getEntity('pc');
 				this.pc = pc;
 				if (this.pc){
@@ -157,11 +163,15 @@ define([
 				this.containers.map.addChild(this.containers.underfoot);
 				this.containers.map.addChild(this.containers.entities);
 				this.containers.map.addChild(this.containers.overhead);
-				this.containers.map.addChild(this.containers.glow);
 				this.containers.map.position.x = this.game.width/(2*this._scale)-(this.map.width*this.map.tileSize*0.5);
 				this.containers.map.position.y = this.game.height/(2*this._scale)-(this.map.height*this.map.tileSize*0.5);
 				console.log('Starting Game')
-				this.game.changeState('game');
+				this.game.getState('load').ready('game');
+				TweenLite.to(this.curtain, 1, {alpha: 0, delay:1, onComplete: function(){
+						this.container.removeChild(this.curtain);
+					}.bind(this)
+				});
+				
 
 			},
 			tick: function(delta){

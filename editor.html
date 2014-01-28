@@ -55,12 +55,18 @@
 </head>
     <body ng-app="subzero">
         <div ng-controller="DialogCtrl">
-            <button ng-click="save()">Save</button>
-            <h2>Dialog</h2><button ng-click="addDialog()">+</button>
+            <h2>Dialog</h2>
+            <button class="btn" ng-click="addDialog()">Create Dialog Tree</button>
+            <button class="btn btn-success" ng-click="save()">Save</button>
             <tabset>
                 <tab heading="{{child.name}}" ng-repeat="child in dialog">
-                    <h3>{{child.name}}</h3><button ng-click="addDialogNode(child)">+</button>
-                    <div ng-repeat="node in child.nodes" ng-include="'tmpl/dialog_node.html'"  ng-init="parent = child"/>
+                    <h3>{{child.name}}</h3><button class="btn btn-primary" ng-click="addDialogNode(child)">Add Dialog Node</button>
+                    <accordion> 
+                    <accordion-group heading="{{node.text}}" ng-repeat="node in child.nodes" ng-init="parent = child">
+                        <div ng-include="'tmpl/dialog_node.html'">
+                        </div>
+                    </accordion-group>
+                    </accordion>
                 </tav>
             </tabset>
         </div>
