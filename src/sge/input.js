@@ -310,13 +310,13 @@ function(Observable){
             }.bind(this), 100)
         },
         keyDownCallback : function(e){
-            //console.log('keydown:' + REVERSE_KEYCODES[e.keyCode]);
+            console.log('keydown:' + REVERSE_KEYCODES[e.keyCode]);
             if (!this._isKeyDown[e.keyCode]){
                 this._isNewKeyDown[e.keyCode] = true;
             }
         },
         keyUpCallback : function(e){
-            //console.log('keyup:' + REVERSE_KEYCODES[e.keyCode]);
+            console.log('keyup:' + REVERSE_KEYCODES[e.keyCode]);
             delete this._isNewKeyDown[e.keyCode];
             this._isKeyDown[e.keyCode] = undefined;
         },

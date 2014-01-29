@@ -17,4 +17,6 @@ class StaticAndDynamic(object):
     	fd.write(data['content']);
     	fd.close();
 
+cherrypy.config.update({'server.socket_host': '0.0.0.0',})
+cherrypy.config.update({'server.socket_port': int(os.environ.get('PORT', '8080')),})
 cherrypy.quickstart(StaticAndDynamic())
